@@ -59,6 +59,9 @@ export function startBridge(opts: BridgeOptions = {}) {
   const host = opts.host ?? '127.0.0.1';
   const engine = new Engine(opts.engine);
   const tilesDir = resolve(engine.options.libDir, 'tiles');
+  // Only the Gervais set is used and licensed for this project (CC BY 3.0).
+  // Other bundled sets (e.g. Shockbolt) forbid use outside Angband itself.
+  const servedTilesets = new Set(['gervais']);
   const clientDir = opts.clientDir ?? resolve(REPO_ROOT, 'client/dist');
 
   let active: WebSocket | null = null;
@@ -129,7 +132,8 @@ export function startBridge(opts: BridgeOptions = {}) {
       return;
     }
     if (url.startsWith('/tiles/')) {
-      const file = safeJoin(tilesDir, url.slice('/tiles/'.length));
+      const rel = url.slice('/tiles/'.length);
+      const file = servedTilesets.has(rel.split('/')[0]) ? safeJoin(tilesDir, rel) : null;
       if (file && serveFile(res, file)) return;
     } else if (existsSync(clientDir)) {
       const file = safeJoin(clientDir, url === '/' ? 'index.html' : url);

@@ -234,11 +234,8 @@ export class PromptLayer extends Layer {
       if (ev.key === 'n' || ev.key === 'N') { this.answer({ value: false }); return true; }
     }
     if (this.menu) {
-      // Shift+Enter examines on keyboard
-      if (ev.device === 'keyboard' && ev.key === 'Enter' && ev.ui === 'confirm' && (window.event as KeyboardEvent | undefined)?.shiftKey) {
-        return this.menu.handleInput({ ...ev, ui: 'secondary' });
-      }
-      return this.menu.handleInput(ev) || true;
+      this.menu.handleInput(ev);
+      return true;
     }
     return true;
   }

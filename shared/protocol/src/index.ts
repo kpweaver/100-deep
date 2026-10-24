@@ -331,7 +331,7 @@ export type GameAction =
   | 'rest'
   | 'target_closest' | 'target_next' | 'target_prev' | 'target_clear'
   | 'target_monster' | 'fire_at_nearest' | 'ignore' | 'toggle_unignore'
-  | 'feeling'
+  | 'feeling' | 'pathfind'
   | 'store_buy' | 'store_sell' | 'store_leave';
 
 export interface CommandMessage {
@@ -346,6 +346,9 @@ export interface CommandMessage {
   spell?: number;
   text?: string;
   mode?: 'as_needed' | 'hp_sp' | 'hp_or_sp' | 'turns';
+  /** Grid for 'pathfind' */
+  x?: number;
+  y?: number;
   turns?: number;
 }
 

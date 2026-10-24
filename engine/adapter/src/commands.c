@@ -202,6 +202,21 @@ bool commands_dispatch(const jv *msg)
 		handle_stuff(player);
 		return false;
 	}
+	if (streq(name, "pathfind")) {
+		/* Travel to a known grid (the textui's mouse-click travel).  The
+		 * core does no argument checking, so validate here; pathing uses
+		 * only the player's memory, so nothing hidden is revealed. */
+		struct loc grid = loc((int)jv_get_int(msg, "x", -1), (int)jv_get_int(msg, "y", -1));
+		if (!square_in_bounds_fully(cave, grid) || !square_isknown(cave, grid))
+			return fail("Cannot travel there", NULL);
+		if (player->upkeep->steps) {
+			mem_free(player->upkeep->steps);
+			player->upkeep->steps = NULL;
+		}
+		cmdq_push(CMD_PATHFIND);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+		return true;
+	}
 	if (streq(name, "feeling")) {
 		display_feeling(false);
 		return false;

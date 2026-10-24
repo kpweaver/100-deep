@@ -43,7 +43,7 @@ export class DungeonMesh {
   private doorGeo = new THREE.BoxGeometry(1, WALL_HEIGHT * 0.92, 0.12);
   private stepGeo = new THREE.BoxGeometry(0.9, 1, 0.22);
   private decalGeo = new THREE.PlaneGeometry(0.9, 0.9).rotateX(-Math.PI / 2);
-  private rubbleGeo = new THREE.DodecahedronGeometry(0.22, 0);
+  private rubbleGeo = new THREE.DodecahedronGeometry(0.15, 0);
   private materials = new Map<string, THREE.Material>();
   private batches = new Map<string, Batch>();
   private billboards = new THREE.Group();
@@ -214,8 +214,9 @@ export class DungeonMesh {
           const count = c.shape === 'rubble' ? 3 : 2;
           for (let s = 0; s < count; s++) {
             const a = (x * 7 + y * 13 + s * 2.1) % (Math.PI * 2);
-            this.push(batches.rubble, x + Math.cos(a) * 0.2, 0.12 + s * 0.08, y + Math.sin(a) * 0.2,
-              a, col, c.shape === 'rubble' ? 1.6 : 1, 1, 1.4);
+            const big = c.shape === 'rubble' ? 1.4 : 0.9;
+            this.push(batches.rubble, x + Math.cos(a) * 0.22, 0.08 + s * 0.07, y + Math.sin(a) * 0.22,
+              a, col, big, big * 0.8, big);
           }
         } else if (c.shape === 'shop') {
           this.shopSign(ctx, f, x, y, inView);

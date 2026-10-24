@@ -16,7 +16,8 @@ export type GameAction =
   | 'runForward'
   | 'walkDir1' | 'walkDir2' | 'walkDir3' | 'walkDir4' | 'walkDir6'
   | 'walkDir7' | 'walkDir8' | 'walkDir9'
-  | 'goUp' | 'goDown';
+  | 'goUp' | 'goDown'
+  | 'study';
 
 export type UiAction =
   | 'up' | 'down' | 'left' | 'right'
@@ -48,7 +49,7 @@ export const PROMPTS: Record<Device, Partial<Record<GameAction | UiAction, strin
     interact: 'Space', attack: 'F', explore: 'X', wait: '.', rest: 'R',
     targetNext: 'Tab', inventory: 'I', spells: 'Z', quick: 'V', map: 'M',
     character: 'C', menu: 'Esc', confirm: 'Enter', back: 'Esc',
-    secondary: 'Shift', tertiary: '?', moveForward: 'W', turnLeft: 'Q', turnRight: 'E',
+    secondary: 'Shift+Enter', tertiary: '?', moveForward: 'W', turnLeft: 'Q', turnRight: 'E',
     goUp: '<', goDown: '>',
   },
   gamepad: {

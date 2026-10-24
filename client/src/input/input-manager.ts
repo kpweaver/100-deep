@@ -6,14 +6,18 @@ import type { Device, GameAction, InputEvent, InputHandler, UiAction } from './a
 
 interface KeyBinding { game?: GameAction; ui?: UiAction }
 
-/** Default keyboard bindings (rebindable later via settings) */
+/**
+ * Default keyboard bindings (rebindable later via settings).  In menus,
+ * letters are Angband-style item shortcuts, so WASD only moves in play and
+ * arrow keys navigate menus.
+ */
 const KEYS: Record<string, KeyBinding> = {
-  KeyW: { game: 'moveForward', ui: 'up' },
+  KeyW: { game: 'moveForward' },
   ArrowUp: { game: 'moveForward', ui: 'up' },
-  KeyS: { game: 'moveBack', ui: 'down' },
+  KeyS: { game: 'moveBack' },
   ArrowDown: { game: 'moveBack', ui: 'down' },
-  KeyA: { game: 'strafeLeft', ui: 'left' },
-  KeyD: { game: 'strafeRight', ui: 'right' },
+  KeyA: { game: 'strafeLeft' },
+  KeyD: { game: 'strafeRight' },
   KeyQ: { game: 'turnLeft' },
   ArrowLeft: { game: 'turnLeft', ui: 'left' },
   KeyE: { game: 'turnRight' },
@@ -125,8 +129,11 @@ export class InputManager {
     this.setDevice('keyboard');
     let binding = KEYS[e.code] ?? {};
     // Shift+forward runs; Shift+Tab cycles targets backwards; < and > use stairs
-    if (e.shiftKey && (e.code === 'KeyW' || e.code === 'ArrowUp')) binding = { game: 'runForward', ui: 'up' };
+    if (e.shiftKey && e.code === 'KeyW') binding = { game: 'runForward' };
+    if (e.shiftKey && e.code === 'ArrowUp') binding = { game: 'runForward', ui: 'up' };
     if (e.shiftKey && e.code === 'Tab') binding = { game: 'targetPrev', ui: 'tabPrev' };
+    if (e.shiftKey && (e.code === 'Enter' || e.code === 'NumpadEnter')) binding = { game: 'interact', ui: 'secondary' };
+    if (e.shiftKey && e.code === 'KeyZ') binding = { game: 'study' };
     if (e.key === '<') binding = { game: 'goUp' };
     if (e.key === '>') binding = { game: 'goDown' };
     if (binding.game || binding.ui || e.key.length === 1) {

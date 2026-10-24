@@ -341,9 +341,19 @@ export class App implements InputHandler {
     }
   }
 
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
+
   private flushQueue(): void {
     if (this.pending || !this.queued || this.state.prompt) return;
-    if (this.renderer?.cam.busy) return;
+    if (this.renderer?.cam.busy) {
+      // Don't depend on the render loop (throttled in background tabs)
+      this.flushTimer ??= setTimeout(() => {
+        this.flushTimer = null;
+        this.renderer?.cam.finish();
+        this.flushQueue();
+      }, 180);
+      return;
+    }
     const q = this.queued;
     this.queued = null;
     this.send(q);
@@ -450,13 +460,8 @@ export class App implements InputHandler {
         this.inventory = new InventoryLayer(this.ctx);
         this.ui.open(this.inventory);
         break;
-      case 'spells':
-        if (this.state.player?.canStudy && ev.device === 'keyboard' && (window.event as KeyboardEvent | undefined)?.shiftKey) {
-          this.command({ action: 'study' });
-        } else {
-          this.command({ action: 'cast' });
-        }
-        break;
+      case 'spells': this.command({ action: 'cast' }); break;
+      case 'study': this.command({ action: 'study' }); break;
       case 'quick': openQuickMenu(this.ctx, { save: () => this.send({ type: 'save' }) }); break;
       case 'map': this.ui.open(new MapLayer(this.ctx)); break;
       case 'character': this.ui.open(new TextLayer('Character', characterSheet(this.ctx))); break;

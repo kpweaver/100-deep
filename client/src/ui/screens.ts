@@ -151,7 +151,7 @@ export class InventoryLayer extends Layer {
       h('div', { class: 'panel-body' }, this.menu.el, this.detail),
       h('div', { class: 'panel-footer' },
         h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Use'),
-        h('span', {}, h('kbd', {}, p.secondary ?? 'Shift'), 'Examine'),
+        h('span', {}, h('kbd', {}, p.secondary ?? 'Shift+Enter'), 'Examine'),
         h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'LB/RB' : 'Tab'), 'Switch tab'),
         h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Close'))));
     this.refresh();
@@ -259,7 +259,8 @@ export class InventoryLayer extends Layer {
       this.setTab(order[(order.indexOf(this.tab) + d + order.length) % order.length]);
       return true;
     }
-    if (ev.ui === 'menu' || (ev.game === 'inventory' && ev.device === 'keyboard')) {
+    // Letters are item shortcuts here, so only Esc/B/Start close the panel
+    if (ev.ui === 'menu') {
       this.close();
       return true;
     }
@@ -320,44 +321,99 @@ export function openQuickMenu(ctx: UiContext, extra: { save: () => void }): void
 export class MapLayer extends Layer {
   private map: TileMap;
   private wrap: HTMLElement;
+  private info = h('div', { class: 'map-info' });
+  private cx = 0;
+  private cy = 0;
 
   constructor(private ctx: UiContext) {
     super('map-layer');
     this.map = new TileMap(ctx.state, ctx.atlas()!);
     this.wrap = h('div', { class: 'map-wrap' }, this.map.canvas);
+    this.map.canvas.addEventListener('click', (e) => {
+      const r = this.map.canvas.getBoundingClientRect();
+      this.cx = Math.floor((e.clientX - r.left) / this.map.cell);
+      this.cy = Math.floor((e.clientY - r.top) / this.map.cell);
+      this.travel();
+    });
+    const gp = ctx.input.lastDevice === 'gamepad';
     this.el.append(h('div', { class: 'panel full' },
       h('div', { class: 'panel-title' }, 'Map', h('small', {}, 'Your knowledge of this level')),
       this.wrap,
+      this.info,
       h('div', { class: 'panel-footer' },
-        h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'LT/RT' : '+/-'), 'Zoom'),
-        h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'B' : 'Esc'), 'Close'))));
+        h('span', {}, h('kbd', {}, gp ? 'D-pad' : 'Arrows'), 'Move cursor'),
+        h('span', {}, h('kbd', {}, gp ? 'A' : 'Enter'), 'Travel here'),
+        h('span', {}, h('kbd', {}, gp ? 'LT/RT' : '+/-'), 'Zoom'),
+        h('span', {}, h('kbd', {}, gp ? 'B' : 'Esc'), 'Close'))));
   }
 
   onOpen(): void {
-    this.redraw();
-  }
-
-  redraw(): void {
-    this.map.draw(this.ctx.facing());
     const p = this.ctx.state.player;
     if (p) {
-      this.wrap.scrollLeft = p.x * this.map.cell - this.wrap.clientWidth / 2;
-      this.wrap.scrollTop = p.y * this.map.cell - this.wrap.clientHeight / 2;
+      this.cx = p.x;
+      this.cy = p.y;
     }
+    this.redraw(true);
+  }
+
+  /** Describe the cursor grid from the player's knowledge only */
+  private describe(): string {
+    const s = this.ctx.state;
+    const parts: string[] = [];
+    const f = s.map.featAt(this.cx, this.cy);
+    if (!f) return 'Unknown';
+    const mon = s.monsterAt(this.cx, this.cy);
+    const obj = s.objectAt(this.cx, this.cy);
+    if (s.player && s.player.x === this.cx && s.player.y === this.cy) parts.push('You');
+    if (mon) parts.push(`${mon.name}${mon.status ? ` (${mon.status})` : ''}`);
+    if (obj) parts.push(obj.name || 'an object');
+    parts.push(s.features[f]?.name ?? '');
+    return parts.join(' · ');
+  }
+
+  redraw(center = false): void {
+    this.map.draw(this.ctx.facing());
+    const c = this.map.cell;
+    const ctx2d = this.map.canvas.getContext('2d')!;
+    ctx2d.strokeStyle = '#ffd84a';
+    ctx2d.lineWidth = 2;
+    ctx2d.strokeRect(this.cx * c + 1, this.cy * c + 1, c - 2, c - 2);
+    this.info.textContent = this.describe();
+    const x = this.cx * c - this.wrap.clientWidth / 2;
+    const y = this.cy * c - this.wrap.clientHeight / 2;
+    if (center || Math.abs(this.wrap.scrollLeft - x) > this.wrap.clientWidth / 3) this.wrap.scrollLeft = x;
+    if (center || Math.abs(this.wrap.scrollTop - y) > this.wrap.clientHeight / 3) this.wrap.scrollTop = y;
+  }
+
+  private travel(): void {
+    const s = this.ctx.state;
+    if (!s.map.isKnown(this.cx, this.cy)) {
+      this.info.textContent = 'You do not know how to get there.';
+      return;
+    }
+    this.ctx.send({ type: 'command', action: 'pathfind', x: this.cx, y: this.cy });
+    this.close();
   }
 
   handleInput(ev: InputEvent): boolean {
+    const s = this.ctx.state;
+    const move = (dx: number, dy: number) => {
+      this.cx = Math.max(0, Math.min(s.map.width - 1, this.cx + dx));
+      this.cy = Math.max(0, Math.min(s.map.height - 1, this.cy + dy));
+      this.redraw();
+    };
     if (ev.ui === 'pageDown' || ev.key === '+' || ev.key === '=') {
       this.map.cell = Math.min(32, this.map.cell + 4);
-      this.redraw();
+      this.redraw(true);
     } else if (ev.ui === 'pageUp' || ev.key === '-') {
       this.map.cell = Math.max(4, this.map.cell - 4);
-      this.redraw();
-    } else if (ev.ui === 'up') this.wrap.scrollTop -= 64;
-    else if (ev.ui === 'down') this.wrap.scrollTop += 64;
-    else if (ev.ui === 'left') this.wrap.scrollLeft -= 64;
-    else if (ev.ui === 'right') this.wrap.scrollLeft += 64;
-    else if (ev.ui === 'back' || ev.ui === 'menu' || ev.ui === 'confirm' || ev.game === 'map') this.close();
+      this.redraw(true);
+    } else if (ev.ui === 'up') move(0, -1);
+    else if (ev.ui === 'down') move(0, 1);
+    else if (ev.ui === 'left') move(-1, 0);
+    else if (ev.ui === 'right') move(1, 0);
+    else if (ev.ui === 'confirm') this.travel();
+    else if (ev.ui === 'back' || ev.ui === 'menu' || ev.game === 'map') this.close();
     return true;
   }
 }

@@ -54,6 +54,18 @@ export class GridCamera {
     return this.moveT < 1 || this.turnT < 1;
   }
 
+  /** Complete any running move/turn animation immediately */
+  finish(): void {
+    if (this.moveT < 1) {
+      this.moveT = 1;
+      this.camera.position.copy(this.to);
+    }
+    if (this.turnT < 1) {
+      this.turnT = 1;
+      this.camera.rotation.y = GridCamera.yawFor(this.facing);
+    }
+  }
+
   /** Snap to an authoritative position (level change, resync) */
   teleport(x: number, y: number): void {
     this.gridX = x;
