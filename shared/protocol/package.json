@@ -1,0 +1,10 @@
+{
+  "name": "@thang/protocol",
+  "private": true,
+  "version": "1.0.0",
+  "license": "GPL-2.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

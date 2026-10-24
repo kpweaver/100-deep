@@ -1,0 +1,31 @@
+{
+  "name": "thangorodrim",
+  "private": true,
+  "version": "0.1.0",
+  "description": "First-person, controller-friendly frontend for the real Angband engine",
+  "license": "GPL-2.0-only",
+  "type": "module",
+  "workspaces": [
+    "shared/protocol",
+    "bridge",
+    "client"
+  ],
+  "engines": {
+    "node": ">=23.6"
+  },
+  "scripts": {
+    "build:engine": "sh scripts/build-engine.sh",
+    "build:client": "npm run build -w client",
+    "build": "npm run build:engine && npm run build:client",
+    "dev": "node scripts/dev.ts",
+    "start": "npm run build && node bridge/src/index.ts",
+    "test": "npm run test:engine && npm run test:client",
+    "test:engine": "node --test tests/engine/*.test.ts",
+    "test:client": "npm run test -w client",
+    "typecheck": "tsc -p bridge && tsc -p client --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

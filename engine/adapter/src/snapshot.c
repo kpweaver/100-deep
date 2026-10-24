@@ -40,6 +40,7 @@
 #include "player-spell.h"
 #include "player-timed.h"
 #include "player-util.h"
+#include "project.h"
 #include "target.h"
 #include "trap.h"
 #include "ui-display.h"
@@ -153,6 +154,7 @@ static void ev_bolt(game_event_type type, game_event_data *data, void *user)
 	jw_obj_begin(&fx_buf);
 	jw_kstr(&fx_buf, "kind", data->bolt.beam ? "beam" : "bolt");
 	jw_kint(&fx_buf, "proj", data->bolt.proj_type);
+	jw_kint(&fx_buf, "color", projections[data->bolt.proj_type].color);
 	jw_kint(&fx_buf, "x", data->bolt.x);
 	jw_kint(&fx_buf, "y", data->bolt.y);
 	jw_kint(&fx_buf, "fromX", data->bolt.ox);
@@ -187,6 +189,7 @@ static void ev_explosion(game_event_type type, game_event_data *data, void *user
 	jw_obj_begin(&fx_buf);
 	jw_kstr(&fx_buf, "kind", "explosion");
 	jw_kint(&fx_buf, "proj", data->explosion.proj_type);
+	jw_kint(&fx_buf, "color", projections[data->explosion.proj_type].color);
 	jw_kint(&fx_buf, "x", data->explosion.centre.x);
 	jw_kint(&fx_buf, "y", data->explosion.centre.y);
 	jw_key(&fx_buf, "grids");
@@ -329,6 +332,18 @@ void snapshot_write_static(jw *w)
 		}
 		jw_arr_end(w);
 		jw_obj_end(w);
+	}
+	jw_arr_end(w);
+
+	/* Angband's colour palette, for status colours and effects */
+	jw_key(w, "palette");
+	jw_arr_begin(w);
+	for (i = 0; i < MAX_COLORS; i++) {
+		jw_arr_begin(w);
+		jw_int(w, angband_color_table[i][1]);
+		jw_int(w, angband_color_table[i][2]);
+		jw_int(w, angband_color_table[i][3]);
+		jw_arr_end(w);
 	}
 	jw_arr_end(w);
 
@@ -562,6 +577,8 @@ static void write_monsters(jw *w)
 		jw_kint(w, "y", mon->grid.y);
 		write_tile(w, "tile", a, c);
 		jw_kstr(w, "name", name);
+		/* Race shown only when the player can actually tell what it is */
+		if (!halluc) jw_kstr(w, "race", mon->race->name);
 		jw_kstr(w, "status", status);
 		jw_kbool(w, "inView", monster_is_in_view(mon));
 		jw_kbool(w, "unique", !halluc && monster_is_shape_unique(mon));
@@ -687,6 +704,10 @@ void snapshot_write_object_json(jw *w, struct object *obj, const char *handle)
 		jw_arr_end(w);
 	} else {
 		jw_null(w);
+		if (thang_debug)
+			fprintf(stderr, "[snapshot] no tile for %s (kidx %d, flavor %d, attr 0x%x char 0x%x)\n",
+				name, obj->kind->kidx, obj->kind->flavor ? (int)obj->kind->flavor->fidx : -1,
+				object_kind_attr(obj->kind), (unsigned)object_kind_char(obj->kind));
 	}
 	if (obj->note) jw_kstr(w, "inscription", quark_str(obj->note));
 	write_item_actions(w, obj, equipped);

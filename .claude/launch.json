@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "thangorodrim",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/dev.ts"],
+      "port": 5173
+    }
+  ]
+}

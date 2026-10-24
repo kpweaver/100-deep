@@ -38,6 +38,7 @@
 #include "option.h"
 #include "player-birth.h"
 #include "player-calcs.h"
+#include "player-spell.h"
 #include "player-timed.h"
 #include "player-util.h"
 #include "savefile.h"
@@ -196,7 +197,6 @@ static void engine_reinit(void)
 	if (opt_seed >= 0) Rand_state_init((uint32_t)opt_seed);
 	register_handlers();
 	snapshot_reset_map();
-	load_visuals();
 }
 
 /* Enter the world after birth or load (mirrors start_game()) */
@@ -384,6 +384,36 @@ static void handle_query(const jv *msg)
 			send_textblock("item", name, tb);
 			textblock_free(tb);
 		}
+	} else if (streq(what, "book")) {
+		/* Browse: list a book's spells without spending game time */
+		struct object *obj = handle_to_object(jv_get_str(msg, "item", NULL));
+		const struct class_book *book = obj ? player_object_to_book(player, obj) : NULL;
+		if (!book) {
+			proto_send_error("bad_item", "You cannot read that");
+		} else {
+			char name[160];
+			int i;
+			textblock *tb = textblock_new();
+			object_desc(name, sizeof(name), obj, ODESC_PREFIX | ODESC_FULL, player);
+			textblock_append(tb, "%-30s Lv Mana Fail Info\n", "Name");
+			for (i = 0; i < book->num_spells; i++) {
+				const struct class_spell *spell = &book->spells[i];
+				char info[64] = "";
+				if (spell->slevel >= 99) continue;
+				get_spell_info(spell->sidx, info, sizeof(info));
+				textblock_append(tb, "%-30s %2d %4d %3d%% %s%s\n", spell->name,
+					spell->slevel, spell->smana, spell_chance(spell->sidx), info,
+					(player->spell_flags[spell->sidx] & PY_SPELL_LEARNED) ? "" :
+					(spell->slevel > player->lev ? " (too high)" : " (unlearned)"));
+			}
+			for (i = 0; i < book->num_spells; i++) {
+				const struct class_spell *spell = &book->spells[i];
+				if (spell->slevel >= 99) continue;
+				textblock_append(tb, "\n%s: %s\n", spell->name, spell->text);
+			}
+			send_textblock("book", name, tb);
+			textblock_free(tb);
+		}
 	} else if (streq(what, "monster")) {
 		long id = jv_get_int(msg, "monster", 0);
 		struct monster *mon = (id > 0 && id < cave_monster_max(cave)) ?
@@ -463,7 +493,14 @@ int main(int argc, char *argv[])
 	if (!init_graphics_modes()) quit("Cannot load graphics modes (lib/tiles/list.txt)");
 	use_graphics = 3;	/* David Gervais' 32x32 tiles (lib/tiles/list.txt) */
 	if (!get_graphics_mode(use_graphics)) quit("Gervais tile mode not found");
-	load_visuals();
+	/* Base tile mapping only: the included xtra/flavour prefs test $RACE and
+	 * $CLASS, which need a character.  Like ui_leave_init() in the textui,
+	 * the full set is loaded once a character exists (enter_world()). */
+	current_graphics_mode = NULL;
+	reset_visuals(true);
+	/* Pref-file includes (%:xtra-dvg.prf, %:flvr-dvg.prf) are resolved
+	 * against current_graphics_mode->path, as in the stock frontends */
+	current_graphics_mode = get_graphics_mode(use_graphics);
 
 	hooks_install();
 	snapshot_init();

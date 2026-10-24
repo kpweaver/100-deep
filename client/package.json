@@ -1,0 +1,23 @@
+{
+  "name": "@thang/client",
+  "private": true,
+  "version": "0.1.0",
+  "license": "GPL-2.0-only",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@thang/protocol": "*",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  }
+}
