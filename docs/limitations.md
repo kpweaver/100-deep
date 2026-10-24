@@ -65,10 +65,6 @@ These systems all exist in the engine. Only the UI to reach them is missing.
 - **Physical controllers**: the Gamepad API path (standard mapping, Xbox and
   PlayStation layouts) is implemented, but this build was not tried with
   real hardware. Steam Deck is untested.
-- **Death in play**: the death flow mirrors `close_game()` (death knowledge,
-  score entry, dead savefile, new game) but has no automated test, because
-  forcing death needs debug commands we don't expose.
-
 ## Recommended next steps
 
 1. Look/target cursor in 3D: highlight grids, cycle "interesting" things,
@@ -80,4 +76,3 @@ These systems all exist in the engine. Only the UI to reach them is missing.
 5. Per-step animation of runs and pathing, by streaming intermediate
    snapshots on `EVENT_PLAYERMOVED` (cosmetic only).
 6. A WebAssembly build of the same adapter for a server-less web version.
-7. A death regression test using a scripted savefile at low HP.

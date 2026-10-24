@@ -314,3 +314,47 @@ test('closing stdin saves the game (abnormal client termination)', async () => {
   assert.deepEqual({ x: st.player!.x, y: st.player!.y }, pos);
   await b.stop();
 });
+
+test('character death follows the native flow and a new game can start', async () => {
+  // Deterministic with this seed: a hobbit mage who never eats or rests
+  const s = new Session({ seed: 31337, save: 'doomed' });
+  await s.start();
+  await s.newGame('Hobbit', 'Mage', 'Frodo');
+  const step = (dx: number, dy: number) =>
+    Number(Object.entries(DIR_OFFSETS).find(([, o]) => o[0] === Math.sign(dx) && o[1] === Math.sign(dy))![0]) as Direction;
+  for (let n = 0; n < 3000 && s.state!.phase === 'game'; n++) {
+    const p = s.player;
+    const seen = (s.state!.monsters ?? []).filter((m) => m.inView);
+    let r;
+    if (seen.length) {
+      r = await s.command({ action: 'walk', dir: step(seen[0].x - p.x, seen[0].y - p.y) });
+      if (r.type === 'state' && r.turn === s.state!.turn) r = await s.command({ action: 'hold' });
+    } else if (p.terrain === 'down staircase') {
+      r = await s.command({ action: 'go_down' });
+    } else {
+      r = await s.command({ action: 'navigate_down' });
+      if (r.type === 'state' && r.messages.some((m) => /Something|No known path/i.test(m.text))) r = await s.command({ action: 'explore' });
+      if (r.type === 'state' && r.messages.some((m) => /No apparent path/i.test(m.text))) r = await s.command({ action: 'hold' });
+    }
+    if (r.type === 'prompt') {
+      s.send({ type: 'cancel', id: r.id });
+      await s.next('state');
+    }
+  }
+  const st = s.state!;
+  assert.equal(st.phase, 'dead');
+  assert.ok(st.player!.dead && st.player!.diedFrom, 'died_from recorded');
+  // No more commands for the dead
+  s.send({ type: 'command', action: 'walk', dir: 2 });
+  assert.equal((await s.next('error', 'state')).type, 'error');
+  // The dead savefile cannot be resumed
+  s.send({ type: 'load_game' });
+  const err = await s.next('error');
+  assert.equal(err.type === 'error' && err.code, 'character_dead');
+  // But a new character can start in the same process
+  const ng = await s.newGame('Human', 'Warrior', 'Again');
+  assert.equal(ng.phase, 'game');
+  assert.equal(ng.player!.name, 'Again');
+  assert.equal(ng.player!.depth, 0);
+  await s.stop();
+});

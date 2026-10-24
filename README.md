@@ -117,7 +117,7 @@ accessible.
 
 ```bash
 npm test                  # engine integration tests + client unit tests
-npm run test:engine       # 15 tests against the real native engine
+npm run test:engine       # 16 tests against the real native engine
 npm run test:client       # 12 isolated client unit tests (vitest)
 ```
 
@@ -125,8 +125,8 @@ The engine tests never use fabricated game state. They spawn the real
 executable with a fixed seed and check movement, wall blocking, time
 accounting, stairs, information restriction (no secret doors, fog of war),
 Gervais tile mappings against the pref file, melee, item prompts, drop and
-pick-up, error handling, consistency under rapid input, save/reload and
-save-on-disconnect.
+pick-up, error handling, consistency under rapid input, save/reload,
+save-on-disconnect, and death followed by a new character.
 
 ## Repository layout
 
