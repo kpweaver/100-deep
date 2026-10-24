@@ -1,0 +1,3 @@
+[submodule "engine/upstream"]
+	path = engine/upstream
+	url = https://github.com/angband/angband
