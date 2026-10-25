@@ -34,7 +34,18 @@ async function alreadyRunning(url: string): Promise<boolean> {
   }
 }
 
+let shuttingDown = false;
+const shutdown = async () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log('[bridge] saving and shutting down...');
+  await bridge.close();
+  process.exit(0);
+};
+
 const bridge = startBridge({
+  // "Save and quit" from the game (local mode only)
+  onShutdownRequest: () => void shutdown(),
   mode: process.argv.includes('--hosted') ? 'hosted' : undefined,
   port: arg('--port') ? Number(arg('--port')) : undefined,
   host: arg('--host'),
@@ -66,14 +77,6 @@ try {
   process.exit(1);
 }
 
-let shuttingDown = false;
-const shutdown = async () => {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  console.log('[bridge] saving and shutting down...');
-  await bridge.close();
-  process.exit(0);
-};
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 // Closing the Terminal window sends SIGHUP: save like the stock game does

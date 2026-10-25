@@ -26,6 +26,8 @@ export class GridCamera {
 
   private from = new THREE.Vector3();
   private to = new THREE.Vector3();
+  /** Bezier control point for curved moves around wall corners, or null */
+  private via: THREE.Vector3 | null = null;
   private moveT = 1;
   private yawFrom = 0;
   private yawTo = 0;
@@ -72,24 +74,43 @@ export class GridCamera {
     this.gridY = y;
     this.to.set(x, EYE_HEIGHT, y);
     this.from.copy(this.to);
+    this.via = null;
     this.camera.position.copy(this.to);
     this.moveT = 1;
   }
 
-  /** Animate to a confirmed new position */
-  moveTo(x: number, y: number): void {
+  /**
+   * Animate to a confirmed new position.  A straight diagonal step passes
+   * exactly through the corner of any wall beside it, so callers pass a
+   * control point (`via`) to curve around it, or `snap` when the step
+   * squeezes between two walls and no clear path exists.
+   */
+  moveTo(x: number, y: number, path: { via?: [number, number]; snap?: boolean } = {}): void {
     const dist = Math.max(Math.abs(x - this.gridX), Math.abs(y - this.gridY));
     this.gridX = x;
     this.gridY = y;
-    // Long jumps (teleport, running several steps) snap
-    if (this.instant || dist > 2) {
+    // Only single steps animate; multi-grid jumps (teleport, runs) would cut corners
+    if (this.instant || dist > 1 || path.snap) {
       this.teleport(x, y);
       return;
     }
     this.from.copy(this.camera.position);
     this.from.y = EYE_HEIGHT;
     this.to.set(x, EYE_HEIGHT, y);
+    this.via = path.via ? new THREE.Vector3(path.via[0], EYE_HEIGHT, path.via[1]) : null;
     this.moveT = 0;
+  }
+
+  /** Position along the current move at eased time k (0..1) */
+  private pathAt(k: number, out: THREE.Vector3): THREE.Vector3 {
+    if (!this.via) return out.lerpVectors(this.from, this.to, k);
+    // Quadratic Bezier: from -> via (control) -> to
+    const a = (1 - k) * (1 - k), b = 2 * (1 - k) * k, c = k * k;
+    return out.set(
+      a * this.from.x + b * this.via.x + c * this.to.x,
+      EYE_HEIGHT,
+      a * this.from.z + b * this.via.z + c * this.to.z,
+    );
   }
 
   turn(steps: number): void {
@@ -131,7 +152,7 @@ export class GridCamera {
     const cam = this.camera;
     if (this.moveT < 1) {
       this.moveT = Math.min(1, this.moveT + dt / MOVE_TIME);
-      cam.position.lerpVectors(this.from, this.to, ease(this.moveT));
+      this.pathAt(ease(this.moveT), cam.position);
       this.bobPhase += dt * 14;
     } else {
       cam.position.copy(this.to);

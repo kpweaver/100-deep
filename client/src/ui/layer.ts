@@ -1,6 +1,7 @@
 /**
  * Modal UI layers.  Each open layer sits on the input stack; the topmost
- * receives all input.  Closing a layer returns focus to the one below.
+ * receives all input.  Only the topmost layer is drawn: layers beneath it
+ * are hidden until it closes, so menus never pile up on screen.
  */
 import type { InputEvent, InputHandler } from '../input/actions.ts';
 import type { InputManager } from '../input/input-manager.ts';
@@ -40,6 +41,7 @@ export class UiManager {
 
   open(layer: Layer): void {
     if (this.layers.includes(layer)) return;
+    this.top?.el.classList.add('covered');
     this.layers.push(layer);
     layer.attach(this);
     this.root.append(layer.el);
@@ -52,8 +54,10 @@ export class UiManager {
     if (i < 0) return;
     this.layers.splice(i, 1);
     layer.el.remove();
+    layer.el.classList.remove('covered');
     this.input.remove(layer);
     layer.attach(null);
+    this.top?.el.classList.remove('covered');
     layer.onClose();
   }
 

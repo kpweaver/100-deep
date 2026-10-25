@@ -51,6 +51,8 @@ async function createWindow() {
   }
   bridge = startBridge({
     mode: 'local',
+    // "Save and quit" in the game quits the app (the bridge saves on close)
+    onShutdownRequest: () => void shutdown(0),
     clientDir: p.clientDir,
     engine: { binary: p.binary, libDir: p.libDir, dataDir: join(app.getPath('userData'), 'data'), save: 'hero' },
     config: { host: '127.0.0.1', port: 0 },

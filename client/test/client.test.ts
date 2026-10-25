@@ -101,6 +101,35 @@ describe('GridCamera', () => {
     expect(FACING_TO_DIR[cam.facing]).toBe(4);
   });
 
+  it('curves diagonal steps around a wall corner instead of clipping it', () => {
+    // Step (0,0) -> (1,1) with a wall at (1,0): its corner (0.5, 0.5) is
+    // exactly the midpoint of a straight path
+    const cam = new GridCamera();
+    cam.teleport(0, 0);
+    cam.moveTo(1, 1, { via: [0, 1] });
+    let minCorner = Infinity;
+    for (let i = 0; i < 40 && cam.busy; i++) {
+      cam.tick(0.01);
+      const { x, z } = cam.camera.position;
+      minCorner = Math.min(minCorner, Math.hypot(x - 0.5, z - 0.5));
+      const insideWall = x > 0.5 && x < 1.5 && z > -0.5 && z < 0.5;
+      expect(insideWall).toBe(false);
+    }
+    expect(minCorner).toBeGreaterThan(0.3);
+    expect(cam.camera.position.x).toBeCloseTo(1);
+    expect(cam.camera.position.z).toBeCloseTo(1);
+  });
+
+  it('snaps when squeezing diagonally between two walls', () => {
+    const cam = new GridCamera();
+    cam.teleport(0, 0);
+    cam.moveTo(1, 1, { snap: true });
+    expect(cam.busy).toBe(false);
+    expect([cam.camera.position.x, cam.camera.position.z]).toEqual([1, 1]);
+    cam.moveTo(2, 1);
+    expect(cam.busy).toBe(true); // ordinary steps still animate
+  });
+
   it('snaps long moves instead of interpolating through walls', () => {
     const cam = new GridCamera();
     cam.teleport(0, 0);

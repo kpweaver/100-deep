@@ -46,4 +46,6 @@ export interface UiContext {
   /** Interface options to push to the engine for every character */
   engineOptions: Record<string, boolean>;
   facing(): number;
+  /** Save and quit (desktop: exit; local: stop the server; hosted: just save) */
+  quit(): void;
 }

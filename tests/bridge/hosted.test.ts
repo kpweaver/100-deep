@@ -19,10 +19,10 @@ afterEach(async () => {
   for (const d of open.dirs.splice(0)) rmSync(d, { recursive: true, force: true });
 });
 
-async function bridge(config: Partial<BridgeConfig>): Promise<Bridge> {
+async function bridge(config: Partial<BridgeConfig>, onShutdownRequest?: () => void): Promise<Bridge> {
   const dataDir = mkdtempSync(join(tmpdir(), 'thang-bridge-'));
   open.dirs.push(dataDir);
-  const b = startBridge({ config: { host: '127.0.0.1', port: 0, dataDir, ...config } });
+  const b = startBridge({ config: { host: '127.0.0.1', port: 0, dataDir, ...config }, onShutdownRequest });
   open.bridges.push(b);
   await b.ready;
   return b;
@@ -155,4 +155,29 @@ test('local mode: one game, a new connection replaces the old one', async () => 
   await a.waitFor((m) => m.event === 'replaced');
   assert.equal(await a.closed, 4000);
   assert.equal((await health(b)).engines, 1);
+});
+
+test('quit: local games may stop the server, hosted servers refuse', async () => {
+  let asked = 0;
+  const local = await bridge({ mode: 'local' }, () => { asked++; });
+  const a = client(local);
+  await a.waitFor((m) => m.type === 'state');
+  a.send({ type: 'shutdown' });
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(asked, 1, 'local shutdown request reaches the host');
+
+  const hosted = await bridge({ mode: 'hosted' }, () => { asked++; });
+  const c = client(hosted);
+  await c.waitFor((m) => m.type === 'state');
+  c.send({ type: 'shutdown' });
+  await c.waitFor((m) => m.event === 'shutdown_refused');
+  assert.equal(asked, 1, 'hosted servers never shut down for a client');
+});
+
+test('local mode only accepts pages from this machine', async () => {
+  const b = await bridge({ mode: 'local' });
+  const evil = client(b, '', { Origin: 'https://evil.example' });
+  await assert.rejects(evil.opened, 'foreign websites cannot drive a local game');
+  const page = client(b, '', { Origin: 'http://localhost:5173' });
+  await page.waitFor((m) => m.type === 'state');
 });

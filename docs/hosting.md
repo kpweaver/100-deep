@@ -31,7 +31,10 @@ into a multi-player server:
 - `/health` returns `{ ok, mode, sessions, engines, capacity }` for load
   balancers and monitoring.
 
-Local mode (the default) is unchanged: one game, bound to 127.0.0.1.
+Local mode (the default) is one game bound to 127.0.0.1. It only accepts
+WebSocket connections from pages served by this machine (browsers don't
+apply CORS to WebSockets, so this stops other websites from driving a
+local game), and "Save and quit" in the game stops it cleanly.
 
 ## Docker
 

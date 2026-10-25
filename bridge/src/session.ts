@@ -28,6 +28,8 @@ export interface SessionOptions {
   msgsPerSecond: number;
   /** Called when the engine keeps crashing or the session ends */
   onEnd?: (s: GameSession) => void;
+  /** Local mode only: the player chose "quit" (save and stop the server) */
+  onShutdownRequest?: () => void;
 }
 
 export class GameSession {
@@ -142,6 +144,12 @@ export class GameSession {
       return;
     }
     const type = (parsed as { type?: unknown } | null)?.type;
+    if (type === 'shutdown') {
+      // Handled here, never relayed: only local games may stop the server
+      if (this.opts.onShutdownRequest) this.opts.onShutdownRequest();
+      else this.event({ type: 'bridge', event: 'shutdown_refused' });
+      return;
+    }
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || typeof type !== 'string' || !CLIENT_TYPES.has(type)) return;
     const compact = JSON.stringify(parsed);
     this.log('in', compact);

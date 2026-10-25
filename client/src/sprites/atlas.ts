@@ -27,9 +27,15 @@ export class TileAtlas {
 
   async load(): Promise<void> {
     const img = new Image();
-    img.decoding = 'async';
-    img.src = this.url;
-    await img.decode();
+    // Wait for the load event, not img.decode(): Chromium can leave decode()
+    // pending indefinitely for pages it is not painting (background tabs),
+    // which left the game on a black screen.  Drawing decodes on demand.
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error(`Could not load the tile set (${this.url})`));
+      img.src = this.url;
+      if (img.complete && img.naturalWidth) resolve();
+    });
     this.image = img;
     this.cols = Math.floor(img.naturalWidth / this.cellW);
     this.rows = Math.floor(img.naturalHeight / this.cellH);

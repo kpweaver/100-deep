@@ -47,6 +47,7 @@ export class TitleLayer extends Layer {
     if (hello?.saveExists) items.push({ label: 'Continue', detail: hello.savefile.split('/').pop(), data: 'load' });
     items.push({ label: 'New character', data: 'new' });
     items.push({ label: 'Controls', data: 'help' });
+    items.push({ label: 'Quit', data: 'quit' });
     this.menu.setItems(items);
     this.status.textContent = hello ? `${hello.engine} · protocol v${hello.protocol}` : 'Connecting to engine…';
   }
@@ -55,6 +56,7 @@ export class TitleLayer extends Layer {
     if (what === 'load') this.ctx.send({ type: 'load_game' });
     else if (what === 'new') this.onNewGame();
     else if (what === 'help') this.ctx.ui.open(new TextLayer('Controls', controlsHelp()));
+    else if (what === 'quit') this.ctx.quit();
   }
 
   handleInput(ev: InputEvent): boolean {
@@ -430,6 +432,7 @@ export function openSystemMenu(ctx: UiContext, actions: { save: () => void; quit
     { label: 'Controls', data: () => ctx.ui.open(new TextLayer('Controls', controlsHelp())) },
     { label: 'Message history', data: () => openMessageLog(ctx) },
     { label: 'Save and return to title', data: actions.quitToTitle },
+    { label: 'Save and quit', data: () => ctx.quit() },
   ];
   const layer: MenuLayer<S> = new MenuLayer(ctx, {
     title: 'Paused',
@@ -674,10 +677,12 @@ export class DeathLayer extends Layer {
       items: [
         { label: 'New character', data: 'new' },
         { label: 'Message history', data: 'log' },
+        { label: 'Quit', data: 'quit' },
       ],
       letters: false,
       onSelect: (i) => {
         if (i.data === 'new') this.onNewGame();
+        else if (i.data === 'quit') ctx.quit();
         else openMessageLog(ctx);
       },
     });

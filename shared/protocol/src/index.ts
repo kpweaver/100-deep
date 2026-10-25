@@ -336,7 +336,9 @@ export interface BridgeMessage {
     | 'session'
     /** Hosted mode: no capacity for another game right now */
     | 'busy'
-    | 'rate_limited';
+    | 'rate_limited'
+    /** A shutdown request was ignored (hosted servers keep running) */
+    | 'shutdown_refused';
   session?: string;
   code?: number | null;
   signal?: string | null;
@@ -427,6 +429,8 @@ export type ClientMessage =
   | { type: 'save' }
   /** Save (if alive) and return the engine to the title/menu phase */
   | { type: 'close_game' }
+  /** Handled by the bridge: save and stop a local game server ("quit") */
+  | { type: 'shutdown' }
   | { type: 'quit' }
   | { type: 'options'; set: Record<string, boolean> }
   | { type: 'query'; what: 'item'; item: string }

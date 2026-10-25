@@ -45,6 +45,8 @@ export interface BridgeOptions {
   log?: boolean;
   /** Full config (tests); otherwise read from the environment */
   config?: Partial<BridgeConfig>;
+  /** Local mode: called when the player chooses "Save and quit" */
+  onShutdownRequest?: () => void;
 }
 
 const MIME: Record<string, string> = {
@@ -70,6 +72,21 @@ const SECURITY_HEADERS = {
 /** Largest client message accepted over the WebSocket */
 const MAX_WS_PAYLOAD = 64 * 1024;
 const TOKEN_RE = /^[0-9a-f]{32}$/;
+
+/**
+ * Local mode only accepts pages served from this machine.  Browsers do not
+ * apply CORS to WebSockets, so without this any website could drive a local
+ * game (cross-site WebSocket hijacking).  No Origin = not a browser.
+ */
+function isLocalOrigin(origin: string | undefined): boolean {
+  if (origin === undefined) return true;
+  try {
+    const host = new URL(origin).hostname;
+    return host === '127.0.0.1' || host === 'localhost' || host === '[::1]' || host === '::1' || host.endsWith('.localhost');
+  } catch {
+    return false;
+  }
+}
 
 /** Resolve a URL path inside root, refusing traversal */
 function safeJoin(root: string, urlPath: string): string | null {
@@ -120,6 +137,7 @@ export function startBridge(opts: BridgeOptions = {}) {
     const s = new GameSession({
       id, dataDir, save, debug: cfg.debug, logDir, msgsPerSecond: cfg.msgsPerSecond,
       binary: engineDefaults.binary, libDir: engineDefaults.libDir,
+      onShutdownRequest: cfg.mode === 'local' ? opts.onShutdownRequest : undefined,
       onEnd: (sess) => {
         // A hosted session whose engine keeps failing is dropped
         if (cfg.mode === 'hosted') void endSession(sess);
@@ -175,8 +193,10 @@ export function startBridge(opts: BridgeOptions = {}) {
     server: http,
     path: '/ws',
     maxPayload: MAX_WS_PAYLOAD,
-    verifyClient: ({ origin }: { origin?: string }) =>
-      !cfg.allowedOrigins || (origin !== undefined && cfg.allowedOrigins.includes(origin)),
+    verifyClient: ({ origin }: { origin?: string }) => {
+      if (cfg.allowedOrigins) return origin !== undefined && cfg.allowedOrigins.includes(origin);
+      return cfg.mode === 'hosted' || isLocalOrigin(origin);
+    },
   });
 
   const reject = (ws: WebSocket, ev: BridgeMessage, code: number) => {

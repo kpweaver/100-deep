@@ -96,6 +96,8 @@ kbd { display: inline-block; min-width: 1.6em; text-align: center; margin-right:
 /* ---------- Layers & panels ---------- */
 .ui-root { position: absolute; inset: 0; pointer-events: none; }
 .layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: auto; background: rgba(0,0,0,0.35); }
+/* Only the topmost menu is shown */
+.layer.covered { display: none; }
 .panel { background: var(--panel); border: 2px solid var(--panel-edge); box-shadow: 0 0 0 2px #000, 0 10px 40px #000; width: min(560px, 92vw); max-height: 84vh; display: flex; flex-direction: column; }
 .panel.wide { width: min(980px, 94vw); }
 .panel.narrow { width: min(420px, 92vw); }
@@ -153,6 +155,10 @@ kbd { display: inline-block; min-width: 1.6em; text-align: center; margin-right:
 
 /* ---------- Title / death ---------- */
 .title-layer { background: radial-gradient(ellipse at center, rgba(40,20,8,0.6), #000 75%); }
+/* At the title and in character creation, a warm backdrop instead of the 3D view */
+#app.at-title { background: radial-gradient(ellipse at center, #281408, #000 75%); }
+#app.at-title canvas.view { visibility: hidden; }
+#app.at-title .layer { background: transparent; }
 .title-panel { text-align: center; width: min(520px, 92vw); }
 .title-panel h1 { font-family: var(--title); font-size: 64px; color: var(--gold); margin: 0; text-shadow: 0 0 24px rgba(255,140,40,0.35), 3px 3px 0 #000; }
 .subtitle { color: var(--ink-dim); margin-bottom: 28px; }

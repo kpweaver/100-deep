@@ -109,6 +109,7 @@ export class App implements InputHandler {
       applySettings: (s) => this.applySettings(s),
       engineOptions: this.engineOptions,
       facing: () => this.renderer?.cam.facing ?? 0,
+      quit: () => this.quit(),
     };
 
     this.input.push(this);
@@ -209,7 +210,17 @@ export class App implements InputHandler {
     const hello = this.state.hello!;
     if (!this.atlas || this.atlas.url !== '/' + hello.tileset.url) {
       this.atlas = new TileAtlas(hello.tileset);
-      this.atlasLoading = this.atlas.load().then(() => {
+      this.atlasLoading = this.atlas.load().catch((e) => {
+        // Show the problem and try again rather than sit on a black screen
+        console.error(e);
+        this.showOverlay('Loading the tile set failed — retrying…');
+        this.atlas = null;
+        setTimeout(() => {
+          this.showOverlay(null);
+          void this.ensureAtlas();
+        }, 2000);
+        throw e;
+      }).then(() => {
         const canvas = this.root.querySelector<HTMLCanvasElement>('#view')!;
         if (!this.renderer) {
           this.renderer = new SceneRenderer(canvas, this.atlas!);
@@ -226,7 +237,11 @@ export class App implements InputHandler {
         this.hud.updatePanels();
       });
     }
-    await this.atlasLoading;
+    try {
+      await this.atlasLoading;
+    } catch {
+      return; // retry scheduled above
+    }
     this.syncPhase();
   }
 
@@ -249,6 +264,7 @@ export class App implements InputHandler {
   private syncPhase(): void {
     const phase = this.state.phase;
     if (!this.state.hello || !this.atlas?.loaded) return;
+    this.root.classList.toggle('at-title', phase === 'menu');
     if (phase === 'menu') {
       this.hud.setVisible(false);
       this.optionsPushed = false;
@@ -298,7 +314,7 @@ export class App implements InputHandler {
       this.exploring = false;
     } else if (c.moved && r && p) {
       if (this.lastAction && AUTO_FACE_ACTIONS.has(this.lastAction)) this.followPath(p.x - c.moved.fromX, p.y - c.moved.fromY);
-      r.cam.moveTo(p.x, p.y);
+      r.cam.moveTo(p.x, p.y, this.cornerPath(c.moved.fromX, c.moved.fromY, p.x, p.y));
     } else if (c.player && r && p && (r.cam.gridX !== p.x || r.cam.gridY !== p.y)) {
       r.cam.teleport(p.x, p.y);
     }
@@ -354,6 +370,25 @@ export class App implements InputHandler {
     this.faceOpenSide();
     this.dungeonDirty = true;
     this.refreshEntities();
+  }
+
+  /**
+   * Camera path for a diagonal step that passes a wall corner: curve
+   * through the open orthogonal square, or snap if both are solid (Angband
+   * allows squeezing diagonally between two walls).
+   */
+  private cornerPath(fx: number, fy: number, tx: number, ty: number): { via?: [number, number]; snap?: boolean } {
+    const dx = tx - fx, dy = ty - fy;
+    if (Math.abs(dx) !== 1 || Math.abs(dy) !== 1) return {};
+    const solid = (x: number, y: number) => {
+      const s = this.state.featureClassAt(x, y).shape;
+      return s === 'wall' || s === 'door_closed';
+    };
+    const a = solid(fx + dx, fy), b = solid(fx, fy + dy);
+    if (a && b) return { snap: true };
+    if (a) return { via: [fx, fy + dy] };
+    if (b) return { via: [fx + dx, fy] };
+    return {};
   }
 
   private refreshEntities(): void {
@@ -763,6 +798,47 @@ export class App implements InputHandler {
     this.hud.sidebar.classList.toggle('hidden', !this.settings.showSidebar);
     this.input.glyphOverride = this.settings.controllerGlyphs;
     this.updateHints();
+  }
+
+  /**
+   * Save and quit.  The bridge stops a local game server (or quits the
+   * desktop app); the engine saves on the way out.  A hosted server keeps
+   * running, so there the game is saved and left at the title.
+   */
+  private quit(): void {
+    this.ui.closeAll((l) => l !== this.title && l !== this.death);
+    if (this.state.phase === 'game') this.send({ type: 'close_game' });
+    const ended = () => {
+      this.conn.close();
+      this.ui.closeAll();
+      this.hud.setVisible(false);
+      this.showOverlay('Your game is saved. You can close this window.');
+      // Works where the page was opened by script (some launchers); harmless otherwise
+      window.close();
+    };
+    // Local servers close the socket as they stop
+    const offStatus = this.conn.onStatus((s) => {
+      if (s === 'closed') {
+        offStatus();
+        offMsg();
+        clearTimeout(fallback);
+        ended();
+      }
+    });
+    const savedHere = () => {
+      offStatus();
+      offMsg();
+      clearTimeout(fallback);
+      // Hosted (or an older bridge): nothing shut down; the game is saved at the title
+      this.showOverlay('Your game is saved. You can close this tab.');
+      setTimeout(() => this.showOverlay(null), 4000);
+    };
+    const offMsg = this.conn.onMessage((m) => {
+      if (m.type === 'bridge' && m.event === 'shutdown_refused') savedHere();
+    });
+    // A bridge that predates "quit" ignores the request
+    const fallback = setTimeout(savedHere, 3000);
+    this.conn.send({ type: 'shutdown' });
   }
 
   private showOverlay(text: string | null): void {

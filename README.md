@@ -103,7 +103,7 @@ costs a game turn.
 | Visible monster list / item list / recall popups (←/→ to switch) | [ / ] | LB ▸ lists |
 | Show/hide the monster & item lists under the minimap | \\ | Options |
 | Absolute 8-way walk | Numpad 1–9 | — |
-| Pause / system menu (options, save, controls) | Esc | Start |
+| Pause / system menu (options, save, save & return to title, save & quit) | Esc | Start |
 | Menus | ↑↓ + Enter, letter shortcuts a–z, Esc | D-pad/stick + A, B to go back |
 
 Every implemented feature can be used without a mouse. Button prompts match
@@ -153,8 +153,8 @@ accessible.
 ```bash
 npm test                  # engine + bridge + client tests
 npm run test:engine       # 18 tests against the real native engine
-npm run test:bridge       # 7 hosted/local server tests with real engines
-npm run test:client       # 19 isolated client unit tests (vitest)
+npm run test:bridge       # 9 hosted/local server tests with real engines
+npm run test:client       # 21 isolated client unit tests (vitest)
 ```
 
 The engine tests never use fabricated game state. They spawn the real
