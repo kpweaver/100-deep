@@ -127,9 +127,15 @@ test('only known terrain, visible monsters and known objects reach the client', 
     }
     if ((st.monsters ?? []).some((m) => m.inView)) break;
   }
-  const hiddenTypes = s.history.flatMap((m) => (m.type === 'state' ? m.map?.cells ?? [] : []))
-    .filter(([, , f]) => s.feature(f)?.name === 'secret door');
+  const cells = s.history.flatMap((m) => (m.type === 'state' ? m.map?.cells ?? [] : []));
+  const hiddenTypes = cells.filter(([, , f]) => s.feature(f)?.name === 'secret door');
   assert.equal(hiddenTypes.length, 0);
+  // Opt-in silhouettes: only on unknown grids, mimics applied (no secret doors)
+  for (const [, , f, , , , dark] of cells) {
+    if (!dark) continue;
+    assert.equal(f, 0, 'silhouettes only for unknown grids');
+    assert.notEqual(s.feature(dark)?.name, 'secret door');
+  }
   await s.stop();
 });
 

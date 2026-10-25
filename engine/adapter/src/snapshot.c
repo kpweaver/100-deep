@@ -354,10 +354,11 @@ void snapshot_write_static(jw *w)
 /* ------------------------------------------------------------------------
  * Map with delta encoding
  * ------------------------------------------------------------------------ */
-static uint32_t *cell_cache;
+static uint64_t *cell_cache;
 static int cache_w, cache_h;
 
 #define CELL_SENT	0x80000000u
+#define CELL_DARK_SHIFT	32
 
 void snapshot_reset_map(void)
 {
@@ -453,10 +454,10 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 		snapshot_reset_map();
 		cache_w = cave->width;
 		cache_h = cave->height;
-		cell_cache = mem_zalloc((size_t)cache_w * cache_h * sizeof(uint32_t));
+		cell_cache = mem_zalloc((size_t)cache_w * cache_h * sizeof(uint64_t));
 		full = true;
 	}
-	if (full) memset(cell_cache, 0, (size_t)cache_w * cache_h * sizeof(uint32_t));
+	if (full) memset(cell_cache, 0, (size_t)cache_w * cache_h * sizeof(uint64_t));
 
 	jw_key(w, "map");
 	jw_obj_begin(w);
@@ -469,11 +470,23 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 		for (x = 0; x < cave->width; x++) {
 			struct loc grid = loc(x, y);
 			struct grid_data g;
-			uint32_t packed;
-			int trow = 0, tcol = 0, has_trap = 0;
-			uint32_t *slot = &cell_cache[y * cache_w + x];
+			uint64_t packed;
+			int trow = 0, tcol = 0, has_trap = 0, dark = 0;
+			uint64_t *slot = &cell_cache[y * cache_w + x];
 
 			map_info(grid, &g);
+
+			/*
+			 * Deliberate, small departure from the stock map (user choice):
+			 * an unknown grid inside the player's view but unlit is exported
+			 * as a "dark silhouette" so a dark corridor between you and a lit
+			 * room reads as a corridor.  Mimics apply, so secret doors still
+			 * look like granite.
+			 */
+			if (g.f_idx == FEAT_NONE && square_isview(cave, grid)) {
+				struct feature *f = square_feat(cave, grid);
+				dark = (int)(f->mimic ? f->mimic->fidx : f->fidx);
+			}
 
 			if (g.trap && !g.hallucinate &&
 					(trf_has(g.trap->flags, TRF_VISIBLE) ||
@@ -499,17 +512,18 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 				((uint32_t)(g.in_view ? 1 : 0) << 10) |
 				((uint32_t)has_trap << 11) |
 				((uint32_t)(trow & 0x7F) << 12) |
-				((uint32_t)(tcol & 0x7F) << 19);
+				((uint32_t)(tcol & 0x7F) << 19) |
+				((uint64_t)(dark & 0xFF) << CELL_DARK_SHIFT);
 
 			if (*slot == packed) continue;
 			/* Never-seen unknown grids need not be sent on a full map */
-			if (!(*slot & CELL_SENT) && g.f_idx == FEAT_NONE) {
+			if (!(*slot & CELL_SENT) && g.f_idx == FEAT_NONE && !dark) {
 				*slot = packed;
 				continue;
 			}
 			*slot = packed;
 
-			/* [x, y, feature, lighting, inView, trapTile|null] */
+			/* [x, y, feature, lighting, inView, trapTile|null, darkFeature] */
 			jw_arr_begin(w);
 			jw_int(w, x);
 			jw_int(w, y);
@@ -524,6 +538,7 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 			} else {
 				jw_null(w);
 			}
+			jw_int(w, dark);
 			jw_arr_end(w);
 		}
 	}

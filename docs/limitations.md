@@ -48,10 +48,14 @@ These systems all exist in the engine. Only the UI to reach them is missing.
 
 ## Visual limitations
 
-- Unexplored, unlit corridor squares are unknown to Angband, so when you
-  first look down a dark corridor at a lit room, the corridor between is
-  empty darkness, as on the stock map. Inventing walls there would reveal
-  terrain the stock game hides.
+- **Deliberate departure from the stock map (dark silhouettes):** unknown
+  grids that are inside your line of sight but unlit, such as a dark
+  corridor leading to a lit room, are drawn as faint, featureless
+  silhouettes of their terrain (mimics applied, so secret doors still look
+  like granite). The stock game leaves these blank, so this reveals a little
+  more, e.g. side openings in a dark corridor before your light reaches
+  them. Silhouettes never count as known: the minimap, full map and
+  contextual actions ignore them.
 
 - Surfaces are simple procedural textures. There are no per-feature Gervais
   wall textures, because Gervais tiles are drawn for a top-down view.

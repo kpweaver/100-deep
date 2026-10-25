@@ -23,6 +23,8 @@ export const WALL_HEIGHT = 1.0;
 const IN_VIEW = new THREE.Color(1, 1, 1);
 const REMEMBERED = new THREE.Color(0.4, 0.4, 0.47);
 const REMEMBERED_LIT = new THREE.Color(0.5, 0.5, 0.56);
+/** Unknown grids in view but unlit (opt-in silhouettes): barely there */
+const SILHOUETTE = new THREE.Color(0.18, 0.18, 0.22);
 
 interface Batch {
   mesh: THREE.InstancedMesh;
@@ -139,7 +141,13 @@ export class DungeonMesh {
     const w = map.width;
     const h = map.height;
     const n = w * h;
-    const cls = (x: number, y: number) => classes[map.featAt(x, y)] ?? classes[0];
+    // Known feature, else the dark silhouette feature (unknown grids in view)
+    const featOrDark = (x: number, y: number) => {
+      if (!map.inBounds(x, y)) return 0;
+      const i = map.index(x, y);
+      return map.feat[i] || map.dark[i];
+    };
+    const cls = (x: number, y: number) => classes[featOrDark(x, y)] ?? classes[0];
     const isSolid = (x: number, y: number) => {
       const s = cls(x, y).shape;
       return s === 'wall' || s === 'unknown';
@@ -147,7 +155,7 @@ export class DungeonMesh {
 
     // Upper bound for each batch is the number of known cells
     let known = 0;
-    for (let i = 0; i < n; i++) if (map.feat[i]) known++;
+    for (let i = 0; i < n; i++) if (map.feat[i] || map.dark[i]) known++;
 
     const batches = {
       granite: this.beginBatch('granite', this.wallGeo, this.wallMaterial('granite', false), known),
@@ -170,12 +178,13 @@ export class DungeonMesh {
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const i = y * w + x;
-        const f = map.feat[i];
+        const silhouette = !map.feat[i] && map.dark[i] > 0;
+        const f = map.feat[i] || map.dark[i];
         if (!f) continue;
         const c = classes[f] ?? classes[0];
         const inView = map.inView[i] === 1;
         const lit = map.light[i] !== 3;
-        const col = inView ? IN_VIEW : lit ? REMEMBERED_LIT : REMEMBERED;
+        const col = silhouette ? SILHOUETTE : inView ? IN_VIEW : lit ? REMEMBERED_LIT : REMEMBERED;
 
         if (c.shape === 'wall') {
           // Skip walls nobody can see: all four neighbours solid
@@ -192,6 +201,9 @@ export class DungeonMesh {
         if (c.shape === 'lava') this.push(batches.lava, x, 0, y, 0, col);
         else this.push(batches.floor, x, 0, y, 0, col);
         if (!ctx.outdoors) this.push(batches.ceiling, x, WALL_HEIGHT, y, 0, col);
+
+        // Silhouettes are shape only: no doors, stairs, rubble or signs
+        if (silhouette) continue;
 
         // A door spans the passage: walls on east+west means a N-S passage
         const ewWalls = isSolid(x - 1, y) && isSolid(x + 1, y);

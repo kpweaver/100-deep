@@ -35,6 +35,17 @@ describe('KnownMap', () => {
     expect(m.traps.size).toBe(0);
   });
 
+  it('keeps dark silhouettes separate from known terrain', () => {
+    const m = new KnownMap();
+    m.apply({ width: 4, height: 3, full: true, cells: [[2, 1, 0, 0, 0, null, 21]] });
+    expect(m.isKnown(2, 1)).toBe(false);
+    expect(m.dark[m.index(2, 1)]).toBe(21);
+    // Once seen, the grid is known and the silhouette goes away
+    m.apply({ width: 4, height: 3, full: false, cells: [[2, 1, 21, 0, 1, null, 0]] });
+    expect(m.isKnown(2, 1)).toBe(true);
+    expect(m.dark[m.index(2, 1)]).toBe(0);
+  });
+
   it('ignores out-of-bounds cells', () => {
     const m = new KnownMap();
     m.apply({ width: 2, height: 2, full: true, cells: [[5, 5, 1, 0, 1, null]] });

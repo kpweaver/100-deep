@@ -65,8 +65,15 @@ export const LIGHT_TORCH = 1;
 export const LIGHT_LIT = 2;
 export const LIGHT_DARK = 3;
 
-/** [x, y, featureIdx, lighting, inView(0|1), trapTile|null] */
-export type MapCell = [number, number, number, number, number, Tile | null];
+/**
+ * [x, y, featureIdx, lighting, inView(0|1), trapTile|null, darkFeature]
+ *
+ * darkFeature is non-zero only for an *unknown* grid that is inside the
+ * player's view but unlit (e.g. a dark corridor leading to a lit room).  It
+ * is shown as a faint silhouette; this is a deliberate, opt-in departure
+ * from the stock map, which leaves such grids blank.
+ */
+export type MapCell = [number, number, number, number, number, Tile | null, number?];
 
 export interface MapUpdate {
   width: number;

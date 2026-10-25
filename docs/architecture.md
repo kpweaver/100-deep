@@ -121,6 +121,10 @@ What reaches the client, and why it is safe:
   brightness baked from the engine's in-view/remembered state. Monsters,
   objects, traps and effects ignore lights and fog, so anything Angband
   shows is always drawn clearly.
+- Dark silhouettes (opt-in departure from stock, chosen by the project
+  owner): `snapshot.c` exports the feature of unknown grids that are in
+  view but unlit (`square_isview`, mimics applied) as a seventh map-cell
+  field. The renderer draws them as faint, featureless walls and floors.
 - Facing during engine-driven movement (`camera/heading.ts`) follows the
   average of recent steps with hysteresis, so diagonal zig-zags don't swing
   the view.
