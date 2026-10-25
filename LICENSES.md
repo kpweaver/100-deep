@@ -49,6 +49,14 @@ License, version 2, **or** the "Angband licence":
   loaded from the upstream checkout at runtime; this repository does not copy
   or alter them.
 
+## Angband fonts
+
+`client/public/fonts/angband-8x16x.woff` and `angband-8x13x.woff` are
+pixel-exact conversions (made with `scripts/fon-to-woff.py`) of Angband's
+bundled `lib/fonts/8x16x.fon` and `8x13x.fon`. Per `copying.rst`, the font
+files are by Leon Marrick, Sheldon Simms III and Nick McConnell, who agreed
+to their release under the GPL.
+
 ## Tilesets that are NOT used
 
 Angband also bundles Adam Bolt's, Nomad's, Shockbolt's and the original 8×8
@@ -64,7 +72,6 @@ without the author's permission. The bridge therefore serves **only** the
 | ws | MIT |
 | vite, vitest (dev) | MIT |
 | typescript (dev) | Apache-2.0 |
-| VT323, IM Fell English SC fonts (Google Fonts, loaded at runtime) | SIL Open Font License 1.1 |
 
 The dungeon surface textures are generated procedurally at runtime
 (`client/src/renderer/textures.ts`), and the sound cues are synthesised with

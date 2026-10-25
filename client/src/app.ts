@@ -14,6 +14,7 @@ import {
   DIR_OFFSETS, FACING_TO_DIR, type CommandMessage, type Direction, type EngineMessage, type Panel, type StateMessage,
 } from '@thang/protocol';
 import { Connection } from './protocol/connection.ts';
+import { HeadingFollower } from './camera/heading.ts';
 import { GameState, type StateChange } from './state/game-state.ts';
 import { TileAtlas } from './sprites/atlas.ts';
 import { SceneRenderer } from './renderer/scene.ts';
@@ -33,6 +34,9 @@ import { Sfx } from './audio/sfx.ts';
 import { h } from './ui/dom.ts';
 
 const COMMAND_TIMEOUT_MS = 8000;
+
+/** Engine-driven movement the camera should follow (not manual strafing) */
+const AUTO_FACE_ACTIONS = new Set<CommandMessage['action']>(['explore', 'run', 'pathfind', 'navigate_up', 'navigate_down']);
 
 function loadJson<T>(key: string, fallback: T): T {
   try {
@@ -206,7 +210,8 @@ export class App implements InputHandler {
         }
         this.renderer.effects.palette = hello.palette;
         this.syncView();
-        // Panels may have arrived before the atlas could draw their tiles
+        // The HUD and panels may have been drawn before the atlas could supply tiles
+        this.hud.update();
         this.hud.updatePanels();
       });
     }
@@ -278,8 +283,10 @@ export class App implements InputHandler {
       r.cam.teleport(p.x, p.y);
       this.faceOpenSide();
       this.hud.showBanner(p.depth === 0 ? 'The Town' : `${p.depth * 50} feet (level ${p.depth})`);
+      this.heading.reset();
       this.exploring = false;
     } else if (c.moved && r && p) {
+      if (this.lastAction && AUTO_FACE_ACTIONS.has(this.lastAction)) this.followPath(p.x - c.moved.fromX, p.y - c.moved.fromY);
       r.cam.moveTo(p.x, p.y);
     } else if (c.player && r && p && (r.cam.gridX !== p.x || r.cam.gridY !== p.y)) {
       r.cam.teleport(p.x, p.y);
@@ -287,7 +294,6 @@ export class App implements InputHandler {
     if (c.map) this.dungeonDirty = true;
     if (c.entities || c.map) this.refreshEntities();
     if (c.player && p) {
-      r?.setTorchRadius(p.light);
       if (this.lastHp !== null && p.hp < this.lastHp && this.state.phase === 'game') {
         r?.cam.shake();
         this.hud.hurt();
@@ -327,7 +333,6 @@ export class App implements InputHandler {
     r.entities.clear();
     if (!p || this.state.phase === 'menu') return;
     r.setOutdoors(p.depth === 0);
-    r.setTorchRadius(p.light);
     r.cam.teleport(p.x, p.y);
     this.faceOpenSide();
     this.dungeonDirty = true;
@@ -376,6 +381,8 @@ export class App implements InputHandler {
 
   send(m: Parameters<Connection['send']>[0]): void {
     if (m.type === 'command') {
+      if (!AUTO_FACE_ACTIONS.has(m.action)) this.heading.reset();
+      this.lastAction = m.action;
       if (this.pending) {
         // Buffer one command (usually a movement) until the engine answers
         this.queued = m;
@@ -533,6 +540,21 @@ export class App implements InputHandler {
   }
 
   private faceTargetSoon = false;
+
+  /* ---------------------------------------------------------------- */
+  /* Facing while the engine moves us (explore, travel, run)           */
+  /* ---------------------------------------------------------------- */
+
+  private lastAction: CommandMessage['action'] | null = null;
+  /** Smoothed heading for engine-driven movement (see camera/heading.ts) */
+  private heading = new HeadingFollower();
+
+  private followPath(dx: number, dy: number): void {
+    const cam = this.renderer?.cam;
+    if (!cam) return;
+    const turn = this.heading.step(dx, dy, cam.facing);
+    if (turn) cam.turn(turn);
+  }
 
   /* ---------------------------------------------------------------- */
   /* Stock subwindows as popups                                        */

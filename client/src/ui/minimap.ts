@@ -41,9 +41,9 @@ function drawPlayer(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: nu
 export class Minimap {
   readonly canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  cell = 4;
-  radiusX = 24;
-  radiusY = 18;
+  cell = 5;
+  radiusX = 30;
+  radiusY = 20;
 
   constructor(private state: GameState) {
     this.canvas = document.createElement('canvas');

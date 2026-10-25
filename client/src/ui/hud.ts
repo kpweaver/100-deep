@@ -35,12 +35,8 @@ export class Hud {
   private target = h('div', { class: 'hud-target' });
   private sideMonsters = h('div', { class: 'pv-body pv-wide-tiles' });
   private sideItems = h('div', { class: 'pv-body pv-wide-tiles' });
-  private sideRecall = h('div', { class: 'pv-body pv-wide-tiles' });
-  private recallTitle = h('span', {}, 'Recall');
-  readonly sidebar = h('div', { class: 'hud-sidebar' },
-    h('section', {}, h('header', {}, 'Monsters', h('kbd', {}, '[')), this.sideMonsters),
-    h('section', {}, h('header', {}, 'Items', h('kbd', {}, ']')), this.sideItems),
-    h('section', { class: 'recall' }, h('header', {}, this.recallTitle), this.sideRecall));
+  /** Angband's visible monster and item lists, under the minimap */
+  readonly sidebar = h('div', { class: 'hud-sidebar' }, this.sideMonsters, h('hr'), this.sideItems);
   private banner = h('div', { class: 'hud-banner' });
   private vignette = h('div', { class: 'hud-vignette' });
   private recent: { el: HTMLElement; at: number }[] = [];
@@ -80,22 +76,44 @@ export class Hud {
     this.xp.fill.style.width = `${Math.min(100, xpPct * 100)}%`;
     this.xp.text.textContent = `Lv ${p.level}${p.level < p.maxLevel ? ` (${p.maxLevel})` : ''}  ·  ${p.exp} xp`;
 
+    // Character block, after Angband's left-hand sidebar
     const depth = p.depth === 0 ? 'Town' : `${p.depth * 50} ft (L${p.depth})`;
+    const at = this.atlas();
+    const row = (label: string, value: string, cls = '') =>
+      h('div', { class: 'cs-row' }, h('span', { class: 'cs-label' }, label), h('span', { class: `cs-value ${cls}` }, value));
     clear(this.info);
-    add(this.info, 
-      h('span', {}, depth),
-      h('span', {}, `AC ${p.ac}`),
-      h('span', {}, `${p.gold} AU`),
-      p.speed !== 0 ? h('span', { class: p.speed > 0 ? 'good' : 'bad' }, `Speed ${p.speed > 0 ? '+' : ''}${p.speed}`) : null,
-      p.levelFeeling ? h('span', {}, p.levelFeeling) : null,
-      p.resting ? h('span', { class: 'good' }, 'Resting') : null,
+    add(this.info,
+      h('div', { class: 'cs-who' }, `${p.race} ${p.class}`, h('span', { class: 'cs-title' }, p.title)),
+      h('div', { class: 'cs-grid' },
+        // "LEVEL" in capitals when at max level, "Level" in yellow when drained (as Angband)
+        row(p.level >= p.maxLevel ? 'LEVEL' : 'Level', String(p.level), p.level >= p.maxLevel ? '' : 'drained'),
+        p.level < 50 ? row('NXT', String(Math.max(0, p.expToNext - p.exp))) : row('EXP', String(p.exp)),
+        row('AU', String(p.gold)),
+        row('Cur AC', String(p.ac)),
+      ),
+      h('div', { class: 'cs-equippy' }, s.equipment.map((e) =>
+        h('span', { class: 'cs-eq', title: e.item ? `${e.slot}: ${e.item.name}` : e.slot,
+          style: e.item?.tile && at ? at.cssFit(e.item.tile) : '' }))),
+      h('div', { class: 'cs-stats' }, p.stats.map((st) => {
+        const name = st.name.replace(/[:\s]/g, '');
+        // Drained stats show lower-case names in yellow, as in Angband
+        return row(st.drained ? name.charAt(0) + name.slice(1).toLowerCase() : name, st.value.trim(), st.drained ? 'drained' : '');
+      })),
+      h('div', { class: 'cs-line' },
+        h('span', {}, depth),
+        p.speed !== 0 ? h('span', { class: p.speed > 0 ? 'good' : 'bad' }, p.speed > 0 ? `Fast (+${p.speed})` : `Slow (${p.speed})`) : null,
+        p.levelFeeling ? h('span', {}, p.levelFeeling) : null),
     );
 
+    // Status bar, as Angband's bottom line: light, timed effects, terrain
     clear(this.statusEl);
+    this.statusEl.append(h('span', { class: 'chip', style: `color:${paletteColor(pal, p.light > 0 ? 11 : 16)}` }, `Light ${p.light}`));
+    if (p.resting) this.statusEl.append(h('span', { class: 'chip good' }, 'Rest'));
     for (const st of s.status) {
       this.statusEl.append(h('span', { class: 'chip', style: `color:${paletteColor(pal, st.color)}` },
         st.pct !== undefined ? `${st.name} ${st.pct}%` : st.name));
     }
+    if (p.terrain) this.statusEl.append(h('span', { class: 'chip' }, p.terrain.charAt(0).toUpperCase() + p.terrain.slice(1)));
 
     // Tracked/targeted monster
     clear(this.target);
@@ -139,16 +157,13 @@ export class Hud {
     }
   }
 
-  /** Stock Angband subwindows: monster list, item list and recall */
+  /** Stock Angband subwindows: the visible monster and item lists */
   updatePanels(): void {
     const s = this.state;
     const pal = s.hello?.palette;
     const at = this.atlas();
     renderPanel(this.sideMonsters, s.panels.monsterList, pal, at);
     renderPanel(this.sideItems, s.panels.itemList, pal, at);
-    const recall = s.panels[s.lastRecall] ?? s.panels.monsterRecall ?? s.panels.objectRecall;
-    this.recallTitle.textContent = recall?.title ? `Recall: ${recall.title}` : 'Recall';
-    renderPanel(this.sideRecall, recall, pal, at, 'Target or examine something to recall it.');
   }
 
   setHints(hints: ContextHint[]): void {

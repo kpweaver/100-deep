@@ -15,10 +15,14 @@ import { createSurfaceTextures, type SurfaceTextures } from './textures.ts';
 
 export const WALL_HEIGHT = 1.0;
 
-/** Brightness multipliers baked into instance colours */
+/**
+ * Brightness baked into instance colours from the engine's view of each
+ * grid: in view = fully lit (as the stock map draws it), remembered =
+ * dimmed, like Angband's darker colours for remembered grids.
+ */
 const IN_VIEW = new THREE.Color(1, 1, 1);
-const REMEMBERED = new THREE.Color(0.28, 0.29, 0.36);
-const REMEMBERED_LIT = new THREE.Color(0.42, 0.42, 0.48);
+const REMEMBERED = new THREE.Color(0.4, 0.4, 0.47);
+const REMEMBERED_LIT = new THREE.Color(0.5, 0.5, 0.56);
 
 interface Batch {
   mesh: THREE.InstancedMesh;

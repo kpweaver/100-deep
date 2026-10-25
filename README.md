@@ -92,8 +92,8 @@ costs a game turn.
 | Wait a turn | . / Numpad 5 | R3 |
 | Map (cursor + travel there) | M | Select |
 | Character sheet (stock `C` screen, 2 pages) | C | LB ▸ Character sheet |
-| Visible monster list / item list / recall popups | [ / ] | LB ▸ lists |
-| Show/hide side panels | \\ | Options |
+| Visible monster list / item list / recall popups (←/→ to switch) | [ / ] | LB ▸ lists |
+| Show/hide the monster & item lists under the minimap | \\ | Options |
 | Absolute 8-way walk | Numpad 1–9 | — |
 | Pause / system menu (options, save, controls) | Esc | Start |
 | Menus | ↑↓ + Enter, letter shortcuts a–z, Esc | D-pad/stick + A, B to go back |

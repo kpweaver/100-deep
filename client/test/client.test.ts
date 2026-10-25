@@ -10,6 +10,7 @@ import { KnownMap } from '../src/state/known-map.ts';
 import { classifyFeature } from '../src/state/features.ts';
 import { GameState } from '../src/state/game-state.ts';
 import { GridCamera } from '../src/camera/grid-camera.ts';
+import { HeadingFollower } from '../src/camera/heading.ts';
 import { TileAtlas } from '../src/sprites/atlas.ts';
 
 const feat = (idx: number, name: string, flags: string[]): FeatureInfo => ({ idx, name, flags, tiles: [] });
@@ -164,5 +165,44 @@ describe('GameState', () => {
     gs.applyHello(hello);
     gs.applyState(state(1, 3));
     expect(gs.player!.x).toBe(3);
+  });
+});
+
+describe('HeadingFollower (auto-explore facing)', () => {
+  const run = (steps: [number, number][], start = 0) => {
+    const f = new HeadingFollower();
+    let facing = start;
+    const facings: number[] = [];
+    for (const [dx, dy] of steps) {
+      facing = (((facing + f.step(dx, dy, facing)) % 8) + 8) % 8;
+      facings.push(facing);
+    }
+    return facings;
+  };
+
+  it('keeps facing steady through a diagonal zig-zag', () => {
+    // NE, SE, NE, SE ... along an eastward corridor, already facing east
+    const zigzag = Array.from({ length: 10 }, (_, i) => (i % 2 ? [1, 1] : [1, -1]) as [number, number]);
+    expect(new Set(run(zigzag, 2))).toEqual(new Set([2]));
+  });
+
+  it('turns once at a corner and then holds', () => {
+    const path: [number, number][] = [[1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]];
+    const facings = run(path, 2);
+    expect(facings.at(-1)).toBe(4); // now facing south
+    const changes = facings.filter((f, i) => i > 0 && f !== facings[i - 1]).length;
+    expect(changes).toBeLessThanOrEqual(2);
+  });
+
+  it('turns around at once when doubling back', () => {
+    const f = new HeadingFollower();
+    expect(f.step(0, 1, 0)).toBe(4); // facing north, step south: reverse now
+  });
+
+  it('ignores a single 45-degree jog', () => {
+    const f = new HeadingFollower();
+    expect(f.step(1, 0, 2)).toBe(0);
+    expect(f.step(1, -1, 2)).toBe(0);
+    expect(f.step(1, 0, 2)).toBe(0);
   });
 });

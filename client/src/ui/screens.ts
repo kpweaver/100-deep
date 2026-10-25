@@ -463,7 +463,7 @@ export function openOptions(ctx: UiContext): void {
       { label: 'Instant movement & turning', right: s.instantMovement ? 'On' : 'Off', data: { kind: 'client', key: 'instantMovement' } },
       { label: 'Keep exploring after each step', right: s.autoExploreRepeat ? 'On' : 'Off', data: { kind: 'client', key: 'autoExploreRepeat' } },
       { label: 'Minimap', right: s.showMinimap ? 'On' : 'Off', data: { kind: 'client', key: 'showMinimap' } },
-      { label: 'Side panels (monsters, items, recall)', right: s.showSidebar ? 'On' : 'Off', detail: 'Toggle in play with \\', data: { kind: 'client', key: 'showSidebar' } },
+      { label: 'Monster & item lists under the minimap', right: s.showSidebar ? 'On' : 'Off', detail: 'Toggle in play with \\', data: { kind: 'client', key: 'showSidebar' } },
       { label: 'Sound volume', right: `${Math.round(s.volume * 100)}%`, detail: '←/→ to change', data: { kind: 'client', key: 'volume' } },
     ];
     for (const o of ctx.state.hello?.options ?? []) {

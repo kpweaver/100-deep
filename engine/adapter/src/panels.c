@@ -146,7 +146,7 @@ static void capture(jw *out, int width, int height, panel_draw fn, void *ctx)
 /* ------------------------------------------------------------------------
  * Panel drawers (each is a stock subwindow function)
  * ------------------------------------------------------------------------ */
-#define LIST_W 52
+#define LIST_W 40
 #define LIST_H 22
 #define RECALL_W 46
 #define RECALL_H 60

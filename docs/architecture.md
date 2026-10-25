@@ -115,7 +115,15 @@ What reaches the client, and why it is safe:
   billboards with interpolation, `effects.ts` animates bolts and explosions
   from engine events, and `scene.ts` renders at full display resolution
   with MSAA, torch light sized by the engine's light radius, and fog. A
-  low-resolution "retro pixel size" mode is optional.
+  low-resolution "retro pixel size" mode is optional. Visibility is
+  Angband's: grid brightness is baked from the engine's in-view/remembered
+  state, so lit rooms appear in full on entry. There is no torch falloff or
+  near fog.
+- Facing during engine-driven movement (`camera/heading.ts`) follows the
+  average of recent steps with hysteresis, so diagonal zig-zags don't swing
+  the view.
+- Text uses Angband's classic 8x16 bitmap font, converted pixel-for-pixel
+  to a web font. UI sizes are multiples of 16px.
 - Tile rendering: every Gervais tile gets its own 32×32 texture (no atlas
   bleeding). Textures use nearest filtering when magnified, so tile pixels
   stay crisp squares up close, and mipmaps plus anisotropic filtering when
