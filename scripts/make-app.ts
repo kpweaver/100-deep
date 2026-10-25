@@ -5,6 +5,7 @@
  * CC BY 3.0) scaled up with nearest-neighbour so its pixels stay crisp.
  *
  *   npm run make-app
+ *   node scripts/make-app.ts --icon-only <out.icns>   (icon for the desktop build)
  */
 import { execFileSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -129,9 +130,14 @@ function iconImage(atlas: Image, size: number): Image {
 
 /* ---------------- bundle ---------------- */
 
-rmSync(app, { recursive: true, force: true });
-mkdirSync(join(app, 'Contents/MacOS'), { recursive: true });
-mkdirSync(join(app, 'Contents/Resources'), { recursive: true });
+const iconOnly = process.argv.indexOf('--icon-only');
+const iconOut = iconOnly >= 0 ? resolve(process.argv[iconOnly + 1] ?? join(root, 'build/icon.icns')) : join(app, 'Contents/Resources/AppIcon.icns');
+
+if (iconOnly < 0) {
+  rmSync(app, { recursive: true, force: true });
+  mkdirSync(join(app, 'Contents/MacOS'), { recursive: true });
+  mkdirSync(join(app, 'Contents/Resources'), { recursive: true });
+}
 
 const atlas = decodePng(readFileSync(ATLAS));
 const iconset = join(root, 'build/AppIcon.iconset');
@@ -141,7 +147,12 @@ for (const s of [16, 32, 128, 256, 512]) {
   writeFileSync(join(iconset, `icon_${s}x${s}.png`), encodePng(iconImage(atlas, s)));
   writeFileSync(join(iconset, `icon_${s}x${s}@2x.png`), encodePng(iconImage(atlas, s * 2)));
 }
-execFileSync('iconutil', ['-c', 'icns', iconset, '-o', join(app, 'Contents/Resources/AppIcon.icns')]);
+mkdirSync(dirname(iconOut), { recursive: true });
+execFileSync('iconutil', ['-c', 'icns', iconset, '-o', iconOut]);
+if (iconOnly >= 0) {
+  console.log(`Created ${iconOut}`);
+  process.exit(0);
+}
 
 writeFileSync(join(app, 'Contents/Info.plist'), `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

@@ -49,6 +49,13 @@ npm start                 # builds engine + client, serves http://127.0.0.1:8787
 
 On Linux, `sh scripts/launch.sh` does the same as the double-click launcher.
 
+### Hosting online, desktop and Steam
+
+- `node bridge/src/index.ts --hosted` (or the Docker image) runs a
+  multi-player server: see [docs/hosting.md](docs/hosting.md).
+- `desktop/` is an Electron shell for a downloadable build (groundwork
+  for Steam): see [docs/desktop-and-steam.md](docs/desktop-and-steam.md).
+
 ### Development
 
 ```bash
@@ -142,9 +149,10 @@ accessible.
 ## Tests
 
 ```bash
-npm test                  # engine integration tests + client unit tests
-npm run test:engine       # 16 tests against the real native engine
-npm run test:client       # 12 isolated client unit tests (vitest)
+npm test                  # engine + bridge + client tests
+npm run test:engine       # 18 tests against the real native engine
+npm run test:bridge       # 7 hosted/local server tests with real engines
+npm run test:client       # 17 isolated client unit tests (vitest)
 ```
 
 The engine tests never use fabricated game state. They spawn the real

@@ -1,0 +1,95 @@
+{
+  "name": "thangorodrim-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Desktop (and future Steam) shell for Thangorodrim",
+  "license": "GPL-2.0-only",
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "bundle": "node scripts/bundle.mjs",
+    "start": "npm run bundle && electron .",
+    "smoke": "npm run bundle && electron . --smoke-test",
+    "dist": "npm run bundle && npm run icon && electron-builder",
+    "icon": "node ../scripts/make-app.ts --icon-only build/icon.icns",
+    "pack": "npm run bundle && npm run icon && electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.0",
+    "esbuild": "^0.25.0"
+  },
+  "build": {
+    "appId": "com.thangorodrim.game",
+    "productName": "Thangorodrim",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**",
+      "dist/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../build/engine/angband-headless",
+        "to": "engine/angband-headless"
+      },
+      {
+        "from": "../engine/upstream/lib/gamedata",
+        "to": "lib/gamedata"
+      },
+      {
+        "from": "../engine/upstream/lib/customize",
+        "to": "lib/customize"
+      },
+      {
+        "from": "../engine/upstream/lib/help",
+        "to": "lib/help"
+      },
+      {
+        "from": "../engine/upstream/lib/screens",
+        "to": "lib/screens"
+      },
+      {
+        "from": "../engine/upstream/lib/tiles/list.txt",
+        "to": "lib/tiles/list.txt"
+      },
+      {
+        "from": "../engine/upstream/lib/tiles/gervais",
+        "to": "lib/tiles/gervais"
+      },
+      {
+        "from": "../engine/upstream/docs/copying.rst",
+        "to": "licenses/angband-copying.rst"
+      },
+      {
+        "from": "../LICENSES.md",
+        "to": "licenses/LICENSES.md"
+      },
+      {
+        "from": "../client/dist",
+        "to": "client"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.role-playing-games",
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Game"
+    }
+  },
+  "productName": "Thangorodrim"
+}

@@ -119,6 +119,7 @@ export function startBridge(opts: BridgeOptions = {}) {
   const newSession = (id: string, dataDir: string, save: string) => {
     const s = new GameSession({
       id, dataDir, save, debug: cfg.debug, logDir, msgsPerSecond: cfg.msgsPerSecond,
+      binary: engineDefaults.binary, libDir: engineDefaults.libDir,
       onEnd: (sess) => {
         // A hosted session whose engine keeps failing is dropped
         if (cfg.mode === 'hosted') void endSession(sess);
@@ -258,7 +259,9 @@ export function startBridge(opts: BridgeOptions = {}) {
         rejectReady(new BridgeError('engine_missing', `Engine binary not found at ${engineDefaults.binary}; run "npm run build:engine"`));
         return;
       }
-      console.log(`[bridge] ${cfg.mode} mode, listening on http://${cfg.host}:${cfg.port} (ws: /ws)`);
+      const addr = http.address();
+      const actualPort = addr && typeof addr === 'object' ? addr.port : cfg.port;
+      console.log(`[bridge] ${cfg.mode} mode, listening on http://${cfg.host}:${actualPort} (ws: /ws)`);
       watchEngineBinary();
       resolveReady();
     });

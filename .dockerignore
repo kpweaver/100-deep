@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+build
+var
+client/dist
+Thangorodrim.app
+.git
+*.log
+.DS_Store

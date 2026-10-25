@@ -505,7 +505,9 @@ int main(int argc, char *argv[])
 	if (!setlocale(LC_CTYPE, "") || !strstr(setlocale(LC_CTYPE, NULL), "UTF-8")) {
 		if (!setlocale(LC_CTYPE, "en_US.UTF-8")) setlocale(LC_CTYPE, "C.UTF-8");
 	}
+#ifdef SIGPIPE
 	signal(SIGPIPE, SIG_IGN);
+#endif
 
 	proto_init();
 	plog_aux = plog_stderr;

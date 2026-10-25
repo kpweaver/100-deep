@@ -17,6 +17,9 @@ const CLIENT_TYPES = new Set([
 
 export interface SessionOptions {
   id: string;
+  /** Engine executable and Angband lib directory */
+  binary: string;
+  libDir: string;
   dataDir: string;
   save: string;
   debug: boolean;
@@ -46,7 +49,9 @@ export class GameSession {
     this.opts = opts;
     this.id = opts.id;
     mkdirSync(opts.dataDir, { recursive: true });
-    this.engine = new Engine({ dataDir: opts.dataDir, save: opts.save, debug: opts.debug });
+    this.engine = new Engine({
+      binary: opts.binary, libDir: opts.libDir, dataDir: opts.dataDir, save: opts.save, debug: opts.debug,
+    });
     this.tokens = opts.msgsPerSecond * 2;
     if (opts.logDir) {
       mkdirSync(opts.logDir, { recursive: true });

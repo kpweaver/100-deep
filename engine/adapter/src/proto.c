@@ -12,7 +12,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+/* Groundwork for Windows builds (untested): POSIX names and binary stdio */
+#include <fcntl.h>
+#include <io.h>
+#define dup _dup
+#define dup2 _dup2
+#define fdopen _fdopen
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+#endif
+#else
 #include <unistd.h>
+#endif
 
 static FILE *proto_out;
 void (*proto_resync_hook)(void);
@@ -27,6 +40,11 @@ void proto_init(void)
 	}
 	proto_out = fdopen(fd, "w");
 	dup2(STDERR_FILENO, STDOUT_FILENO);
+#ifdef _WIN32
+	/* Keep \n line endings on the protocol pipes */
+	_setmode(_fileno(stdin), _O_BINARY);
+	_setmode(_fileno(proto_out), _O_BINARY);
+#endif
 	setvbuf(stdin, NULL, _IOLBF, 0);
 }
 
