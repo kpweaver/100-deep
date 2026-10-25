@@ -5,6 +5,11 @@
  * Protocol messages go to a private duplicate of the original stdout; the
  * process-wide stdout is redirected to stderr so that any stray printf in
  * the engine can never corrupt the protocol stream.
+ *
+ * In the WebAssembly build (__EMSCRIPTEN__) the same messages are handed to
+ * JavaScript instead: thang_emit() posts each one to the page, and reading
+ * the next client line awaits a promise.  Asyncify suspends the engine at
+ * that point, so the rest of the engine keeps its blocking structure.
  */
 #include "adapter.h"
 
@@ -23,8 +28,24 @@
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 #endif
+#elif defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#include <unistd.h>
 #else
 #include <unistd.h>
+#endif
+
+#ifdef __EMSCRIPTEN__
+/* Module.thangEmit / Module.thangNextLine are provided by the worker */
+EM_JS(void, thang_emit, (const char *buf, size_t len), {
+	Module.thangEmit(UTF8ToString(buf, len));
+});
+
+/* The next client line as a malloc'd string, or NULL when shut down */
+EM_ASYNC_JS(char *, thang_next_line, (void), {
+	const line = await Module.thangNextLine();
+	return line === null ? 0 : stringToNewUTF8(line);
+});
 #endif
 
 static FILE *proto_out;
@@ -33,6 +54,9 @@ void (*proto_eof_hook)(void);
 
 void proto_init(void)
 {
+#ifdef __EMSCRIPTEN__
+	return;
+#endif
 	int fd = dup(STDOUT_FILENO);
 	if (fd < 0) {
 		perror("dup");
@@ -56,9 +80,13 @@ void proto_send(jw *w)
 		else
 			fprintf(stderr, "[engine->] %s\n", w->buf);
 	}
+#ifdef __EMSCRIPTEN__
+	thang_emit(w->buf, w->len);
+#else
 	fwrite(w->buf, 1, w->len, proto_out);
 	fputc('\n', proto_out);
 	fflush(proto_out);
+#endif
 }
 
 void proto_send_error(const char *code, const char *fmt, ...)
@@ -91,6 +119,12 @@ void proto_send_error(const char *code, const char *fmt, ...)
  */
 static char *read_line(bool *too_long)
 {
+#ifdef __EMSCRIPTEN__
+	char *line = thang_next_line();
+	*too_long = line && strlen(line) >= MAX_LINE;
+	if (*too_long) line[0] = '\0';
+	return line;
+#endif
 	size_t cap = 1024, len = 0;
 	char *buf = malloc(cap);
 

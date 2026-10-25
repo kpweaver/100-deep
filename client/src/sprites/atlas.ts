@@ -20,7 +20,8 @@ export class TileAtlas {
   private canvases = new Map<string, HTMLCanvasElement>();
 
   constructor(tileset: HelloMessage['tileset']) {
-    this.url = '/' + tileset.url.replace(/^\/+/, '');
+    // Relative to the page, so the game also works from a sub-path (itch.io)
+    this.url = tileset.url.replace(/^\/+/, '');
     this.cellW = tileset.cellWidth;
     this.cellH = tileset.cellHeight;
   }

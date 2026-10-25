@@ -156,7 +156,8 @@ describe('TileAtlas', () => {
     expect(ox).toBe(0);
     expect(rx).toBeCloseTo(1 / 128);
     expect(oy + ry).toBeCloseTo(1); // row 0 is at the top of the image
-    expect(atlas.url).toBe('/tiles/gervais/32x32.png');
+    // Relative to the page, so the game also works from a sub-path (itch.io)
+    expect(atlas.url).toBe('tiles/gervais/32x32.png');
   });
 });
 

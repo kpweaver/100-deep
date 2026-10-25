@@ -1,5 +1,9 @@
 # Hosting Thangorodrim online
 
+To let people play for free without running a server, use the browser
+build instead (static files, saves stay in each player's browser). See
+[itch.md](itch.md). This page covers the server-backed version.
+
 Status: **groundwork**. Hosted mode is implemented and tested (`npm run
 test:bridge`), and a Docker image is defined. The image has not yet been built
 in CI (Docker wasn't available where it was written), and there are no

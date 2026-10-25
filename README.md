@@ -51,6 +51,9 @@ On Linux, `sh scripts/launch.sh` does the same as the double-click launcher.
 
 ### Hosting online, desktop and Steam
 
+- `npm run build:web` builds a **browser-only** version: the engine compiled
+  to WebAssembly, saves in the browser, a static site ready for itch.io. See
+  [docs/itch.md](docs/itch.md).
 - `node bridge/src/index.ts --hosted` (or the Docker image) runs a
   multi-player server: see [docs/hosting.md](docs/hosting.md).
 - `desktop/` is an Electron shell for a downloadable build (groundwork
@@ -155,6 +158,7 @@ npm test                  # engine + bridge + client tests
 npm run test:engine       # 18 tests against the real native engine
 npm run test:bridge       # 9 hosted/local server tests with real engines
 npm run test:client       # 21 isolated client unit tests (vitest)
+npm run test:wasm         # the WebAssembly engine (after npm run build:web)
 ```
 
 The engine tests never use fabricated game state. They spawn the real
@@ -173,8 +177,9 @@ engine/CMakeLists.txt Links upstream's OurCoreLib with the adapter
 shared/protocol/      Protocol v1 TypeScript types (source of truth for the client)
 bridge/               Node WebSocket bridge and engine process wrapper
 client/               Vite + Three.js client (renderer, camera, sprites, input, ui, protocol)
+client/src/wasm/      Browser-only engine: worker, Emscripten host, transport
 tests/engine/         Native engine integration tests
-scripts/              build-engine.sh, dev.ts
+scripts/              build-engine.sh, build-web.ts, dev.ts
 docs/                 Architecture, protocol, limitations
 ```
 

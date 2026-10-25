@@ -17,6 +17,8 @@
     "build:engine": "sh scripts/build-engine.sh",
     "build:client": "npm run build -w client",
     "build": "npm run build:engine && npm run build:client",
+    "build:web": "node scripts/build-web.ts",
+    "serve:web": "npm exec -w client -- vite preview --outDir dist-web --port 4173 --strictPort",
     "dev": "node scripts/dev.ts",
     "start": "npm run build && node bridge/src/index.ts --open",
     "test": "npm run test:engine && npm run test:bridge && npm run test:client",
@@ -25,7 +27,9 @@
     "typecheck": "tsc -p bridge && tsc -p client --noEmit",
     "launch": "sh scripts/launch.sh",
     "make-app": "node scripts/make-app.ts",
-    "test:bridge": "node --test tests/bridge/*.test.ts"
+    "test:bridge": "node --test tests/bridge/*.test.ts",
+    "test:wasm": "node --test tests/engine/wasm.test.ts",
+    "publish:itch": "butler push client/dist-web ${ITCH_TARGET:?set ITCH_TARGET=yourname/thangorodrim}:html5"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

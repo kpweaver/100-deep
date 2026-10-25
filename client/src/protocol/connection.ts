@@ -9,7 +9,19 @@ export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 type Listener = (msg: EngineMessage) => void;
 type StatusListener = (status: ConnectionStatus) => void;
 
-export class Connection {
+/** How the client reaches an engine: the bridge (WebSocket) or in-page (WebAssembly) */
+export interface Transport {
+  status: ConnectionStatus;
+  debug: boolean;
+  connect(): void;
+  close(): void;
+  send(msg: ClientMessage): boolean;
+  onMessage(l: Listener): () => void;
+  onStatus(l: StatusListener): () => void;
+  rememberSession(token: string): void;
+}
+
+export class Connection implements Transport {
   private ws: WebSocket | null = null;
   private listeners = new Set<Listener>();
   private statusListeners = new Set<StatusListener>();

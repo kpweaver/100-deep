@@ -12,5 +12,7 @@ export default defineConfig({
     },
   },
   build: { outDir: 'dist', chunkSizeWarningLimit: 1200 },
+  // The engine worker loads the WebAssembly engine with a dynamic import
+  worker: { format: 'es' },
   test: { environment: 'node' },
 });

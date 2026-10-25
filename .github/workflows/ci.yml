@@ -47,3 +47,36 @@ jobs:
           for i in $(seq 1 30); do curl -fs http://127.0.0.1:8787/health && break; sleep 1; done
           curl -fs http://127.0.0.1:8787/health | grep '"mode":"hosted"'
           docker logs thang
+
+  web:
+    name: Browser build (WebAssembly)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: mymindstorm/setup-emsdk@v14
+      - run: npm ci
+      - name: Build the itch.io bundle
+        run: npm run build:web
+      - name: Test the WebAssembly engine
+        run: npm run test:wasm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thangorodrim-web
+          path: client/dist-web
+      # Optional: publish to itch.io on pushes to main.  Set the repository
+      # secret BUTLER_API_KEY (itch.io > Settings > API keys) and the
+      # variable ITCH_TARGET (e.g. yourname/thangorodrim).
+      - name: Push to itch.io
+        if: github.ref == 'refs/heads/main' && vars.ITCH_TARGET != ''
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          curl -fsSL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler && chmod +x butler/butler
+          ./butler/butler push client/dist-web "${{ vars.ITCH_TARGET }}:html5" --userversion "$(git rev-parse --short HEAD)"

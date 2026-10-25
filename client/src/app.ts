@@ -13,7 +13,8 @@
 import {
   DIR_OFFSETS, FACING_TO_DIR, type CommandMessage, type Direction, type EngineMessage, type Panel, type StateMessage,
 } from '@thang/protocol';
-import { Connection } from './protocol/connection.ts';
+import { Connection, type Transport } from './protocol/connection.ts';
+import { WorkerConnection, useWasmEngine } from './wasm/worker-connection.ts';
 import { HeadingFollower } from './camera/heading.ts';
 import { GameState, type StateChange } from './state/game-state.ts';
 import { TileAtlas } from './sprites/atlas.ts';
@@ -65,7 +66,7 @@ function saveJson(key: string, value: unknown): void {
 
 export class App implements InputHandler {
   readonly state = new GameState();
-  readonly conn: Connection;
+  readonly conn: Transport;
   readonly input = new InputManager();
   readonly ui: UiManager;
   readonly hud: Hud;
@@ -91,7 +92,7 @@ export class App implements InputHandler {
   private optionsPushed = false;
 
   constructor(private root: HTMLElement) {
-    this.conn = new Connection(Connection.defaultUrl());
+    this.conn = useWasmEngine() ? new WorkerConnection() : new Connection(Connection.defaultUrl());
     this.conn.debug = new URLSearchParams(location.search).has('debug');
     const uiRoot = h('div', { class: 'ui-root' });
     this.ui = new UiManager(uiRoot, this.input);
@@ -185,7 +186,7 @@ export class App implements InputHandler {
           this.showOverlay('The engine stopped unexpectedly — restarting and reloading your last save…');
           this.pending = null;
         } else if (m.event === 'engine_failed') {
-          this.showOverlay(`The engine could not be restarted. ${m.message ?? ''}`);
+          this.showOverlay(`The game engine stopped. ${m.message ?? ''}`);
         } else if (m.event === 'engine_started') {
           this.showOverlay(null);
           this.state.note('Engine restarted.');
@@ -208,7 +209,7 @@ export class App implements InputHandler {
 
   private async ensureAtlas() {
     const hello = this.state.hello!;
-    if (!this.atlas || this.atlas.url !== '/' + hello.tileset.url) {
+    if (!this.atlas || this.atlas.url !== hello.tileset.url) {
       this.atlas = new TileAtlas(hello.tileset);
       this.atlasLoading = this.atlas.load().catch((e) => {
         // Show the problem and try again rather than sit on a black screen
@@ -431,7 +432,7 @@ export class App implements InputHandler {
   /* Sending commands                                                  */
   /* ---------------------------------------------------------------- */
 
-  send(m: Parameters<Connection['send']>[0]): void {
+  send(m: Parameters<Transport['send']>[0]): void {
     if (m.type === 'command') {
       if (!AUTO_FACE_ACTIONS.has(m.action)) this.heading.reset();
       this.lastAction = m.action;
