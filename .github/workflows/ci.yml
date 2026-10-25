@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Build tools (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential libncurses-dev
+      - run: npm ci
+      - name: Build engine and client
+        run: npm run build
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests (engine, bridge, client)
+        run: npm test
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build image
+        run: docker build -t thangorodrim .
+      - name: Smoke test the container
+        run: |
+          docker run -d --name thang -p 8787:8787 thangorodrim
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:8787/health && break; sleep 1; done
+          curl -fs http://127.0.0.1:8787/health | grep '"mode":"hosted"'
+          docker logs thang
