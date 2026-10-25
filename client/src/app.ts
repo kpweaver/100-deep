@@ -192,6 +192,12 @@ export class App implements InputHandler {
           this.resumeAfterRestart = true;
         } else if (m.event === 'replaced') {
           this.showOverlay('This game was opened in another window.');
+        } else if (m.event === 'session' && m.session) {
+          this.conn.rememberSession(m.session);
+        } else if (m.event === 'busy') {
+          this.showOverlay(m.message ?? 'The server is full right now. Please try again shortly.');
+        } else if (m.event === 'rate_limited') {
+          this.state.note('Slow down: some inputs were dropped.');
         }
         break;
     }

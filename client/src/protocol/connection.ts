@@ -25,10 +25,32 @@ export class Connection {
     return `${proto}//${location.host}/ws`;
   }
 
+  /** Hosted servers issue a session token; resume with it on reconnect */
+  static readonly SESSION_KEY = 'thang.session';
+
+  private sessionUrl(): string {
+    let token: string | null = null;
+    try {
+      token = localStorage.getItem(Connection.SESSION_KEY);
+    } catch {
+      /* storage unavailable: the server will issue a new session */
+    }
+    if (!token || !/^[0-9a-f]{32}$/.test(token)) return this.url;
+    return `${this.url}${this.url.includes('?') ? '&' : '?'}session=${token}`;
+  }
+
+  rememberSession(token: string): void {
+    try {
+      localStorage.setItem(Connection.SESSION_KEY, token);
+    } catch {
+      /* storage unavailable: the game lasts as long as the tab */
+    }
+  }
+
   connect(): void {
     this.closedByUser = false;
     this.setStatus('connecting');
-    const ws = new WebSocket(this.url);
+    const ws = new WebSocket(this.sessionUrl());
     this.ws = ws;
     ws.onopen = () => {
       this.retry = 0;

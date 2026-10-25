@@ -328,7 +328,14 @@ export interface PongMessage {
 /** Sent by the bridge itself, never by the engine */
 export interface BridgeMessage {
   type: 'bridge';
-  event: 'engine_started' | 'engine_exit' | 'engine_failed' | 'replaced';
+  event:
+    | 'engine_started' | 'engine_exit' | 'engine_failed' | 'replaced'
+    /** Hosted mode: the session token this browser should resume with */
+    | 'session'
+    /** Hosted mode: no capacity for another game right now */
+    | 'busy'
+    | 'rate_limited';
+  session?: string;
   code?: number | null;
   signal?: string | null;
   message?: string;

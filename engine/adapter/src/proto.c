@@ -63,22 +63,36 @@ void proto_send_error(const char *code, const char *fmt, ...)
 	jw_free(&w);
 }
 
-/* Read a full line of arbitrary length; NULL on EOF */
-static char *read_line(void)
+/* No legitimate client message comes close to this */
+#define MAX_LINE (64 * 1024)
+
+/*
+ * Read one line; NULL on EOF.  Over-long lines are consumed and replaced by
+ * an empty string, with *too_long set, so a hostile client cannot make the
+ * engine allocate without bound.
+ */
+static char *read_line(bool *too_long)
 {
 	size_t cap = 1024, len = 0;
 	char *buf = malloc(cap);
 
+	*too_long = false;
 	while (true) {
 		int c = fgetc(stdin);
 		if (c == EOF) {
-			if (len == 0) {
+			if (len == 0 && !*too_long) {
 				free(buf);
 				return NULL;
 			}
 			break;
 		}
 		if (c == '\n') break;
+		if (*too_long) continue;
+		if (len + 2 > MAX_LINE) {
+			*too_long = true;
+			len = 0;
+			continue;
+		}
 		if (len + 2 > cap) {
 			cap *= 2;
 			buf = realloc(buf, cap);
@@ -92,10 +106,16 @@ static char *read_line(void)
 jv *proto_next(void)
 {
 	while (true) {
-		char *line = read_line();
+		bool too_long;
+		char *line = read_line(&too_long);
 		jv *msg;
 		const char *type;
 
+		if (too_long) {
+			proto_send_error("too_long", "Message exceeds %d bytes", MAX_LINE);
+			free(line);
+			continue;
+		}
 		if (!line) {
 			if (thang_debug) fprintf(stderr, "[engine] stdin closed\n");
 			if (proto_eof_hook) proto_eof_hook();

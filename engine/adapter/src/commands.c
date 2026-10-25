@@ -275,8 +275,12 @@ bool commands_dispatch(const jv *msg)
 				cmd_set_arg_choice(cmd, "spell", (int)jv_get_int(msg, "spell", -1));
 			break;
 		case CMD_INSCRIBE:
-			if (jv_has(msg, "text"))
-				cmd_set_arg_string(cmd, "inscription", jv_get_str(msg, "text", ""));
+			if (jv_has(msg, "text")) {
+				/* Same limit as the textui's inscription prompt */
+				char text[80];
+				my_strcpy(text, jv_get_str(msg, "text", ""), sizeof(text));
+				cmd_set_arg_string(cmd, "inscription", text);
+			}
 			break;
 		case CMD_REST: {
 			const char *mode = jv_get_str(msg, "mode", "as_needed");

@@ -1,6 +1,6 @@
 /**
  * Bridge entry point:
- *   node bridge/src/index.ts [--port N] [--save NAME] [--log] [--open]
+ *   node bridge/src/index.ts [--port N] [--host ADDR] [--save NAME] [--hosted] [--log] [--open]
  *
  * --open opens the game in the default browser once it is ready.  If the
  * game is already running on the port, --open just opens it instead.
@@ -35,11 +35,13 @@ async function alreadyRunning(url: string): Promise<boolean> {
 }
 
 const bridge = startBridge({
+  mode: process.argv.includes('--hosted') ? 'hosted' : undefined,
   port: arg('--port') ? Number(arg('--port')) : undefined,
+  host: arg('--host'),
   engine: { save: arg('--save') },
-  log: process.argv.includes('--log'),
+  log: process.argv.includes('--log') || undefined,
 });
-const url = `http://${bridge.host}:${bridge.port}`;
+const url = `http://${bridge.host === '0.0.0.0' ? '127.0.0.1' : bridge.host}:${bridge.port}`;
 
 try {
   await bridge.ready;
