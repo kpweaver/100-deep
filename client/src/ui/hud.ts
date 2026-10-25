@@ -149,7 +149,8 @@ export class Hud {
         last.el.classList.remove('old');
         continue;
       }
-      const el = h('div', { class: 'log-line' }, m.text);
+      // Angband's colour for this message type (message.prf)
+      const el = h('div', { class: 'log-line', style: m.color !== undefined && m.color !== 1 ? `color:${paletteColor(this.state.hello?.palette, m.color)}` : '' }, m.text);
       el.dataset.text = m.text;
       this.log.append(el);
       this.recent.push({ el, at: now });

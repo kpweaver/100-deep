@@ -4,7 +4,6 @@
  */
 import type { CommandMessage, ItemAction, ItemInfo, StoreItem } from '@thang/protocol';
 import type { InputEvent } from '../input/actions.ts';
-import { PROMPTS } from '../input/actions.ts';
 import type { UiContext } from './context.ts';
 import { add, clear, h, paletteColor } from './dom.ts';
 import { Layer } from './layer.ts';
@@ -144,7 +143,7 @@ export class InventoryLayer extends Layer {
       onSecondary: (i) => i.data && ctx.send({ type: 'query', what: 'item', item: i.data.handle }),
       onFocus: (i) => this.describe(i?.data ?? null),
     });
-    const p = PROMPTS[ctx.input.lastDevice];
+    const p = ctx.input.prompts();
     this.el.append(h('div', { class: 'panel wide' },
       h('div', { class: 'panel-title' }, 'Gear', this.titleExtra),
       this.tabs,
@@ -152,7 +151,7 @@ export class InventoryLayer extends Layer {
       h('div', { class: 'panel-footer' },
         h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Use'),
         h('span', {}, h('kbd', {}, p.secondary ?? 'Shift+Enter'), 'Examine'),
-        h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'LB/RB' : 'Tab'), 'Switch tab'),
+        h('span', {}, h('kbd', {}, p.tabs ?? 'Tab'), 'Switch tab'),
         h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Close'))));
     this.refresh();
   }
@@ -339,16 +338,16 @@ export class MapLayer extends Layer {
       this.cy = Math.floor((e.clientY - r.top) / this.map.cell);
       this.travel();
     });
-    const gp = ctx.input.lastDevice === 'gamepad';
+    const p = ctx.input.prompts();
     this.el.append(h('div', { class: 'panel full' },
       h('div', { class: 'panel-title' }, 'Map', h('small', {}, 'Your knowledge of this level')),
       this.wrap,
       this.info,
       h('div', { class: 'panel-footer' },
-        h('span', {}, h('kbd', {}, gp ? 'D-pad' : 'Arrows'), 'Move cursor'),
-        h('span', {}, h('kbd', {}, gp ? 'A' : 'Enter'), 'Travel here'),
-        h('span', {}, h('kbd', {}, gp ? 'LT/RT' : '+/-'), 'Zoom'),
-        h('span', {}, h('kbd', {}, gp ? 'B' : 'Esc'), 'Close'))));
+        h('span', {}, h('kbd', {}, p.dpad ?? 'Arrows'), 'Move cursor'),
+        h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Travel here'),
+        h('span', {}, h('kbd', {}, p.zoom ?? '+/-'), 'Zoom'),
+        h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Close'))));
   }
 
   onOpen(): void {
@@ -464,6 +463,7 @@ export function openOptions(ctx: UiContext): void {
       { label: 'Keep exploring after each step', right: s.autoExploreRepeat ? 'On' : 'Off', data: { kind: 'client', key: 'autoExploreRepeat' } },
       { label: 'Minimap', right: s.showMinimap ? 'On' : 'Off', data: { kind: 'client', key: 'showMinimap' } },
       { label: 'Monster & item lists under the minimap', right: s.showSidebar ? 'On' : 'Off', detail: 'Toggle in play with \\', data: { kind: 'client', key: 'showSidebar' } },
+      { label: 'Controller button labels', right: ({ auto: 'Auto', xbox: 'Xbox', playstation: 'PlayStation', nintendo: 'Nintendo' } as const)[s.controllerGlyphs], detail: '←/→ to change', data: { kind: 'client', key: 'controllerGlyphs' } },
       { label: 'Sound volume', right: `${Math.round(s.volume * 100)}%`, detail: '←/→ to change', data: { kind: 'client', key: 'volume' } },
     ];
     for (const o of ctx.state.hello?.options ?? []) {
@@ -495,6 +495,12 @@ export function openOptions(ctx: UiContext): void {
       case 'autoExploreRepeat': ctx.applySettings({ autoExploreRepeat: !s.autoExploreRepeat }); break;
       case 'showMinimap': ctx.applySettings({ showMinimap: !s.showMinimap }); break;
       case 'showSidebar': ctx.applySettings({ showSidebar: !s.showSidebar }); break;
+      case 'controllerGlyphs': {
+        const order = ['auto', 'xbox', 'playstation', 'nintendo'] as const;
+        const i = order.indexOf(s.controllerGlyphs);
+        ctx.applySettings({ controllerGlyphs: order[(i + (dir || 1) + order.length) % order.length] });
+        break;
+      }
     }
   };
   const layer: MenuLayer<O> = new MenuLayer(ctx, {
@@ -547,14 +553,14 @@ export class StoreLayer extends Layer {
         if (this.mode === 'sell') ctx.send({ type: 'query', what: 'item', item: i.data.handle });
       },
     });
-    const p = PROMPTS[ctx.input.lastDevice];
+    const p = ctx.input.prompts();
     this.el.append(h('div', { class: 'panel wide' },
       this.header,
       this.tabs,
       h('div', { class: 'panel-body' }, this.menu.el, this.detail),
       h('div', { class: 'panel-footer' },
         h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Buy / sell'),
-        h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'LB/RB' : 'Tab'), 'Switch'),
+        h('span', {}, h('kbd', {}, p.tabs ?? 'Tab'), 'Switch'),
         h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Leave'))));
     this.refresh();
   }

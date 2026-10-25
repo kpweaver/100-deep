@@ -19,7 +19,7 @@ import { GameState, type StateChange } from './state/game-state.ts';
 import { TileAtlas } from './sprites/atlas.ts';
 import { SceneRenderer } from './renderer/scene.ts';
 import { InputManager } from './input/input-manager.ts';
-import { PROMPTS, type InputEvent, type InputHandler } from './input/actions.ts';
+import type { InputEvent, InputHandler } from './input/actions.ts';
 import { Hud, type ContextHint } from './ui/hud.ts';
 import { UiManager } from './ui/layer.ts';
 import { DEFAULT_SETTINGS, SETTINGS_VERSION, type Settings, type UiContext } from './ui/context.ts';
@@ -315,7 +315,11 @@ export class App implements InputHandler {
     }
     if (c.messages) {
       this.hud.addMessages(c.messages);
-      for (const m of c.messages) this.sfx.play(m.sound);
+      for (const m of c.messages) {
+        this.sfx.play(m.sound);
+        // Angband's level-up message (MSG_LEVEL, sound "level")
+        if (m.sound === 'level' && /level \d+/i.test(m.text)) this.hud.showBanner(m.text.replace(/\.$/, ''));
+      }
     }
     if (c.effects && r) r.effects.play(c.effects);
     if (c.prompt) this.syncPrompt();
@@ -718,7 +722,7 @@ export class App implements InputHandler {
       this.hud.setHints([]);
       return;
     }
-    const pr = PROMPTS[this.input.lastDevice];
+    const pr = this.input.prompts();
     const hints: ContextHint[] = [];
     const here = s.featureClassAt(p.x, p.y).shape;
     const a = this.ahead();
@@ -757,6 +761,8 @@ export class App implements InputHandler {
     this.sfx.volume = this.settings.volume;
     this.hud.minimap.canvas.classList.toggle('hidden', !this.settings.showMinimap);
     this.hud.sidebar.classList.toggle('hidden', !this.settings.showSidebar);
+    this.input.glyphOverride = this.settings.controllerGlyphs;
+    this.updateHints();
   }
 
   private showOverlay(text: string | null): void {

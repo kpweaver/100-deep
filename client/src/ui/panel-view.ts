@@ -57,14 +57,14 @@ export class PanelLayer extends Layer {
     private onPage?: (page: number) => void,
   ) {
     super('panel-layer');
-    const gp = ctx.input.lastDevice === 'gamepad';
+    const p = ctx.input.prompts();
     this.el.append(h('div', { class: 'panel wide' },
       this.titleEl,
       this.body,
       h('div', { class: 'panel-footer' },
-        pages.length > 1 ? h('span', {}, h('kbd', {}, gp ? 'D-pad ←/→' : '←/→'), 'Page') : null,
-        h('span', {}, h('kbd', {}, gp ? 'D-pad ↑/↓' : '↑/↓'), 'Scroll'),
-        h('span', {}, h('kbd', {}, gp ? 'B' : 'Esc'), 'Close'))));
+        pages.length > 1 ? h('span', {}, h('kbd', {}, p.page ?? '←/→'), 'Page') : null,
+        h('span', {}, h('kbd', {}, p.scroll ?? '↑/↓'), 'Scroll'),
+        h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Close'))));
     this.refresh();
   }
 

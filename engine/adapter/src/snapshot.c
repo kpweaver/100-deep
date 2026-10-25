@@ -115,6 +115,7 @@ static void add_message(const char *text, int type)
 	jw_obj_begin(&msg_buf);
 	jw_kstr(&msg_buf, "text", text);
 	jw_kint(&msg_buf, "type", type);
+	jw_kint(&msg_buf, "color", message_type_color((uint16_t)type));
 	{
 		const char *snd = message_sound_name(type);
 		if (snd && *snd) jw_kstr(&msg_buf, "sound", snd);

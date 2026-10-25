@@ -34,13 +34,14 @@ export class PromptLayer extends Layer {
   constructor(private ctx: UiContext, readonly prompt: PromptMessage) {
     super('prompt-layer');
     const title = prompt.prompt.trim() || 'Choose';
+    const p = ctx.input.prompts();
     this.el.append(h('div', { class: 'panel' },
       h('div', { class: 'panel-title' }, title),
       this.body,
       h('div', { class: 'panel-footer' },
-        h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'A' : 'Enter'), 'Choose'),
-        prompt.kind === 'item' ? h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'X' : 'Shift+Enter'), 'Examine') : null,
-        h('span', {}, h('kbd', {}, ctx.input.lastDevice === 'gamepad' ? 'B' : 'Esc'), 'Cancel'))));
+        h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Choose'),
+        prompt.kind === 'item' ? h('span', {}, h('kbd', {}, p.secondary ?? 'Shift+Enter'), 'Examine') : null,
+        h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Cancel'))));
     this.build();
   }
 

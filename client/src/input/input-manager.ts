@@ -2,7 +2,7 @@
  * Keyboard + Gamepad API input, mapped to semantic actions and routed to
  * the topmost handler (UI layers first, then the game view).
  */
-import type { Device, GameAction, InputEvent, InputHandler, UiAction } from './actions.ts';
+import { glyphStyleFromId, promptsFor, type Device, type GameAction, type GlyphStyle, type InputEvent, type InputHandler, type PromptKey, type UiAction } from './actions.ts';
 
 interface KeyBinding { game?: GameAction; ui?: UiAction }
 
@@ -82,6 +82,10 @@ export class InputManager {
   private padHeld = new Map<string, HeldState>();
   private keyHeld = new Set<string>();
   lastDevice: Device = 'keyboard';
+  /** Detected controller family, for button prompts */
+  padStyle: GlyphStyle = 'xbox';
+  /** User override from Options ('auto' = detect) */
+  glyphOverride: GlyphStyle | 'auto' = 'auto';
   onDeviceChange: ((d: Device) => void) | null = null;
   onGamepadConnected: ((name: string) => void) | null = null;
   /** Text inputs grab the keyboard while focused */
@@ -94,6 +98,11 @@ export class InputManager {
     window.addEventListener('gamepadconnected', (e) => {
       this.onGamepadConnected?.((e as GamepadEvent).gamepad.id);
     });
+  }
+
+  /** Button-prompt labels for the current device and controller family */
+  prompts(): Partial<Record<PromptKey, string>> {
+    return promptsFor(this.lastDevice, this.glyphOverride === 'auto' ? this.padStyle : this.glyphOverride);
   }
 
   push(h: InputHandler): void {
@@ -167,9 +176,11 @@ export class InputManager {
     const active = new Map<string, KeyBinding>();
     for (const pad of pads) {
       if (!pad || !pad.connected) continue;
+      const before = active.size;
       pad.buttons.forEach((b, i) => {
         if (b.pressed && PAD_BUTTONS[i]) active.set(`b${i}`, PAD_BUTTONS[i]);
       });
+      if (active.size > before) this.notePad(pad);
       const [lx = 0, ly = 0, rx = 0, ry = 0] = pad.axes;
       // Left stick: move relative to facing; dominant axis wins
       if (Math.abs(ly) > DEADZONE || Math.abs(lx) > DEADZONE) {
@@ -201,6 +212,14 @@ export class InputManager {
       }
     }
     for (const id of [...this.padHeld.keys()]) if (!active.has(id)) this.padHeld.delete(id);
+  }
+
+  private notePad(pad: Gamepad) {
+    const style = glyphStyleFromId(pad.id);
+    if (style !== this.padStyle) {
+      this.padStyle = style;
+      this.onDeviceChange?.(this.lastDevice);
+    }
   }
 
   /** Light rumble on supported controllers */

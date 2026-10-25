@@ -526,6 +526,8 @@ int main(int argc, char *argv[])
 	/* Visual tables, as textui_init() would set them up */
 	cmd_init();
 	textui_prefs_init();
+	/* Message colours, as textui_init() loads them via pref.prf */
+	process_pref_file("message.prf", false, false);
 	if (!init_graphics_modes()) quit("Cannot load graphics modes (lib/tiles/list.txt)");
 	use_graphics = 3;	/* David Gervais' 32x32 tiles (lib/tiles/list.txt) */
 	if (!get_graphics_mode(use_graphics)) quit("Gervais tile mode not found");

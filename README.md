@@ -106,7 +106,9 @@ costs a game turn.
 | Pause / system menu (options, save, controls) | Esc | Start |
 | Menus | ↑↓ + Enter, letter shortcuts a–z, Esc | D-pad/stick + A, B to go back |
 
-Every implemented feature can be used without a mouse.
+Every implemented feature can be used without a mouse. Button prompts match
+your controller: Xbox, PlayStation (✕○□△) or Nintendo labels are detected
+automatically, or chosen under Options.
 
 ## What works (engine-backed)
 
@@ -152,7 +154,7 @@ accessible.
 npm test                  # engine + bridge + client tests
 npm run test:engine       # 18 tests against the real native engine
 npm run test:bridge       # 7 hosted/local server tests with real engines
-npm run test:client       # 17 isolated client unit tests (vitest)
+npm run test:client       # 19 isolated client unit tests (vitest)
 ```
 
 The engine tests never use fabricated game state. They spawn the real

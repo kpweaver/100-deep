@@ -185,6 +185,8 @@ export interface GameMessage {
   text: string;
   /** Angband MSG_* type */
   type: number;
+  /** Angband colour index for this message type (message.prf) */
+  color?: number;
   sound?: string;
 }
 

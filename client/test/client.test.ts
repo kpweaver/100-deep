@@ -11,6 +11,7 @@ import { classifyFeature } from '../src/state/features.ts';
 import { GameState } from '../src/state/game-state.ts';
 import { GridCamera } from '../src/camera/grid-camera.ts';
 import { HeadingFollower } from '../src/camera/heading.ts';
+import { glyphStyleFromId, promptsFor } from '../src/input/actions.ts';
 import { TileAtlas } from '../src/sprites/atlas.ts';
 
 const feat = (idx: number, name: string, flags: string[]): FeatureInfo => ({ idx, name, flags, tiles: [] });
@@ -215,5 +216,26 @@ describe('HeadingFollower (auto-explore facing)', () => {
     expect(f.step(1, 0, 2)).toBe(0);
     expect(f.step(1, -1, 2)).toBe(0);
     expect(f.step(1, 0, 2)).toBe(0);
+  });
+});
+
+describe('controller button labels', () => {
+  it('detects controller families from Gamepad API ids', () => {
+    expect(glyphStyleFromId('DualSense Wireless Controller (STANDARD GAMEPAD Vendor: 054c Product: 0ce6)')).toBe('playstation');
+    expect(glyphStyleFromId('Pro Controller (STANDARD GAMEPAD Vendor: 057e Product: 2009)')).toBe('nintendo');
+    expect(glyphStyleFromId('Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e)')).toBe('xbox');
+    expect(glyphStyleFromId('Some Generic Pad')).toBe('xbox');
+  });
+
+  it('relabels prompts by button position', () => {
+    const ps = promptsFor('gamepad', 'playstation');
+    expect(ps.confirm).toBe('✕');
+    expect(ps.back).toBe('○');
+    expect(ps.rest).toBe('L1▸Rest');
+    expect(ps.tabs).toBe('L1/R1');
+    const nin = promptsFor('gamepad', 'nintendo');
+    expect(nin.confirm).toBe('B'); // bottom button is labelled B on Nintendo pads
+    expect(nin.attack).toBe('ZR');
+    expect(promptsFor('keyboard', 'playstation').confirm).toBe('Enter');
   });
 });

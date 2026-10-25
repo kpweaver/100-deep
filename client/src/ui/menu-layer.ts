@@ -1,6 +1,5 @@
 /** A modal panel with a title, a navigable list and an optional detail pane */
 import type { InputEvent } from '../input/actions.ts';
-import { PROMPTS } from '../input/actions.ts';
 import type { UiContext } from './context.ts';
 import { add, clear, h } from './dom.ts';
 import { Layer } from './layer.ts';
@@ -59,7 +58,7 @@ export class MenuLayer<T = unknown> extends Layer {
   }
 
   renderFooter(): void {
-    const p = PROMPTS[this.ctx.input.lastDevice];
+    const p = this.ctx.input.prompts();
     clear(this.footer);
     add(this.footer, 
       h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Select'),

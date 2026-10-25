@@ -17,6 +17,8 @@ export interface Settings {
   showMinimap: boolean;
   /** Side panels: stock monster list, item list and recall */
   showSidebar: boolean;
+  /** Button labels: detect from the controller, or force a family */
+  controllerGlyphs: 'auto' | 'xbox' | 'playstation' | 'nintendo';
 }
 
 export const SETTINGS_VERSION = 2;
@@ -30,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoExploreRepeat: true,
   showMinimap: true,
   showSidebar: true,
+  controllerGlyphs: 'auto',
 };
 
 export interface UiContext {
