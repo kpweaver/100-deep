@@ -358,3 +358,29 @@ test('character death follows the native flow and a new game can start', async (
   assert.equal(ng.player!.depth, 0);
   await s.stop();
 });
+
+test('returning to the title saves, and the game can be continued', async () => {
+  const s = new Session({ save: 'title' });
+  await s.start();
+  await s.newGame('Dwarf', 'Priest', 'Thrain');
+  const dir = s.findDir((f, x, y) => isPassable(f) && !s.monsterAt(x, y))!;
+  await s.command({ action: 'walk', dir });
+  const before = { x: s.player.x, y: s.player.y, turn: s.state!.turn };
+  s.send({ type: 'close_game' });
+  const hello = await s.next('hello');
+  assert.ok(hello.type === 'hello' && hello.saveExists);
+  const menu = (await s.next('state')) as StateMessage;
+  assert.equal(menu.phase, 'menu');
+  assert.equal(menu.player, undefined, 'no character data at the title');
+  // Game commands are refused at the title
+  s.send({ type: 'command', action: 'walk', dir });
+  assert.equal(((await s.next('error')) as { code: string }).code, 'command_rejected');
+  s.send({ type: 'load_game' });
+  await s.next('hello');
+  const st = (await s.next('state')) as StateMessage;
+  assert.equal(st.phase, 'game');
+  assert.equal(st.player!.name, 'Thrain');
+  assert.deepEqual({ x: st.player!.x, y: st.player!.y, turn: st.turn }, before);
+  assert.ok(st.map!.full);
+  await s.stop();
+});

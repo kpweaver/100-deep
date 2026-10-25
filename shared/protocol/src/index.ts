@@ -385,6 +385,8 @@ export type ClientMessage =
   | AnswerMessage
   | CancelMessage
   | { type: 'save' }
+  /** Save (if alive) and return the engine to the title/menu phase */
+  | { type: 'close_game' }
   | { type: 'quit' }
   | { type: 'options'; set: Record<string, boolean> }
   | { type: 'query'; what: 'item'; item: string }

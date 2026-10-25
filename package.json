@@ -18,11 +18,13 @@
     "build:client": "npm run build -w client",
     "build": "npm run build:engine && npm run build:client",
     "dev": "node scripts/dev.ts",
-    "start": "npm run build && node bridge/src/index.ts",
+    "start": "npm run build && node bridge/src/index.ts --open",
     "test": "npm run test:engine && npm run test:client",
     "test:engine": "node --test tests/engine/*.test.ts",
     "test:client": "npm run test -w client",
-    "typecheck": "tsc -p bridge && tsc -p client --noEmit"
+    "typecheck": "tsc -p bridge && tsc -p client --noEmit",
+    "launch": "sh scripts/launch.sh",
+    "make-app": "node scripts/make-app.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

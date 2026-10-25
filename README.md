@@ -24,21 +24,40 @@ Requirements: macOS or Linux, a C compiler, CMake ≥ 3.16, ncurses headers
 (only so upstream's CMake configures), and Node.js ≥ 23.6. The bridge and
 tests run TypeScript directly through Node's type stripping.
 
+### One click (macOS)
+
+Double-click **`Thangorodrim.command`** in the repository folder. A Terminal
+window opens; it installs dependencies and builds on first run, then starts
+the game and opens it in your browser. Close the window (or press Ctrl+C) to
+save and quit.
+
+For an app you can keep in the Dock or Applications:
+
+```bash
+npm run make-app          # creates Thangorodrim.app (icon: Smaug's Gervais tile)
+```
+
+If the game is already running, launching again just opens the browser.
+
+### One command
+
 ```bash
 git clone --recurse-submodules <this repo> && cd Thangorodrim
 npm install
-npm run build:engine      # builds build/engine/angband-headless
-npm run dev               # bridge on :8787 + Vite on :5173
+npm start                 # builds engine + client, serves http://127.0.0.1:8787 and opens it
 ```
 
-Open <http://localhost:5173>. Choose **New character**, or **Continue** if a
-save exists.
+On Linux, `sh scripts/launch.sh` does the same as the double-click launcher.
 
-Single-port production mode, where the bridge serves the built client:
+### Development
 
 ```bash
-npm start                 # builds engine + client, then http://127.0.0.1:8787
+npm run dev               # bridge on :8787 + Vite (hot reload) on :5173
 ```
+
+Open <http://localhost:5173>. `npm run dev` and `npm start` both use port
+8787, so run one at a time. A second instance on the same port refuses to
+start rather than touching your save.
 
 Useful environment variables:
 

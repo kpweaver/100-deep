@@ -320,6 +320,23 @@ static void handle_load_game(void)
 	snapshot_send(true);
 }
 
+/*
+ * Leave the current game for the title screen: save (if alive), then reset
+ * the core exactly as play_game() does before offering a new game.
+ */
+static void handle_close_game(void)
+{
+	bool ok = true;
+
+	if (session_phase == PHASE_GAME) ok = save_now();
+	if (character_generated || session_phase != PHASE_MENU) engine_reinit();
+	character_generated = false;
+	session_phase = PHASE_MENU;
+	if (!ok) proto_send_error("save_failed", "Saving failed before leaving the game");
+	send_hello();
+	snapshot_send(true);
+}
+
 /* Mirrors the dead branch of close_game() */
 static void handle_death(void)
 {
@@ -526,6 +543,8 @@ int main(int argc, char *argv[])
 				/* Free actions may have changed target or produced messages */
 				snapshot_send(false);
 			}
+		} else if (streq(type, "close_game")) {
+			handle_close_game();
 		} else if (streq(type, "save")) {
 			jw w;
 			bool ok = save_now();

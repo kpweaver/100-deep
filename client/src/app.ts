@@ -200,8 +200,7 @@ export class App implements InputHandler {
           this.applySettings({});
         }
         this.renderer.effects.palette = hello.palette;
-        this.dungeonDirty = true;
-        this.refreshEntities();
+        this.syncView();
       });
     }
     await this.atlasLoading;
@@ -258,6 +257,13 @@ export class App implements InputHandler {
   private onChange(c: StateChange): void {
     const r = this.renderer;
     const p = this.state.player;
+    if (c.phase && this.state.phase === 'menu') {
+      // Back at the title: drop the old level from the screen
+      this.exploring = false;
+      this.queued = null;
+      this.lastHp = null;
+      this.syncView();
+    }
     if (c.levelChanged && r && p) {
       r.dungeon.clear();
       r.entities.clear();
@@ -292,6 +298,27 @@ export class App implements InputHandler {
     if (c.gear && this.inventory?.isOpen) this.inventory.refresh();
     this.hud.update();
     this.updateHints();
+  }
+
+  /**
+   * Bring the 3D view in line with the current state.  Needed when the
+   * renderer is created after the first state has already arrived (page
+   * load or reload race): that state's level change was applied with no
+   * renderer, so the camera would otherwise sit at grid (0,0).
+   */
+  private syncView(): void {
+    const r = this.renderer;
+    const p = this.state.player;
+    if (!r) return;
+    r.dungeon.clear();
+    r.entities.clear();
+    if (!p || this.state.phase === 'menu') return;
+    r.setOutdoors(p.depth === 0);
+    r.setTorchRadius(p.light);
+    r.cam.teleport(p.x, p.y);
+    this.faceOpenSide();
+    this.dungeonDirty = true;
+    this.refreshEntities();
   }
 
   private refreshEntities(): void {
@@ -476,10 +503,7 @@ export class App implements InputHandler {
       case 'menu':
         openSystemMenu(this.ctx, {
           save: () => this.send({ type: 'save' }),
-          quitToTitle: () => {
-            this.send({ type: 'save' });
-            location.reload();
-          },
+          quitToTitle: () => this.send({ type: 'close_game' }),
         });
         break;
       case 'cancel':

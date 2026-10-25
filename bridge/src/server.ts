@@ -14,6 +14,15 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { BridgeMessage } from '@thang/protocol';
 import { Engine, REPO_ROOT, type EngineOptions } from './engine.ts';
 
+/** Startup failures with a user-facing message */
+export class BridgeError extends Error {
+  readonly code: 'port_in_use' | 'engine_missing';
+  constructor(code: 'port_in_use' | 'engine_missing', message: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 export interface BridgeOptions {
   port?: number;
   host?: string;
@@ -177,15 +186,39 @@ export function startBridge(opts: BridgeOptions = {}) {
     engine.send({ type: 'hello' });
   });
 
-  engine.start();
-
-  const ready = new Promise<void>((res) => http.listen(port, host, () => res()));
-  ready.then(() => console.log(`[bridge] listening on http://${host}:${port} (ws: /ws)`));
+  // Claim the port first and only then start the engine, so a bridge that
+  // cannot listen (e.g. the game is already running) never touches the save.
+  const ready = new Promise<void>((resolveReady, rejectReady) => {
+    const fail = (err: NodeJS.ErrnoException) => {
+      if (stopping) return;
+      stopping = true;
+      rejectReady(err.code === 'EADDRINUSE'
+        ? new BridgeError('port_in_use', `Port ${port} is already in use.`)
+        : err);
+    };
+    http.once('error', fail);
+    // ws re-emits the server's errors; without a listener they would crash the process
+    wss.on('error', () => {});
+    http.listen(port, host, () => {
+      http.off('error', fail);
+      try {
+        engine.start();
+      } catch (e) {
+        stopping = true;
+        http.close();
+        rejectReady(new BridgeError('engine_missing', String((e as Error).message)));
+        return;
+      }
+      console.log(`[bridge] listening on http://${host}:${port} (ws: /ws)`);
+      resolveReady();
+    });
+  });
 
   return {
     engine,
     ready,
     port,
+    host,
     async close() {
       stopping = true;
       for (const c of wss.clients) c.close();

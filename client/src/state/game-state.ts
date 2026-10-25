@@ -89,6 +89,20 @@ export class GameState {
     if (msg.phase !== this.phase) {
       this.phase = msg.phase;
       change.phase = true;
+      if (msg.phase === 'menu') {
+        // Leaving a game: forget its level so the next one starts fresh
+        this.map = new KnownMap();
+        this.levelId = -1;
+        this.monsters = [];
+        this.objects = [];
+        this.inventory = [];
+        this.equipment = [];
+        this.quiver = [];
+        this.floor = [];
+        this.target = null;
+        this.store = null;
+        this.status = [];
+      }
     }
     // A new state always supersedes any prompt (the engine re-sends prompts)
     if (this.prompt) {

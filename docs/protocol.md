@@ -38,6 +38,7 @@ The bridge adds `{"type":"bridge","event":"engine_exit"|"engine_started"|"engine
 | `options` | game | `set: {name: bool}`. Interface options only. |
 | `query` | game | `what: 'item' \| 'book'` with `item`, or `what: 'monster'` with `monster`. Read-only; RNG state is preserved. |
 | `save` | game | Saves like the stock "save game" command. |
+| `close_game` | game / dead | Saves (if alive) and returns the engine to the title (`menu` phase); reply is `hello` + `state`. |
 | `quit` | any | Saves (if alive) and exits. EOF does the same. |
 
 ### Item handles
