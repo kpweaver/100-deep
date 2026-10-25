@@ -12,8 +12,6 @@ These systems all exist in the engine. Only the UI to reach them is missing.
   there is no stepping through "interesting" grids like `l`/`x`.
 - **Knowledge menus** (`~`): monster, object, artifact and rune knowledge
   browsers, and the character history and notes.
-- **Full character sheet**: skills, resistances grid, flags. The sheet shows
-  core numbers only.
 - **Point-buy stat editing** at birth (`CMD_BUY_STAT`/`CMD_SELL_STAT`): only
   the native default distribution or a roll. The birth options menu is
   accepted by the protocol (`birthOptions`) but has no UI yet.
@@ -69,8 +67,8 @@ These systems all exist in the engine. Only the UI to reach them is missing.
 
 1. Look/target cursor in 3D: highlight grids, cycle "interesting" things,
    target locations.
-2. Knowledge menus and the full character sheet, via read-only queries
-   built on the textui's data functions.
+2. Knowledge menus, via the same virtual-terminal capture used for the
+   subwindows (`panels.c`).
 3. A birth screen with point-buy stats and the birth options page.
 4. Rebinding UI and per-controller glyphs (Xbox vs PlayStation).
 5. Per-step animation of runs and pathing, by streaming intermediate

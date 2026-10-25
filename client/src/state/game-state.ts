@@ -3,7 +3,7 @@
  * simulated; every field is replaced by engine messages.
  */
 import type {
-  EquipSlot, FeatureInfo, GameMessage, HelloMessage, InfoMessage, ItemInfo,
+  EquipSlot, FeatureInfo, GameMessage, HelloMessage, InfoMessage, ItemInfo, Panel, PanelName,
   MonsterInfo, ObjectPile, Phase, PlayerState, PromptMessage, StateMessage,
   StatusEntry, StoreState, Effect,
 } from '@thang/protocol';
@@ -26,6 +26,8 @@ export interface StateChange {
   prompt?: boolean;
   store?: boolean;
   phase?: boolean;
+  /** Names of stock subwindow panels whose content changed */
+  panels?: PanelName[];
   messages?: GameMessage[];
   effects?: Effect[];
   /** Player grid position before this update, if it changed */
@@ -56,6 +58,10 @@ export class GameState {
   target: StateMessage['target'] | null = null;
   store: StoreState | null = null;
   prompt: PromptMessage | null = null;
+  /** Latest content of each stock subwindow (monster list, recall, ...) */
+  panels: Partial<Record<PanelName, Panel | null>> = {};
+  /** Which recall panel changed most recently, as the textui shows it */
+  lastRecall: 'monsterRecall' | 'objectRecall' = 'monsterRecall';
   log: LoggedMessage[] = [];
   lastInfo: InfoMessage | null = null;
 
@@ -102,6 +108,7 @@ export class GameState {
         this.target = null;
         this.store = null;
         this.status = [];
+        this.panels = {};
       }
     }
     // A new state always supersedes any prompt (the engine re-sends prompts)
@@ -146,6 +153,14 @@ export class GameState {
       change.gear = true;
     }
     this.target = msg.target ?? null;
+
+    if (msg.panels) {
+      const changed = Object.keys(msg.panels) as PanelName[];
+      Object.assign(this.panels, msg.panels);
+      if (changed.includes('objectRecall') && msg.panels.objectRecall) this.lastRecall = 'objectRecall';
+      if (changed.includes('monsterRecall') && msg.panels.monsterRecall) this.lastRecall = 'monsterRecall';
+      change.panels = changed;
+    }
 
     const store = msg.store ?? null;
     if (store || this.store) change.store = true;

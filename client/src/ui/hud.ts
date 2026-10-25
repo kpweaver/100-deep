@@ -8,6 +8,7 @@ import type { GameState } from '../state/game-state.ts';
 import type { TileAtlas } from '../sprites/atlas.ts';
 import { add, clear, h, paletteColor } from './dom.ts';
 import { Minimap } from './minimap.ts';
+import { renderPanel } from './panel-view.ts';
 
 export interface ContextHint {
   button: string;
@@ -32,7 +33,14 @@ export class Hud {
   private log = h('div', { class: 'hud-log' });
   private hints = h('div', { class: 'hud-hints' });
   private target = h('div', { class: 'hud-target' });
-  private monsters = h('div', { class: 'hud-monsters' });
+  private sideMonsters = h('div', { class: 'pv-body pv-wide-tiles' });
+  private sideItems = h('div', { class: 'pv-body pv-wide-tiles' });
+  private sideRecall = h('div', { class: 'pv-body pv-wide-tiles' });
+  private recallTitle = h('span', {}, 'Recall');
+  readonly sidebar = h('div', { class: 'hud-sidebar' },
+    h('section', {}, h('header', {}, 'Monsters', h('kbd', {}, '[')), this.sideMonsters),
+    h('section', {}, h('header', {}, 'Items', h('kbd', {}, ']')), this.sideItems),
+    h('section', { class: 'recall' }, h('header', {}, this.recallTitle), this.sideRecall));
   private banner = h('div', { class: 'hud-banner' });
   private vignette = h('div', { class: 'hud-vignette' });
   private recent: { el: HTMLElement; at: number }[] = [];
@@ -42,7 +50,7 @@ export class Hud {
     this.el = h('div', { class: 'hud' },
       this.vignette,
       h('div', { class: 'hud-top-left' }, this.hp.el, this.sp.el, this.xp.el, this.info, this.statusEl),
-      h('div', { class: 'hud-top-right' }, this.minimap.canvas, this.monsters),
+      h('div', { class: 'hud-top-right' }, this.minimap.canvas, this.sidebar),
       this.target,
       this.banner,
       this.log,
@@ -105,22 +113,6 @@ export class Hud {
       }
     }
 
-    // Visible monster list (like Angband's monster list subwindow)
-    clear(this.monsters);
-    const at = this.atlas();
-    const counts = new Map<string, { n: number; tile: [number, number] | null; inView: boolean }>();
-    for (const m of s.monsters) {
-      const c = counts.get(m.name) ?? { n: 0, tile: m.tile, inView: false };
-      c.n++;
-      c.inView ||= m.inView;
-      counts.set(m.name, c);
-    }
-    for (const [name, c] of [...counts].slice(0, 8)) {
-      this.monsters.append(h('div', { class: `mon-row${c.inView ? '' : ' sensed'}` },
-        at && c.tile ? h('span', { class: 'tile-icon', style: at.css(c.tile, 20) }) : null,
-        h('span', {}, c.n > 1 ? `${c.n} × ${name}` : name)));
-    }
-
     // Fade the oldest messages
     const now = performance.now();
     for (const r of this.recent) r.el.classList.toggle('old', now - r.at > 8000);
@@ -145,6 +137,18 @@ export class Hud {
       this.recent.push({ el, at: now });
       while (this.recent.length > 6) this.recent.shift()!.el.remove();
     }
+  }
+
+  /** Stock Angband subwindows: monster list, item list and recall */
+  updatePanels(): void {
+    const s = this.state;
+    const pal = s.hello?.palette;
+    const at = this.atlas();
+    renderPanel(this.sideMonsters, s.panels.monsterList, pal, at);
+    renderPanel(this.sideItems, s.panels.itemList, pal, at);
+    const recall = s.panels[s.lastRecall] ?? s.panels.monsterRecall ?? s.panels.objectRecall;
+    this.recallTitle.textContent = recall?.title ? `Recall: ${recall.title}` : 'Recall';
+    renderPanel(this.sideRecall, recall, pal, at, 'Target or examine something to recall it.');
   }
 
   setHints(hints: ContextHint[]): void {

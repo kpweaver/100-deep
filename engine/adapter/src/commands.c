@@ -129,6 +129,7 @@ static bool target_cycle(int step)
 		char name[120];
 		target_set_monster(mon);
 		health_track(player->upkeep, mon);
+		monster_race_track(player->upkeep, mon->race);
 		monster_desc(name, sizeof(name), mon, MDESC_IND_VIS | MDESC_CAPITAL);
 		msg("Targeting %s.", name);
 		return true;
@@ -174,6 +175,7 @@ bool commands_dispatch(const jv *msg)
 			return fail("That monster cannot be targeted", NULL);
 		target_set_monster(mon);
 		health_track(player->upkeep, mon);
+		monster_race_track(player->upkeep, mon->race);
 		return false;
 	}
 	if (streq(name, "fire_at_nearest")) {

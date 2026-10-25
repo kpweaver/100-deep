@@ -384,3 +384,34 @@ test('returning to the title saves, and the game can be continued', async () => 
   assert.ok(st.map!.full);
   await s.stop();
 });
+
+test('stock subwindows (lists, recall, character sheet) come from Angband', async () => {
+  const s = new Session({ seed: 7 });
+  await s.start();
+  await s.newGame('Human', 'Warrior', 'Tester');
+  const text = (p: { lines: unknown[][] } | null | undefined) =>
+    (p?.lines ?? []).map((l) => l.map((seg) => (typeof (seg as unknown[])[0] === 'string' ? (seg as [string])[0] : '#')).join('')).join('\n');
+  const first = s.history.filter((m): m is StateMessage => m.type === 'state').pop()!;
+  assert.ok(first.panels?.monsterList, 'monster list sent with the first game state');
+  const visible = (first.monsters ?? []).filter((m) => m.inView);
+  assert.match(text(first.panels!.monsterList), new RegExp(`You can see ${visible.length} monster`));
+  assert.match(text(first.panels!.itemList), /object/);
+  // Tile glyphs survive as atlas coordinates
+  assert.ok(first.panels!.monsterList!.lines.some((l) => l.some((seg) => Array.isArray(seg[0]))));
+
+  // Targeting tracks the monster, so its recall appears (and only changed panels are re-sent)
+  const r = (await s.command({ action: 'target_closest' })) as StateMessage;
+  assert.ok(r.panels?.monsterRecall?.title, 'recall for the targeted monster');
+  assert.match(text(r.panels!.monsterRecall), /town/i);
+  const r2 = (await s.command({ action: 'target_closest' })) as StateMessage;
+  assert.equal(r2.panels?.monsterRecall, undefined, 'unchanged recall is not re-sent');
+
+  // Character sheet pages drawn by display_player()
+  s.send({ type: 'query', what: 'character', page: 0 });
+  const c0 = await s.next('screen');
+  assert.ok(c0.type === 'screen' && /Tester/.test(text(c0)) && /Saving Throw/.test(text(c0)));
+  s.send({ type: 'query', what: 'character', page: 1 });
+  const c1 = await s.next('screen');
+  assert.ok(c1.type === 'screen' && /Acid:/.test(text(c1)) && /pFear:/.test(text(c1)));
+  await s.stop();
+});

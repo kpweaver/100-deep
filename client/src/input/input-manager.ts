@@ -134,6 +134,10 @@ export class InputManager {
     if (e.shiftKey && e.code === 'Tab') binding = { game: 'targetPrev', ui: 'tabPrev' };
     if (e.shiftKey && (e.code === 'Enter' || e.code === 'NumpadEnter')) binding = { game: 'interact', ui: 'secondary' };
     if (e.shiftKey && e.code === 'KeyZ') binding = { game: 'study' };
+    // Angband's own keys for the visible monster and item lists
+    if (e.key === '[') binding = { game: 'monsterList' };
+    if (e.key === ']') binding = { game: 'itemList' };
+    if (e.key === '\\') binding = { game: 'toggleSidebar' };
     if (e.key === '<') binding = { game: 'goUp' };
     if (e.key === '>') binding = { game: 'goDown' };
     if (binding.game || binding.ui || e.key.length === 1) {

@@ -82,6 +82,19 @@ export class TileAtlas {
     return c;
   }
 
+  /**
+   * Inline CSS that fits a tile to whatever box the element has (e.g. one
+   * 1ch x 1ch character cell), using percentage-based sprite positioning.
+   */
+  cssFit(tile: Tile | null): string {
+    if (!tile || this.cols < 2 || this.rows < 2) return '';
+    return [
+      `background-image:url(${this.url})`,
+      `background-size:${this.cols * 100}% ${this.rows * 100}%`,
+      `background-position:${(tile[1] / (this.cols - 1)) * 100}% ${(tile[0] / (this.rows - 1)) * 100}%`,
+    ].join(';');
+  }
+
   /** Inline CSS for a tile icon of the given on-screen size */
   css(tile: Tile | null, size: number): string {
     if (!tile || !this.cols) return '';

@@ -197,6 +197,7 @@ static void engine_reinit(void)
 	if (opt_seed >= 0) Rand_state_init((uint32_t)opt_seed);
 	register_handlers();
 	snapshot_reset_map();
+	panels_reset();
 }
 
 /* Enter the world after birth or load (mirrors start_game()) */
@@ -397,6 +398,8 @@ static void handle_query(const jv *msg)
 		} else {
 			char name[160];
 			textblock *tb = object_info(obj, OINFO_NONE);
+			/* Examining tracks the object, as in the textui (object recall) */
+			track_object(player->upkeep, obj);
 			object_desc(name, sizeof(name), obj, ODESC_PREFIX | ODESC_FULL, player);
 			send_textblock("item", name, tb);
 			textblock_free(tb);
@@ -431,6 +434,19 @@ static void handle_query(const jv *msg)
 			send_textblock("book", name, tb);
 			textblock_free(tb);
 		}
+	} else if (streq(what, "character")) {
+		/* The stock character sheet ('C'), drawn by display_player() */
+		long page = jv_get_int(msg, "page", 0);
+		jw w;
+		jw_init(&w);
+		jw_obj_begin(&w);
+		jw_kstr(&w, "type", "screen");
+		jw_kstr(&w, "what", "character");
+		jw_kint(&w, "page", page == 1 ? 1 : 0);
+		panels_write_character(&w, page == 1 ? 1 : 0);
+		jw_obj_end(&w);
+		proto_send(&w);
+		jw_free(&w);
 	} else if (streq(what, "monster")) {
 		long id = jv_get_int(msg, "monster", 0);
 		struct monster *mon = (id > 0 && id < cave_monster_max(cave)) ?
@@ -441,6 +457,7 @@ static void handle_query(const jv *msg)
 			proto_send_error("bad_monster", "You see no such monster");
 		} else {
 			textblock *tb = textblock_new();
+			monster_race_track(player->upkeep, mon->race);
 			lore_description(tb, mon->race, get_lore(mon->race), false);
 			send_textblock("monster", mon->race->name, tb);
 			textblock_free(tb);

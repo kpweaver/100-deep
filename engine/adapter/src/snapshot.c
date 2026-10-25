@@ -940,6 +940,7 @@ void snapshot_send(bool full_map)
 			jw_obj_end(&w);
 		}
 		if (store_is_open()) store_write_state(&w);
+		panels_write(&w, full_map);
 		rng_restore();
 	}
 

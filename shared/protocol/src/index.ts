@@ -206,6 +206,20 @@ export interface StoreState {
   sellable: { handle: string; price?: number }[];
 }
 
+/** A run of text in an Angband colour, or a tile glyph */
+export type PanelSegment = [text: string, color: number] | [tile: Tile];
+
+/**
+ * Output of a stock Angband subwindow (monster list, item list, recalls,
+ * character sheet), captured from a virtual terminal the engine drew into.
+ */
+export interface Panel {
+  title?: string;
+  lines: PanelSegment[][];
+}
+
+export type PanelName = 'monsterList' | 'itemList' | 'monsterRecall' | 'objectRecall';
+
 export type Phase = 'menu' | 'game' | 'dead';
 
 export interface StateMessage {
@@ -226,6 +240,8 @@ export interface StateMessage {
   floor?: ItemInfo[];
   target?: { x: number; y: number; monster?: number };
   store?: StoreState;
+  /** Only panels whose content changed (null = nothing to show) */
+  panels?: Partial<Record<PanelName, Panel | null>>;
   messages: GameMessage[];
   effects: Effect[];
 }
@@ -285,6 +301,13 @@ export interface InfoMessage {
   text: string;
 }
 
+/** Reply to a 'character' query: the stock character sheet page */
+export interface ScreenMessage extends Panel {
+  type: 'screen';
+  what: 'character';
+  page: number;
+}
+
 export interface SavedMessage {
   type: 'saved';
   ok: boolean;
@@ -310,6 +333,7 @@ export type EngineMessage =
   | PromptMessage
   | ErrorMessage
   | InfoMessage
+  | ScreenMessage
   | SavedMessage
   | PongMessage
   | BridgeMessage;
@@ -391,6 +415,7 @@ export type ClientMessage =
   | { type: 'options'; set: Record<string, boolean> }
   | { type: 'query'; what: 'item'; item: string }
   | { type: 'query'; what: 'book'; item: string }
+  | { type: 'query'; what: 'character'; page: 0 | 1 }
   | { type: 'query'; what: 'monster'; monster: number };
 
 /* ------------------------------------------------------------------ */

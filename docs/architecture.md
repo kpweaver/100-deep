@@ -80,6 +80,7 @@ adapter did not explicitly export.
 | `hooks.c` | Implements every `game-input.h` hook as a blocking prompt: sends a state, then the prompt, then waits for an answer with the matching id. Candidates come from native testers (`object_test`, `scan_floor`, `spell_collect_from_book` + filters, `target_get_monsters`), and answers are re-validated. Item choices also run `get_item_allow()` for `!x` inscriptions. |
 | `snapshot.c` | State export with delta-encoded map (cache of last sent cell per grid), visible monsters, known object piles, player, status line, gear, target, store, messages and effects. Tile coordinates come from the visual tables. |
 | `store.c` | Modal store loop (see above). |
+| `panels.c` | Stock subwindows. It runs the textui's own subwindow functions (`monster_list_show_subwindow`, `object_list_show_subwindow`, `lore_show_subwindow`, `display_object_recall`, `display_player`) into offscreen virtual terminals (`term_init`) and exports the cells as colour runs plus tile glyphs. Panels are re-sent only when their content changes. |
 | `json.c` | Small JSON writer and parser. |
 
 ## 4. Information restriction

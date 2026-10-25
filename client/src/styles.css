@@ -43,9 +43,21 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 .chip { background: rgba(0,0,0,0.6); padding: 0 6px; border: 1px solid #2c2416; font-size: 17px; }
 .good { color: #7fdc6a; } .bad { color: #ff6a5a; }
 .minimap { border: 1px solid var(--panel-edge); background: #000; image-rendering: pixelated; width: 196px; }
-.hud-monsters { background: rgba(0,0,0,0.55); min-width: 196px; max-width: 260px; }
-.mon-row { display: flex; align-items: center; gap: 6px; padding: 1px 6px; font-size: 17px; }
-.mon-row.sensed { opacity: 0.55; }
+.hud-sidebar { width: min(360px, 34vw); max-height: calc(100vh - 230px); overflow-y: auto; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; scrollbar-width: thin; }
+.hud-sidebar section { background: rgba(0,0,0,0.6); border: 1px solid #2c2416; }
+.hud-sidebar header { display: flex; justify-content: space-between; align-items: center; padding: 1px 8px; color: var(--gold); font-size: 16px; border-bottom: 1px solid #2c2416; }
+.hud-sidebar header kbd { font-size: 13px; padding: 0 4px; }
+.hud-sidebar .pv-body { padding: 3px 8px; font-size: 15px; line-height: 17px; }
+.hud-sidebar section.recall .pv-body { max-height: 260px; overflow-y: auto; }
+.pv-body { font-family: var(--font); font-size: 20px; line-height: 22px; }
+.pv-line { white-space: pre; min-height: 1em; }
+.hud-sidebar .pv-line { white-space: pre-wrap; }
+.pv-tile { display: inline-block; width: 1ch; height: 1ch; vertical-align: -0.05em; image-rendering: pixelated; }
+/* Lists and recall: draw icons two cells wide over the space that always
+   follows them, keeping text columns where Angband put them */
+.pv-wide-tiles .pv-tile { width: 2ch; height: 2ch; margin: -0.5ch -1ch -0.5ch 0; vertical-align: middle; position: relative; }
+.panel-empty { color: var(--ink-dim); font-size: 15px; }
+.panel-layer .pv-body { overflow: auto; }
 .tile-icon { display: inline-block; image-rendering: pixelated; flex: none; }
 .hud-target { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); text-align: center; display: flex; flex-direction: column; align-items: center; text-shadow: 1px 1px 0 #000; }
 .hud-target:empty { display: none; }
@@ -139,7 +151,7 @@ kbd { display: inline-block; min-width: 1.6em; text-align: center; margin-right:
 
 @media (max-width: 700px) {
   body { font-size: 17px; }
-  .hud-monsters, .hud-hints .hint:nth-child(n+4) { display: none; }
+  .hud-sidebar, .hud-hints .hint:nth-child(n+4) { display: none; }
   .minimap { width: 130px; }
   .menu-detail { display: none; }
 }

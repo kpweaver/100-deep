@@ -91,7 +91,9 @@ costs a game turn.
 | Rest as needed | R | LB ▸ Rest |
 | Wait a turn | . / Numpad 5 | R3 |
 | Map (cursor + travel there) | M | Select |
-| Character sheet | C | — |
+| Character sheet (stock `C` screen, 2 pages) | C | LB ▸ Character sheet |
+| Visible monster list / item list / recall popups | [ / ] | LB ▸ lists |
+| Show/hide side panels | \\ | Options |
 | Absolute 8-way walk | Numpad 1–9 | — |
 | Pause / system menu (options, save, controls) | Esc | Start |
 | Menus | ↑↓ + Enter, letter shortcuts a–z, Esc | D-pad/stick + A, B to go back |
@@ -120,6 +122,10 @@ Every implemented feature can be used without a mouse.
   confirmation, text, curse and effect choices), each validated by the
   engine.
 - Stores and the Home: buy, sell/give, stash, retrieve at native prices.
+- Every stock Angband subwindow, drawn by Angband's own code: visible
+  monster list (with directions), visible item list, monster recall, object
+  recall (side panels and popups), and the full character sheet including
+  the resistance/flag grid.
 - Monster recall text, level feelings, status effects, monster health bar
   for the tracked monster, death and tombstone, then starting a new
   character.

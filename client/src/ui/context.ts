@@ -15,6 +15,8 @@ export interface Settings {
   volume: number;
   autoExploreRepeat: boolean;
   showMinimap: boolean;
+  /** Side panels: stock monster list, item list and recall */
+  showSidebar: boolean;
 }
 
 export const SETTINGS_VERSION = 2;
@@ -27,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.5,
   autoExploreRepeat: true,
   showMinimap: true,
+  showSidebar: true,
 };
 
 export interface UiContext {

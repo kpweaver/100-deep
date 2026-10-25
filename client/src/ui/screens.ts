@@ -273,7 +273,7 @@ export class InventoryLayer extends Layer {
 /* Quick actions (LB)                                                  */
 /* ------------------------------------------------------------------ */
 
-export function openQuickMenu(ctx: UiContext, extra: { save: () => void }): void {
+export function openQuickMenu(ctx: UiContext, extra: { save: () => void; panels: (which: 'monsterList' | 'itemList' | 'recall' | 'character') => void }): void {
   type Q = () => void;
   const cmd = (c: Omit<CommandMessage, 'type'>): Q => () => ctx.send({ type: 'command', ...c } as CommandMessage);
   const items: MenuItem<Q>[] = [
@@ -297,6 +297,10 @@ export function openQuickMenu(ctx: UiContext, extra: { save: () => void }): void
     { label: 'Alter terrain', data: cmd({ action: 'alter' }) },
     { label: 'Walk into a trap (jump)', data: cmd({ action: 'jump' }) },
     { label: 'Use any item', data: cmd({ action: 'use' }) },
+    { label: 'Visible monster list', data: () => extra.panels('monsterList') },
+    { label: 'Visible item list', data: () => extra.panels('itemList') },
+    { label: 'Recall (tracked monster or item)', data: () => extra.panels('recall') },
+    { label: 'Character sheet', data: () => extra.panels('character') },
     { label: 'Repeat level feeling', data: cmd({ action: 'feeling' }) },
     { label: 'Toggle unignore', data: cmd({ action: 'toggle_unignore' }) },
     { label: 'Clear target', data: cmd({ action: 'target_clear' }) },
@@ -418,33 +422,6 @@ export class MapLayer extends Layer {
   }
 }
 
-export function characterSheet(ctx: UiContext): HTMLElement {
-  const p = ctx.state.player;
-  if (!p) return h('div', {}, 'No character.');
-  const pal = ctx.state.hello?.palette;
-  return h('div', { class: 'char-sheet' },
-    h('div', { class: 'char-head' },
-      h('div', { class: 'char-name' }, p.name),
-      h('div', {}, `${p.race} ${p.class} · ${p.title}`)),
-    h('table', {},
-      h('tr', {}, h('td', {}, 'Level'), h('td', {}, `${p.level}${p.level < p.maxLevel ? ` (max ${p.maxLevel})` : ''}`)),
-      h('tr', {}, h('td', {}, 'Experience'), h('td', {}, `${p.exp} / next ${p.expToNext || '—'}`)),
-      h('tr', {}, h('td', {}, 'Hit points'), h('td', {}, `${p.hp} / ${p.maxHp}`)),
-      h('tr', {}, h('td', {}, 'Spell points'), h('td', {}, `${p.sp} / ${p.maxSp}`)),
-      h('tr', {}, h('td', {}, 'Armour'), h('td', {}, String(p.ac))),
-      h('tr', {}, h('td', {}, 'Speed'), h('td', {}, String(p.speed))),
-      h('tr', {}, h('td', {}, 'Gold'), h('td', {}, String(p.gold))),
-      h('tr', {}, h('td', {}, 'Depth'), h('td', {}, `${p.depth * 50} ft (max ${p.maxDepth * 50} ft)`)),
-      h('tr', {}, h('td', {}, 'Burden'), h('td', {}, fmtWeight(p.burden))),
-      h('tr', {}, h('td', {}, 'Turns'), h('td', {}, `${ctx.state.turn} game turns`)),
-    ),
-    h('div', { class: 'stats' }, p.stats.map((st) =>
-      h('div', { class: `stat${st.drained ? ' drained' : ''}` }, h('span', {}, st.name), h('b', {}, st.value)))),
-    h('div', { class: 'hud-status' }, ctx.state.status.map((st) =>
-      h('span', { class: 'chip', style: `color:${paletteColor(pal, st.color)}` }, st.name))),
-  );
-}
-
 export function openSystemMenu(ctx: UiContext, actions: { save: () => void; quitToTitle: () => void }): void {
   type S = () => void;
   const items: MenuItem<S>[] = [
@@ -486,6 +463,7 @@ export function openOptions(ctx: UiContext): void {
       { label: 'Instant movement & turning', right: s.instantMovement ? 'On' : 'Off', data: { kind: 'client', key: 'instantMovement' } },
       { label: 'Keep exploring after each step', right: s.autoExploreRepeat ? 'On' : 'Off', data: { kind: 'client', key: 'autoExploreRepeat' } },
       { label: 'Minimap', right: s.showMinimap ? 'On' : 'Off', data: { kind: 'client', key: 'showMinimap' } },
+      { label: 'Side panels (monsters, items, recall)', right: s.showSidebar ? 'On' : 'Off', detail: 'Toggle in play with \\', data: { kind: 'client', key: 'showSidebar' } },
       { label: 'Sound volume', right: `${Math.round(s.volume * 100)}%`, detail: '←/→ to change', data: { kind: 'client', key: 'volume' } },
     ];
     for (const o of ctx.state.hello?.options ?? []) {
@@ -516,6 +494,7 @@ export function openOptions(ctx: UiContext): void {
       case 'instantMovement': ctx.applySettings({ instantMovement: !s.instantMovement }); break;
       case 'autoExploreRepeat': ctx.applySettings({ autoExploreRepeat: !s.autoExploreRepeat }); break;
       case 'showMinimap': ctx.applySettings({ showMinimap: !s.showMinimap }); break;
+      case 'showSidebar': ctx.applySettings({ showSidebar: !s.showSidebar }); break;
     }
   };
   const layer: MenuLayer<O> = new MenuLayer(ctx, {

@@ -23,6 +23,7 @@ set(ADAPTER_SOURCES
 	adapter/src/hooks.c
 	adapter/src/commands.c
 	adapter/src/store.c
+	adapter/src/panels.c
 	adapter/src/main-headless.c
 )
 

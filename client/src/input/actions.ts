@@ -17,7 +17,8 @@ export type GameAction =
   | 'walkDir1' | 'walkDir2' | 'walkDir3' | 'walkDir4' | 'walkDir6'
   | 'walkDir7' | 'walkDir8' | 'walkDir9'
   | 'goUp' | 'goDown'
-  | 'study';
+  | 'study'
+  | 'monsterList' | 'itemList' | 'recall' | 'toggleSidebar';
 
 export type UiAction =
   | 'up' | 'down' | 'left' | 'right'

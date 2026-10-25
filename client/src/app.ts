@@ -11,7 +11,7 @@
  *    position; rotation is local and free.
  */
 import {
-  DIR_OFFSETS, FACING_TO_DIR, type CommandMessage, type Direction, type EngineMessage, type StateMessage,
+  DIR_OFFSETS, FACING_TO_DIR, type CommandMessage, type Direction, type EngineMessage, type Panel, type StateMessage,
 } from '@thang/protocol';
 import { Connection } from './protocol/connection.ts';
 import { GameState, type StateChange } from './state/game-state.ts';
@@ -24,8 +24,9 @@ import { UiManager } from './ui/layer.ts';
 import { DEFAULT_SETTINGS, SETTINGS_VERSION, type Settings, type UiContext } from './ui/context.ts';
 import { PromptLayer } from './ui/prompt-layer.ts';
 import { TextLayer } from './ui/menu-layer.ts';
+import { PanelLayer } from './ui/panel-view.ts';
 import {
-  DeathLayer, InventoryLayer, MapLayer, StoreLayer, TitleLayer, characterSheet, openQuickMenu,
+  DeathLayer, InventoryLayer, MapLayer, StoreLayer, TitleLayer, openQuickMenu,
   openSystemMenu, startBirth,
 } from './ui/screens.ts';
 import { Sfx } from './audio/sfx.ts';
@@ -159,6 +160,10 @@ export class App implements InputHandler {
         if (m.code !== 'prompt_pending' && m.code !== 'stale_answer') this.state.note(m.message);
         console.warn('[engine error]', m.code, m.message);
         break;
+      case 'screen':
+        this.characterPages[m.page] = m;
+        this.panelLayer?.refresh();
+        break;
       case 'info':
         this.ui.open(new TextLayer(m.title, m.text));
         break;
@@ -201,6 +206,8 @@ export class App implements InputHandler {
         }
         this.renderer.effects.palette = hello.palette;
         this.syncView();
+        // Panels may have arrived before the atlas could draw their tiles
+        this.hud.updatePanels();
       });
     }
     await this.atlasLoading;
@@ -296,6 +303,12 @@ export class App implements InputHandler {
     if (c.prompt) this.syncPrompt();
     if (c.store) this.syncStore();
     if (c.gear && this.inventory?.isOpen) this.inventory.refresh();
+    if (c.panels) {
+      this.hud.updatePanels();
+      if (this.panelLayer?.isOpen) this.panelLayer.refresh();
+    }
+    // The character sheet reflects the player; keep an open one current
+    if (c.player && this.panelLayer?.isOpen && this.characterOpen) this.requestCharacter(this.characterPage);
     this.hud.update();
     this.updateHints();
   }
@@ -497,9 +510,15 @@ export class App implements InputHandler {
         break;
       case 'spells': this.command({ action: 'cast' }); break;
       case 'study': this.command({ action: 'study' }); break;
-      case 'quick': openQuickMenu(this.ctx, { save: () => this.send({ type: 'save' }) }); break;
+      case 'quick':
+        openQuickMenu(this.ctx, { save: () => this.send({ type: 'save' }), panels: (w) => this.openPanels(w) });
+        break;
+      case 'monsterList': this.openPanels('monsterList'); break;
+      case 'itemList': this.openPanels('itemList'); break;
+      case 'recall': this.openPanels('recall'); break;
+      case 'toggleSidebar': this.applySettings({ showSidebar: !this.settings.showSidebar }); break;
       case 'map': this.ui.open(new MapLayer(this.ctx)); break;
-      case 'character': this.ui.open(new TextLayer('Character', characterSheet(this.ctx))); break;
+      case 'character': this.openPanels('character'); break;
       case 'menu':
         openSystemMenu(this.ctx, {
           save: () => this.send({ type: 'save' }),
@@ -514,6 +533,49 @@ export class App implements InputHandler {
   }
 
   private faceTargetSoon = false;
+
+  /* ---------------------------------------------------------------- */
+  /* Stock subwindows as popups                                        */
+  /* ---------------------------------------------------------------- */
+
+  private panelLayer: PanelLayer | null = null;
+  private characterPages: (Panel | undefined)[] = [];
+  private characterPage = 0;
+  private characterOpen = false;
+
+  private requestCharacter(page: number): void {
+    this.characterPage = page;
+    this.send({ type: 'query', what: 'character', page: page === 1 ? 1 : 0 });
+  }
+
+  /** Open a stock Angband subwindow (or the character sheet) as a popup */
+  private openPanels(which: 'monsterList' | 'itemList' | 'recall' | 'character'): void {
+    if (this.panelLayer?.isOpen) this.panelLayer.close();
+    const s = this.state;
+    this.characterOpen = which === 'character';
+    if (which === 'character') {
+      this.requestCharacter(0);
+      this.panelLayer = new PanelLayer(this.ctx, [
+        { title: 'Character', panel: () => this.characterPages[0], empty: 'Loading…', gridAligned: true },
+        { title: 'Character: equipment flags & resistances', panel: () => this.characterPages[1], empty: 'Loading…', gridAligned: true },
+      ], (page) => this.requestCharacter(page));
+    } else {
+      const pages = [
+        { key: 'monsterList', title: 'Visible monsters', panel: () => s.panels.monsterList },
+        { key: 'itemList', title: 'Visible items', panel: () => s.panels.itemList },
+        {
+          key: 'recall',
+          title: 'Recall',
+          panel: () => s.panels[s.lastRecall] ?? s.panels.monsterRecall ?? s.panels.objectRecall,
+          empty: 'Target or examine something to recall it.',
+        },
+      ];
+      const start = pages.findIndex((p) => p.key === which);
+      this.panelLayer = new PanelLayer(this.ctx, pages);
+      this.panelLayer.setPage(start);
+    }
+    this.ui.open(this.panelLayer);
+  }
 
   /** Contextual primary action, choosing among native commands */
   private interact(): void {
@@ -659,6 +721,7 @@ export class App implements InputHandler {
     }
     this.sfx.volume = this.settings.volume;
     this.hud.minimap.canvas.classList.toggle('hidden', !this.settings.showMinimap);
+    this.hud.sidebar.classList.toggle('hidden', !this.settings.showSidebar);
   }
 
   private showOverlay(text: string | null): void {

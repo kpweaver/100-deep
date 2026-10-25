@@ -68,6 +68,11 @@ void object_to_handle(const struct object *obj, char *buf, size_t len);
 bool commands_dispatch(const jv *msg);
 const char *commands_last_error(void);
 
+/* ---- panels.c: stock subwindows rendered into virtual terminals ---- */
+void panels_reset(void);
+void panels_write(jw *w, bool force);
+void panels_write_character(jw *w, int page);
+
 /* ---- store.c: modal store interaction ---- */
 void store_register_events(void);
 bool store_is_open(void);

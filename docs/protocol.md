@@ -19,9 +19,10 @@ This page explains the message flow.
 | type | When | Contents |
 |---|---|---|
 | `hello` | Startup, after birth/load, on resync, after `options` | Protocol version, engine build id, savefile, races/classes, interface + birth options, tileset (URL, cell size), feature table (flags and per-lighting tiles), player tile, Angband colour palette. |
-| `state` | After every command, prompt, free action and resync | `seq` (increases monotonically; restarts after each hello), `phase` (`menu`/`game`/`dead`), `turn`, player, status line, `map` (`full` flag plus changed cells `[x,y,feat,light,inView,trapTile]`), monsters, objects, inventory/equipment/quiver/floor, target, store, messages, effects. |
+| `state` | After every command, prompt, free action and resync | `seq` (increases monotonically; restarts after each hello), `phase` (`menu`/`game`/`dead`), `turn`, player, status line, `map` (`full` flag plus changed cells `[x,y,feat,light,inView,trapTile]`), monsters, objects, inventory/equipment/quiver/floor, target, store, `panels` (stock subwindows: `monsterList`, `itemList`, `monsterRecall`, `objectRecall`; only changed ones, `null` = empty), messages, effects. |
 | `prompt` | The engine needs input for the current command | `id`, `kind` (`item`, `direction`, `aim`, `spell`, `quantity`, `confirm`, `string`, `key`, `curse`, `choice`) and candidate lists. Always preceded by a `state`. |
 | `info` | Reply to `query` | Title and text (item info, monster recall, book contents). |
+| `screen` | Reply to `query` `character` | A stock character sheet page as panel lines (coloured runs and tiles). |
 | `saved` | Reply to `save` | `ok`. |
 | `error` | Rejected input | `code` (`bad_json`, `command_rejected`, `prompt_pending`, `no_prompt`, `stale_answer`, `bad_answer`, `bad_option`, `in_store`, `load_failed`, `fatal`, …) and message. |
 
