@@ -34,7 +34,7 @@ export class EntityLayer {
   constructor(private atlas: TileAtlas) {
     const ringGeo = new THREE.RingGeometry(0.34, 0.42, 24).rotateX(-Math.PI / 2);
     this.targetRing = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({
-      color: 0xff3020, transparent: true, opacity: 0.85, depthWrite: false,
+      color: 0xff3020, transparent: true, opacity: 0.85, depthWrite: false, fog: false,
     }));
     this.targetRing.visible = false;
     this.group.add(this.targetRing);
@@ -55,6 +55,8 @@ export class EntityLayer {
       map,
       // Alpha-to-coverage (with MSAA) keeps outlines smooth as sprites shrink
       alphaToCoverage: true,
+      // Visible means visible: atmosphere never hides what Angband shows
+      fog: false,
       alphaTest: 0.05,
       transparent: opacity < 1,
       opacity,

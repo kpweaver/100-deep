@@ -53,6 +53,7 @@ On Linux, `sh scripts/launch.sh` does the same as the double-click launcher.
 
 ```bash
 npm run dev               # bridge on :8787 + Vite (hot reload) on :5173
+                          # (rebuilding the engine restarts it automatically; your game reloads)
 ```
 
 Open <http://localhost:5173>. `npm run dev` and `npm start` both use port

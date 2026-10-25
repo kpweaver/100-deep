@@ -52,6 +52,7 @@ export class EffectsLayer {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
       opacity: 0,
+      fog: false,
     });
     const s = new THREE.Sprite(material);
     s.position.set(x, y, z);
@@ -70,7 +71,7 @@ export class EffectsLayer {
         if (e.tile) {
           const tex = this.atlas.texture(e.tile);
           if (tex) {
-            const material = new THREE.SpriteMaterial({ map: tex, alphaTest: 0.25, transparent: true, opacity: 0 });
+            const material = new THREE.SpriteMaterial({ map: tex, alphaTest: 0.25, transparent: true, opacity: 0, fog: false });
             const s = new THREE.Sprite(material);
             s.position.set(e.x, 0.45, e.y);
             s.scale.setScalar(0.35);

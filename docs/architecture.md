@@ -115,10 +115,12 @@ What reaches the client, and why it is safe:
   billboards with interpolation, `effects.ts` animates bolts and explosions
   from engine events, and `scene.ts` renders at full display resolution
   with MSAA, torch light sized by the engine's light radius, and fog. A
-  low-resolution "retro pixel size" mode is optional. Visibility is
-  Angband's: grid brightness is baked from the engine's in-view/remembered
-  state, so lit rooms appear in full on entry. There is no torch falloff or
-  near fog.
+  low-resolution "retro pixel size" mode is optional. Lighting is a
+  hybrid: terrain gets a warm torch light (sized by the engine's light
+  radius), soft ambient light and distance fog on top of per-grid
+  brightness baked from the engine's in-view/remembered state. Monsters,
+  objects, traps and effects ignore lights and fog, so anything Angband
+  shows is always drawn clearly.
 - Facing during engine-driven movement (`camera/heading.ts`) follows the
   average of recent steps with hysteresis, so diagonal zig-zags don't swing
   the view.

@@ -1,9 +1,11 @@
 /**
- * Three.js scene.  Visibility is Angband's: each grid's brightness is baked
- * from the engine's in-view / remembered state (see dungeon-mesh.ts), so a
- * lit room is fully visible the moment you enter it, exactly as on the stock
- * map.  Scene lights only give wall faces a little shading for depth; there
- * is no torch falloff or fog that could hide what the player can see.
+ * Three.js scene with hybrid lighting:
+ *  - Terrain gets atmosphere: a warm torch light around the player, soft
+ *    ambient light and distance fog, on top of per-grid brightness baked
+ *    from the engine's in-view / remembered state (dungeon-mesh.ts).
+ *  - Monsters, objects, traps and effects ignore lights and fog entirely,
+ *    so anything Angband says the player can see is always drawn clearly,
+ *    however far away or dark the surroundings look.
  * The renderer only reads the client state mirror and could be replaced
  * without touching the simulation.
  */
@@ -27,9 +29,12 @@ export class SceneRenderer {
   readonly dungeon: DungeonMesh;
   readonly entities: EntityLayer;
   readonly effects: EffectsLayer;
-  private ambient = new THREE.AmbientLight(0xffffff, 0.8);
+  private ambient = new THREE.AmbientLight(0xb8b8d0, 0.55);
   /** Fixed light so differently oriented wall faces shade differently */
-  private shade = new THREE.DirectionalLight(0xffffff, 0.45);
+  private shade = new THREE.DirectionalLight(0xffffff, 0.25);
+  /** Warm light carried by the player, sized by the engine's light radius */
+  private torch = new THREE.PointLight(0xffc887, 2.4, 7, 1.2);
+  private torchRadius = 2;
   private clock = new THREE.Clock();
   private time = 0;
   private outdoors = false;
@@ -47,6 +52,8 @@ export class SceneRenderer {
     this.effects = new EffectsLayer(atlas);
     this.shade.position.set(0.6, 1, 0.35);
     this.scene.add(this.dungeon.group, this.entities.group, this.effects.group, this.ambient, this.shade, this.cam.camera);
+    this.cam.camera.add(this.torch);
+    this.torch.position.set(0, 0.05, 0);
     this.setOutdoors(false);
     window.addEventListener('resize', () => this.resize());
     this.resize();
@@ -76,15 +83,23 @@ export class SceneRenderer {
 
   setOutdoors(outdoors: boolean): void {
     this.outdoors = outdoors;
-    // Only a faint far-distance haze for depth; never within sight range
+    // Soft atmospheric fog on terrain only (entities opt out of fog)
     if (outdoors) {
       const sky = new THREE.Color(0x1c2230);
       this.scene.background = sky;
-      this.scene.fog = new THREE.Fog(sky, 30, 90);
+      this.scene.fog = new THREE.Fog(sky, 6, 34);
+      this.ambient.intensity = 0.8;
     } else {
       this.scene.background = new THREE.Color(0x000000);
-      this.scene.fog = new THREE.Fog(0x000000, 25, 80);
+      this.scene.fog = new THREE.Fog(0x000000, 4, 24);
+      this.ambient.intensity = 0.55;
     }
+  }
+
+  /** The engine's light radius sizes the torch glow */
+  setTorchRadius(radius: number): void {
+    this.torchRadius = radius;
+    this.torch.distance = radius > 0 ? radius + 5 : 0.01;
   }
 
   rebuildDungeon(ctx: DungeonBuildContext): void {
@@ -100,6 +115,13 @@ export class SceneRenderer {
       this.cam.tick(dt);
       this.entities.tick(dt, this.time);
       this.effects.tick(dt);
+      if (this.torchRadius > 0) {
+        // Gentle flicker
+        const flicker = Math.sin(this.time * 9.1) * 0.08 + Math.sin(this.time * 23.7) * 0.05;
+        this.torch.intensity = 1.8 + this.torchRadius * 0.35 + flicker;
+      } else {
+        this.torch.intensity = 0;
+      }
       this.renderer.render(this.scene, this.cam.camera);
     };
     loop();

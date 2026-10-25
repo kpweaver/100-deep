@@ -8,7 +8,7 @@
  *  - One active client at a time; a new connection replaces the old one.
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createReadStream, existsSync, mkdirSync, statSync, createWriteStream, type WriteStream } from 'node:fs';
+import { createReadStream, existsSync, mkdirSync, statSync, createWriteStream, unwatchFile, watchFile, type WriteStream } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { WebSocketServer, type WebSocket } from 'ws';
 import type { BridgeMessage } from '@thang/protocol';
@@ -105,8 +105,9 @@ export function startBridge(opts: BridgeOptions = {}) {
   engine.on('stderr', (line) => {
     if (engine.options.debug) process.stderr.write(`[engine] ${line}\n`);
   });
+  let upgrading = false;
   engine.on('exit', (code, signal) => {
-    if (stopping) return;
+    if (stopping || upgrading) return;
     console.error(`[bridge] engine exited (code=${code}, signal=${signal})`);
     for (const l of engine.recentStderr.slice(-10)) console.error(`  ${l}`);
     bridgeEvent({ type: 'bridge', event: 'engine_exit', code, signal });
@@ -210,9 +211,40 @@ export function startBridge(opts: BridgeOptions = {}) {
         return;
       }
       console.log(`[bridge] listening on http://${host}:${port} (ws: /ws)`);
+      watchEngineBinary();
       resolveReady();
     });
   });
+
+  /**
+   * When the engine is rebuilt (npm run build:engine), save and restart it
+   * so a long-running bridge never talks to a stale engine.  The engine
+   * saves on stdin EOF; the client then reloads the save automatically.
+   */
+  function watchEngineBinary() {
+    const binary = engine.options.binary;
+    let settle: ReturnType<typeof setTimeout> | null = null;
+    watchFile(binary, { interval: 2000 }, (cur, prev) => {
+      if (stopping || cur.mtimeMs === prev.mtimeMs || cur.size === 0) return;
+      // Wait for the linker to finish writing
+      if (settle) clearTimeout(settle);
+      settle = setTimeout(async () => {
+        settle = null;
+        if (stopping) return;
+        console.log('[bridge] engine binary changed: saving and restarting the engine');
+        upgrading = true;
+        await engine.stop();
+        upgrading = false;
+        if (stopping) return;
+        try {
+          engine.start();
+          bridgeEvent({ type: 'bridge', event: 'engine_started', message: 'Engine updated' });
+        } catch (e) {
+          bridgeEvent({ type: 'bridge', event: 'engine_failed', message: String(e) });
+        }
+      }, 1500);
+    });
+  }
 
   return {
     engine,
@@ -221,6 +253,7 @@ export function startBridge(opts: BridgeOptions = {}) {
     host,
     async close() {
       stopping = true;
+      unwatchFile(engine.options.binary);
       for (const c of wss.clients) c.close();
       wss.close();
       http.close();

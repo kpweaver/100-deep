@@ -269,6 +269,7 @@ export class DungeonMesh {
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: tex,
       color: inView ? 0xffffff : 0x666677,
+      fog: false,
       alphaToCoverage: true,
       alphaTest: 0.05,
     }));

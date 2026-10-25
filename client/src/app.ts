@@ -161,7 +161,12 @@ export class App implements InputHandler {
       case 'error':
         this.pending = null;
         this.queued = null;
-        if (m.code !== 'prompt_pending' && m.code !== 'stale_answer') this.state.note(m.message);
+        if (m.code === 'bad_type') {
+          // An engine older than this client (e.g. a long-running dev server)
+          this.state.note('The engine is out of date. Restart the game to update it.');
+        } else if (m.code !== 'prompt_pending' && m.code !== 'stale_answer') {
+          this.state.note(m.message);
+        }
         console.warn('[engine error]', m.code, m.message);
         break;
       case 'screen':
@@ -294,6 +299,7 @@ export class App implements InputHandler {
     if (c.map) this.dungeonDirty = true;
     if (c.entities || c.map) this.refreshEntities();
     if (c.player && p) {
+      r?.setTorchRadius(p.light);
       if (this.lastHp !== null && p.hp < this.lastHp && this.state.phase === 'game') {
         r?.cam.shake();
         this.hud.hurt();
@@ -333,6 +339,7 @@ export class App implements InputHandler {
     r.entities.clear();
     if (!p || this.state.phase === 'menu') return;
     r.setOutdoors(p.depth === 0);
+    r.setTorchRadius(p.light);
     r.cam.teleport(p.x, p.y);
     this.faceOpenSide();
     this.dungeonDirty = true;

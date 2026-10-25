@@ -48,6 +48,11 @@ These systems all exist in the engine. Only the UI to reach them is missing.
 
 ## Visual limitations
 
+- Unexplored, unlit corridor squares are unknown to Angband, so when you
+  first look down a dark corridor at a lit room, the corridor between is
+  empty darkness, as on the stock map. Inventing walls there would reveal
+  terrain the stock game hides.
+
 - Surfaces are simple procedural textures. There are no per-feature Gervais
   wall textures, because Gervais tiles are drawn for a top-down view.
 - Doors, stairs, rubble and lava have simple geometry. Shops use their
