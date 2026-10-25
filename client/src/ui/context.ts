@@ -6,6 +6,9 @@ import type { InputManager } from '../input/input-manager.ts';
 import type { UiManager } from './layer.ts';
 
 export interface Settings {
+  /** Bumped when defaults change in a way that should override saved values */
+  version: number;
+  /** 1 = full-resolution rendering; 2-6 = optional retro pixel upscaling */
   pixelScale: number;
   instantMovement: boolean;
   fov: number;
@@ -14,8 +17,11 @@ export interface Settings {
   showMinimap: boolean;
 }
 
+export const SETTINGS_VERSION = 2;
+
 export const DEFAULT_SETTINGS: Settings = {
-  pixelScale: 3,
+  version: SETTINGS_VERSION,
+  pixelScale: 1,
   instantMovement: false,
   fov: 70,
   volume: 0.5,

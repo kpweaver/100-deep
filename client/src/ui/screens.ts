@@ -481,7 +481,7 @@ export function openOptions(ctx: UiContext): void {
   const build = (): MenuItem<O>[] => {
     const s = ctx.settings;
     const items: MenuItem<O>[] = [
-      { label: 'Pixel size', right: `${s.pixelScale}x`, detail: '←/→ to change', data: { kind: 'client', key: 'pixelScale' } },
+      { label: 'Retro pixel size', right: s.pixelScale <= 1 ? 'Off (full resolution)' : `${s.pixelScale}x`, detail: '←/→ to change', data: { kind: 'client', key: 'pixelScale' } },
       { label: 'Field of view', right: `${s.fov}°`, detail: '←/→ to change', data: { kind: 'client', key: 'fov' } },
       { label: 'Instant movement & turning', right: s.instantMovement ? 'On' : 'Off', data: { kind: 'client', key: 'instantMovement' } },
       { label: 'Keep exploring after each step', right: s.autoExploreRepeat ? 'On' : 'Off', data: { kind: 'client', key: 'autoExploreRepeat' } },
@@ -505,7 +505,12 @@ export function openOptions(ctx: UiContext): void {
       return;
     }
     switch (o.key) {
-      case 'pixelScale': ctx.applySettings({ pixelScale: Math.max(1, Math.min(6, s.pixelScale + (dir || 1))) }); break;
+      case 'pixelScale': {
+        // Enter cycles Off -> 2x ... 6x -> Off; arrows step
+        const next = dir ? s.pixelScale + dir : (s.pixelScale >= 6 ? 1 : s.pixelScale + 1);
+        ctx.applySettings({ pixelScale: Math.max(1, Math.min(6, next)) });
+        break;
+      }
       case 'fov': ctx.applySettings({ fov: Math.max(50, Math.min(100, s.fov + (dir || 1) * 5)) }); break;
       case 'volume': ctx.applySettings({ volume: Math.max(0, Math.min(1, Math.round((s.volume + (dir || 1) * 0.1) * 10) / 10)) }); break;
       case 'instantMovement': ctx.applySettings({ instantMovement: !s.instantMovement }); break;

@@ -15,7 +15,6 @@ export class TileAtlas {
   image: HTMLImageElement | null = null;
   cols = 0;
   rows = 0;
-  private base: THREE.Texture | null = null;
   private cache = new Map<string, THREE.Texture>();
   /** Per-tile canvases for 2D use (minimap, UI icons) */
   private canvases = new Map<string, HTMLCanvasElement>();
@@ -34,14 +33,10 @@ export class TileAtlas {
     this.image = img;
     this.cols = Math.floor(img.naturalWidth / this.cellW);
     this.rows = Math.floor(img.naturalHeight / this.cellH);
-    const tex = new THREE.Texture(img);
-    configurePixelTexture(tex);
-    tex.needsUpdate = true;
-    this.base = tex;
   }
 
   get loaded(): boolean {
-    return this.base !== null;
+    return this.image !== null;
   }
 
   /** UV rectangle of a tile: [offsetX, offsetY, repeatX, repeatY] (flipY convention) */
@@ -52,17 +47,18 @@ export class TileAtlas {
     return [col * rx, 1 - (row + 1) * ry, rx, ry];
   }
 
-  /** A texture showing one tile; clones share the GPU image */
+  /**
+   * A texture holding exactly one tile.  Each tile gets its own 32x32
+   * texture (rather than a window into the atlas) so mipmaps can be used
+   * for clean minification without neighbouring tiles bleeding in.
+   */
   texture(tile: Tile): THREE.Texture | null {
-    if (!this.base) return null;
     const key = `${tile[0]},${tile[1]}`;
     let tex = this.cache.get(key);
     if (!tex) {
-      tex = this.base.clone();
-      const [ox, oy, rx, ry] = this.uvRect(tile);
-      tex.offset.set(ox, oy);
-      tex.repeat.set(rx, ry);
-      tex.needsUpdate = true;
+      const canvas = this.canvas(tile);
+      if (!canvas) return null;
+      tex = tileTexture(canvas);
       this.cache.set(key, tex);
     }
     return tex;
@@ -100,9 +96,61 @@ export class TileAtlas {
   }
 }
 
+/**
+ * Build a mipmapped texture from one tile.  Fully transparent pixels in the
+ * sheet carry black colour, which mipmapping would smear into a dark fringe
+ * around distant sprites, so opaque colours are first dilated into the
+ * transparent area (alpha is left untouched).
+ */
+function tileTexture(canvas: HTMLCanvasElement): THREE.Texture {
+  const w = canvas.width, h = canvas.height;
+  const src = canvas.getContext('2d')!.getImageData(0, 0, w, h).data;
+  const rgba = new Uint8ClampedArray(src);
+  const known = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) known[i] = rgba[i * 4 + 3] > 0 ? 1 : 0;
+  for (let pass = 0; pass < 8; pass++) {
+    const next = known.slice();
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (known[i]) continue;
+        let r = 0, g = 0, b = 0, n = 0;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          const j = ny * w + nx;
+          if (!known[j]) continue;
+          r += rgba[j * 4]; g += rgba[j * 4 + 1]; b += rgba[j * 4 + 2]; n++;
+        }
+        if (n) {
+          rgba[i * 4] = r / n; rgba[i * 4 + 1] = g / n; rgba[i * 4 + 2] = b / n;
+          next[i] = 1;
+        }
+      }
+    }
+    known.set(next);
+  }
+  // DataTexture rows run bottom-up
+  const data = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) data.set(rgba.subarray(y * w * 4, (y + 1) * w * 4), (h - 1 - y) * w * 4);
+  const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
+  configurePixelTexture(tex);
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Filled in by the renderer once the WebGL context exists */
+export const textureQuality = { anisotropy: 1 };
+
+/**
+ * Pixel-art texture setup: magnified texels stay crisp squares (nearest),
+ * minified ones use mipmaps + anisotropic filtering so distant or
+ * grazing-angle surfaces stay stable instead of shimmering.
+ */
 export function configurePixelTexture(tex: THREE.Texture): void {
   tex.magFilter = THREE.NearestFilter;
-  tex.minFilter = THREE.NearestFilter;
-  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.anisotropy = textureQuality.anisotropy;
   tex.colorSpace = THREE.SRGBColorSpace;
 }

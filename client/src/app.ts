@@ -21,7 +21,7 @@ import { InputManager } from './input/input-manager.ts';
 import { PROMPTS, type InputEvent, type InputHandler } from './input/actions.ts';
 import { Hud, type ContextHint } from './ui/hud.ts';
 import { UiManager } from './ui/layer.ts';
-import { DEFAULT_SETTINGS, type Settings, type UiContext } from './ui/context.ts';
+import { DEFAULT_SETTINGS, SETTINGS_VERSION, type Settings, type UiContext } from './ui/context.ts';
 import { PromptLayer } from './ui/prompt-layer.ts';
 import { TextLayer } from './ui/menu-layer.ts';
 import {
@@ -42,6 +42,14 @@ function loadJson<T>(key: string, fallback: T): T {
   }
 }
 
+/** Settings saved before full-resolution rendering defaulted to 3x retro pixels */
+function migrateSettings(s: Settings): Settings {
+  // Saved settings without a version predate full-resolution rendering
+  if (s.version < 2) s.pixelScale = 1;
+  s.version = SETTINGS_VERSION;
+  return s;
+}
+
 function saveJson(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -60,7 +68,7 @@ export class App implements InputHandler {
   private renderer: SceneRenderer | null = null;
   private atlas: TileAtlas | null = null;
   private atlasLoading: Promise<void> | null = null;
-  private settings: Settings = loadJson('thang.settings', DEFAULT_SETTINGS);
+  private settings: Settings = migrateSettings(loadJson('thang.settings', { ...DEFAULT_SETTINGS, version: 1 }));
   private engineOptions: Record<string, boolean> = loadJson('thang.engineOptions', { autoexplore_commands: true });
   private ctx: UiContext;
 

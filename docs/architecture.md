@@ -112,8 +112,15 @@ What reaches the client, and why it is safe:
   doors, steps and rubble from the known map, with brightness baked into
   instance colours (in view vs remembered). `entities.ts` draws Gervais
   billboards with interpolation, `effects.ts` animates bolts and explosions
-  from engine events, and `scene.ts` handles low-res rendering with nearest
-  upscale, torch light sized by the engine's light radius, and fog.
+  from engine events, and `scene.ts` renders at full display resolution
+  with MSAA, torch light sized by the engine's light radius, and fog. A
+  low-resolution "retro pixel size" mode is optional.
+- Tile rendering: every Gervais tile gets its own 32×32 texture (no atlas
+  bleeding). Textures use nearest filtering when magnified, so tile pixels
+  stay crisp squares up close, and mipmaps plus anisotropic filtering when
+  minified, so distant and grazing-angle surfaces stay stable. Transparent
+  pixels have neighbouring colours dilated into them to avoid dark fringes,
+  and sprites use alpha-to-coverage for smooth outlines.
 - `camera/grid-camera.ts`: 8-way facing (presentational only) and
   interpolation towards engine-confirmed grids. Long jumps snap.
 - `input/`: semantic actions, keyboard and Gamepad API (standard mapping),

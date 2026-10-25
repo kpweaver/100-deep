@@ -53,7 +53,9 @@ export class EntityLayer {
     const map = (tile && this.atlas.texture(tile)) || this.fallback;
     return new THREE.SpriteMaterial({
       map,
-      alphaTest: 0.25,
+      // Alpha-to-coverage (with MSAA) keeps outlines smooth as sprites shrink
+      alphaToCoverage: true,
+      alphaTest: 0.05,
       transparent: opacity < 1,
       opacity,
     });

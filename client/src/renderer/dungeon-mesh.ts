@@ -244,7 +244,8 @@ export class DungeonMesh {
     const mat = new THREE.MeshBasicMaterial({
       map: tex,
       transparent: true,
-      alphaTest: 0.3,
+      alphaToCoverage: true,
+      alphaTest: 0.05,
       color: inView ? 0xffffff : 0x55576a,
       depthWrite: false,
       polygonOffset: true,
@@ -264,7 +265,8 @@ export class DungeonMesh {
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
       map: tex,
       color: inView ? 0xffffff : 0x666677,
-      alphaTest: 0.3,
+      alphaToCoverage: true,
+      alphaTest: 0.05,
     }));
     sprite.position.set(x, 0.5, y);
     sprite.scale.set(0.9, 0.9, 0.9);

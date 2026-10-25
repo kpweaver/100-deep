@@ -18,10 +18,9 @@ body { font-family: var(--font); font-size: 20px; }
 #app { position: fixed; inset: 0; }
 .hidden { display: none !important; }
 
-canvas.view {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  image-rendering: pixelated; image-rendering: crisp-edges;
-}
+canvas.view { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Only the optional retro mode upscales a low-resolution render */
+canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 
 /* ---------- HUD ---------- */
 .hud { position: absolute; inset: 0; pointer-events: none; }

@@ -8,10 +8,10 @@ import { GridCamera } from '../camera/grid-camera.ts';
 import { DungeonMesh, type DungeonBuildContext } from './dungeon-mesh.ts';
 import { EntityLayer } from './entities.ts';
 import { EffectsLayer } from './effects.ts';
-import type { TileAtlas } from '../sprites/atlas.ts';
+import { textureQuality, type TileAtlas } from '../sprites/atlas.ts';
 
 export interface RenderSettings {
-  /** Screen pixels per rendered pixel (1 = native, 3-4 = chunky retro) */
+  /** Screen pixels per rendered pixel: 1 = full resolution (default), 2-6 = optional retro look */
   pixelScale: number;
   fov: number;
 }
@@ -20,7 +20,7 @@ export class SceneRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly cam: GridCamera;
-  readonly dungeon = new DungeonMesh();
+  readonly dungeon: DungeonMesh;
   readonly entities: EntityLayer;
   readonly effects: EffectsLayer;
   private torch = new THREE.PointLight(0xffc887, 2.2, 6, 1.4);
@@ -29,12 +29,15 @@ export class SceneRenderer {
   private time = 0;
   private torchRadius = 2;
   private outdoors = false;
-  settings: RenderSettings = { pixelScale: 3, fov: 70 };
+  settings: RenderSettings = { pixelScale: 1, fov: 70 };
   onFrame: ((dt: number) => void) | null = null;
 
   constructor(private canvas: HTMLCanvasElement, atlas: TileAtlas) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Must be known before any texture is created
+    textureQuality.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    this.dungeon = new DungeonMesh();
     this.cam = new GridCamera(this.settings.fov);
     this.entities = new EntityLayer(atlas);
     this.effects = new EffectsLayer(atlas);
@@ -55,8 +58,16 @@ export class SceneRenderer {
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     const s = this.settings.pixelScale;
-    this.renderer.setPixelRatio(1);
-    this.renderer.setSize(Math.max(160, Math.floor(w / s)), Math.max(90, Math.floor(h / s)), false);
+    if (s <= 1) {
+      // Full resolution: the only visible pixels are the tiles' own pixel art
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      this.renderer.setSize(w, h, false);
+    } else {
+      // Optional retro mode: render small and upscale with nearest filtering
+      this.renderer.setPixelRatio(1);
+      this.renderer.setSize(Math.max(160, Math.floor(w / s)), Math.max(90, Math.floor(h / s)), false);
+    }
+    this.canvas.classList.toggle('retro', s > 1);
     this.cam.setAspect(w / h);
   }
 
