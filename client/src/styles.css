@@ -33,7 +33,7 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 
 /* ---------- HUD ---------- */
 .hud { position: absolute; inset: 0; pointer-events: none; }
-.fp-weapon { position: absolute; right: -1%; bottom: -7%; transform-origin: 85% 100%; }
+.fp-weapon { position: absolute; }
 /* Gervais weapons are drawn hilt top-right; flipped, the hilt is in the hand and the blade leans in */
 .fp-weapon-sprite { image-rendering: pixelated; transform: scaleY(-1); }
 .fp-weapon.swing { animation: fp-swing 0.28s ease-out; }

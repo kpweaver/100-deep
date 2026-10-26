@@ -444,6 +444,9 @@ export class App implements InputHandler {
 
   send(m: Parameters<Transport['send']>[0]): void {
     if (m.type === 'command') {
+      // The weapon in hand: launchers fire, and digging uses the weapon (as in Angband)
+      if (m.action === 'fire' || m.action === 'fire_at_nearest') this.hud.weapon.shoot();
+      else if (m.action === 'tunnel' && this.diggableAt(m.dir)) this.hud.weapon.dig();
       if (!AUTO_FACE_ACTIONS.has(m.action)) this.heading.reset();
       this.lastAction = m.action;
       if (this.pending) {
@@ -477,8 +480,17 @@ export class App implements InputHandler {
     this.send(q);
   }
 
+  /** Is the known square in a direction rock or rubble (something to dig)? */
+  private diggableAt(dir: Direction | undefined): boolean {
+    const p = this.state.player, hello = this.state.hello;
+    if (!p || !hello || !dir || !DIR_OFFSETS[dir]) return false;
+    const [dx, dy] = DIR_OFFSETS[dir];
+    const f = this.state.map.featAt(p.x + dx, p.y + dy);
+    const flags = hello.features[f]?.flags ?? [];
+    return flags.includes('rock') && !flags.includes('permanent');
+  }
+
   private command(c: Omit<CommandMessage, 'type'>): void {
-    if (c.action === 'fire' || c.action === 'fire_at_nearest') this.hud.weapon.shoot();
     this.send({ type: 'command', ...c } as CommandMessage);
   }
 

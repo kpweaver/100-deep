@@ -126,8 +126,10 @@ What reaches the client, and why it is safe:
   shows is always drawn clearly.
 - `ui/weapon.ts` draws the wielded weapon's Gervais tile in the right hand
   (flipped so the hilt is in the hand). It swings when the engine reports
-  your melee attacks (`hit`/`miss` message types), shows the launcher
-  recoiling when you fire, bobs as you walk and dims without a light.
+  your melee attacks (`hit`/`miss` message types) and when you dig at rock
+  or rubble (Angband digs with the weapon), shows the launcher
+  recoiling when you fire, bobs as you walk and dims without a light. Each
+  tile is measured so its hilt end runs off the bottom-right corner.
 - Dark silhouettes (opt-in departure from stock, chosen by the project
   owner): `snapshot.c` exports the feature of unknown grids that are in
   view but unlit (`square_isview`, mimics applied) as a seventh map-cell
