@@ -153,11 +153,15 @@ test('monster and player tiles come from the Gervais pref file', async () => {
     const m = /^monster:([^:]+):0x([0-9A-Fa-f]+):0x([0-9A-Fa-f]+)/.exec(line);
     if (m && !tiles.has(m[1].toLowerCase())) tiles.set(m[1].toLowerCase(), [parseInt(m[2], 16) & 0x7f, parseInt(m[3], 16) & 0x7f]);
   }
+  process.env.THANG_CHEATS = '1';
   const s = new Session({ seed: 7 });
   await s.start();
+  delete process.env.THANG_CHEATS;
   await s.newGame('Human', 'Warrior');
   // The player icon depends on race/class conditionals in xtra-dvg.prf
   assert.deepEqual(s.hello!.playerTile, [3, 7]);
+  // Which monsters wander into view depends on the platform's RNG use, so bring one
+  await s.request({ type: 'debug', action: 'summon', name: 'Grip, Farmer Hayward\'s Dog' });
   let checked = 0;
   for (let i = 0; i < 30 && checked === 0; i++) {
     for (const mon of s.state!.monsters ?? []) {
@@ -358,8 +362,7 @@ test('character death follows the native flow and a new game can start', async (
   assert.equal(st.phase, 'dead');
   assert.ok(st.player!.dead && st.player!.diedFrom, 'died_from recorded');
   // No more commands for the dead
-  s.send({ type: 'command', action: 'walk', dir: 2 });
-  assert.equal((await s.next('error', 'state')).type, 'error');
+  assert.equal((await s.command({ action: 'walk', dir: 2 })).type, 'error');
   // The dead savefile cannot be resumed
   s.send({ type: 'load_game' });
   const err = await s.next('error');
@@ -399,20 +402,24 @@ test('returning to the title saves, and the game can be continued', async () => 
 });
 
 test('stock subwindows (lists, recall, character sheet) come from Angband', async () => {
+  process.env.THANG_CHEATS = '1';
   const s = new Session({ seed: 7 });
   await s.start();
+  delete process.env.THANG_CHEATS;
   await s.newGame('Human', 'Warrior', 'Tester');
   const text = (p: { lines: unknown[][] } | null | undefined) =>
     (p?.lines ?? []).map((l) => l.map((seg) => (typeof (seg as unknown[])[0] === 'string' ? (seg as [string])[0] : '#')).join('')).join('\n');
   const first = s.history.filter((m): m is StateMessage => m.type === 'state').pop()!;
   assert.ok(first.panels?.monsterList, 'monster list sent with the first game state');
   const visible = (first.monsters ?? []).filter((m) => m.inView);
-  assert.match(text(first.panels!.monsterList), new RegExp(`You can see ${visible.length} monster`));
+  assert.match(text(first.panels!.monsterList), visible.length ? new RegExp(`You can see ${visible.length} monster`) : /You can see no monsters/);
   assert.match(text(first.panels!.itemList), /object/);
   // Tile glyphs survive as atlas coordinates
   assert.ok(first.panels!.monsterList!.lines.some((l) => l.some((seg) => Array.isArray(seg[0]))));
 
-  // Targeting tracks the monster, so its recall appears (and only changed panels are re-sent)
+  // Targeting tracks the monster, so its recall appears (and only changed panels are re-sent).
+  // A town monster in view depends on the platform's RNG use, so bring one
+  await s.request({ type: 'debug', action: 'summon', name: 'scruffy little dog' });
   const r = (await s.command({ action: 'target_closest' })) as StateMessage;
   assert.ok(r.panels?.monsterRecall?.title, 'recall for the targeted monster');
   assert.match(text(r.panels!.monsterRecall), /town/i);
@@ -448,12 +455,12 @@ test('debug commands need --cheats and mark the character', async () => {
   await cheat.stop();
 });
 
-test('spells report bolt effects the player can see', async () => {
+test('spells report bolt (or beam) effects the player can see', async () => {
   process.env.THANG_CHEATS = '1';
   const s = new Session();
   await s.start();
   delete process.env.THANG_CHEATS;
-  await s.newGame('High-Elf', 'Mage', 'Sparks');
+  await s.newGame('Highborn', 'Mage', 'Sparks');
   // Experienced enough that Magic Missile rarely fails
   await s.request({ type: 'debug', action: 'exp', value: 20000 });
   const book = s.state!.inventory!.find((i) => /First Spells/.test(i.name))!;
@@ -468,7 +475,8 @@ test('spells report bolt effects the player can see', async () => {
     await s.command({ action: 'cast', book: book.handle, spell: 0, useTarget: true });
     effects = s.history.slice(before).flatMap((m) => (m.type === 'state' ? m.effects ?? [] : []));
   }
-  assert.ok(effects.some((e) => e.kind === 'bolt'), `expected a bolt effect, got ${JSON.stringify(effects)}; ${JSON.stringify(s.history.slice(before - 6).flatMap((m) => (m.type === "state" ? (m.messages ?? []).map((x) => x.text) : m.type === "error" ? [m.message] : [])))}`);
+  // Mages sometimes fire it as a beam instead, depending on level and luck
+  assert.ok(effects.some((e) => e.kind === 'bolt' || e.kind === 'beam'), `expected a bolt or beam effect, got ${JSON.stringify(effects)}; ${JSON.stringify(s.history.slice(before - 6).flatMap((m) => (m.type === "state" ? (m.messages ?? []).map((x) => x.text) : m.type === "error" ? [m.message] : [])))}`);
   await s.stop();
 });
 
