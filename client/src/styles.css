@@ -36,19 +36,64 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 .fp-weapon { position: absolute; }
 /* Each weapon tile is posed by ui/weapon.ts so the hilt is in the hand */
 .fp-weapon-sprite { image-rendering: pixelated; }
-.fp-weapon.swing { animation: fp-swing 0.32s ease-out; }
-.fp-weapon.recoil { animation: fp-recoil 0.35s ease-out; }
-.fp-weapon.bob { animation: fp-bob 0.25s ease-in-out; }
+.fp-weapon.anim-chop { animation: fp-chop 0.32s ease-out; }
+.fp-weapon.anim-thrust { animation: fp-thrust 0.3s ease-out; }
+.fp-weapon.anim-flail { animation: fp-flail 0.42s ease-in-out; }
+.fp-weapon.anim-whip { animation: fp-whip 0.3s cubic-bezier(.2,.9,.3,1); }
+.fp-weapon.anim-bow { animation: fp-bow 0.45s ease-out; }
+/* Crossbows are held at an angle for the whole shot (ui/weapon.ts SHOT_MS) */
+.fp-weapon.anim-crossbow { animation: fp-crossbow 0.8s ease-out; }
+.fp-weapon.anim-sling { animation: fp-sling 0.5s ease-in-out; }
+.fp-weapon.anim-bob { animation: fp-bob 0.25s ease-in-out; }
 /* Wind up, strike across toward the centre (rising into view), recover */
-@keyframes fp-swing {
+@keyframes fp-chop {
   0% { transform: none; }
   18% { transform: translate(3%, 2%) rotate(10deg); }
   50% { transform: translate(-30%, -16%) rotate(-28deg); }
   100% { transform: none; }
 }
-@keyframes fp-recoil {
+/* Draw back, then drive forward into the screen along the blade */
+@keyframes fp-thrust {
   0% { transform: none; }
-  20% { transform: translate(5%, 7%) rotate(5deg); }
+  25% { transform: translate(6%, 6%); }
+  55% { transform: translate(-24%, -26%) scale(0.86); }
+  100% { transform: none; }
+}
+/* A wide whirl: the head swings out to the right, over and across */
+@keyframes fp-flail {
+  0% { transform: none; }
+  25% { transform: translate(4%, -6%) rotate(24deg); }
+  60% { transform: translate(-26%, -14%) rotate(-36deg); }
+  100% { transform: none; }
+}
+/* A fast flick and crack */
+@keyframes fp-whip {
+  0% { transform: none; }
+  20% { transform: translate(2%, -4%) rotate(14deg); }
+  40% { transform: translate(-18%, -10%) rotate(-40deg); }
+  55% { transform: translate(-14%, -8%) rotate(-30deg); }
+  100% { transform: none; }
+}
+/* Draw back, release, settle */
+@keyframes fp-bow {
+  0% { transform: translate(3%, 4%); }
+  30% { transform: translate(7%, 8%); }
+  45% { transform: translate(-4%, -4%); }
+  100% { transform: none; }
+}
+/* Held at an angle, kicks back hard on release, settles at the angle */
+@keyframes fp-crossbow {
+  0% { transform: rotate(-24deg); }
+  12% { transform: translate(8%, 12%) rotate(-12deg); }
+  40% { transform: rotate(-24deg); }
+  100% { transform: rotate(-24deg); }
+}
+/* Whirl overhead, then let fly */
+@keyframes fp-sling {
+  0% { transform: none; }
+  30% { transform: translate(-6%, -10%) rotate(-30deg); }
+  55% { transform: translate(4%, -14%) rotate(20deg); }
+  75% { transform: translate(-12%, -8%) rotate(-12deg); }
   100% { transform: none; }
 }
 @keyframes fp-bob { 50% { transform: translateY(3%); } }

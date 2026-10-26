@@ -61,15 +61,15 @@ const POSES: Record<string, Pose> = {
   '10,8': 'flipY', // Short Sword
   '10,10': 'rot90', // Cutlass
   '10,9': 'rot90', // Tulwar
-  '10,11': 'flipY', // Scimitar
+  '10,11': 'rot90', // Scimitar
   '10,13': 'flipY', // Long Sword
   '10,12': 'flipY', // Broad Sword
   '10,66': 'none', // Bastard Sword
-  '10,14': 'flipY', // Katana
+  '10,14': 'rot90', // Katana
   '10,16': 'flipY', // Zweihander
   '10,15': 'flipY', // Executioner's Sword
   '10,17': 'none', // Blade of Chaos
-  '10,18': 'flipX', // Whip
+  '10,18': 'rotm90', // Whip
   '10,25': 'rot180', // Ball-and-Chain (held by the chain's end)
   '10,23': 'rotm90', // Morning Star
   '10,22': 'rotm90', // Flail
@@ -84,12 +84,12 @@ const POSES: Record<string, Pose> = {
   '10,28': 'flipX', // Spear
   '10,30': 'flipX', // Awl-Pike
   '10,29': 'flipX', // Trident
-  '10,38': 'flipX', // Halberd
+  '10,38': 'rotm90', // Halberd
   '10,34': 'flipX', // Pike
   '10,35': 'flipX', // Beaked Axe
   '10,36': 'flipX', // Broad Axe
-  '10,33': 'flipX', // Battle Axe
-  '10,39': 'flipX', // Lochaber Axe
+  '10,33': 'rotm90', // Battle Axe
+  '10,39': 'rotm90', // Lochaber Axe
   '10,40': 'flipX', // Great Axe
   '10,102': 'flipX', // Throwing Axe
   '10,41': 'none', // Scythe
@@ -98,8 +98,8 @@ const POSES: Record<string, Pose> = {
   '10,42': 'none', // Scythe of Slicing
   '10,32': 'flipX', // Lucerne Hammer
   '10,47': 'flipX', // Sling
-  '10,43': 'flipX', // Short Bow
-  '10,44': 'flipX', // Long Bow
+  '10,43': 'rotm90', // Short Bow
+  '10,44': 'rotm90', // Long Bow
   '10,45': 'none', // Light Crossbow
   '10,46': 'none', // Heavy Crossbow
   '7,30': 'rotm90', // Shovel
@@ -107,6 +107,33 @@ const POSES: Record<string, Pose> = {
   '7,29': 'flipX', // Mattock
   '10,48': 'none', // Mighty Hammer
 };
+/** How each weapon attacks (default: chop) and each launcher fires */
+type Attack = 'chop' | 'thrust' | 'flail' | 'whip';
+type Fire = 'bow' | 'crossbow' | 'sling';
+const ATTACKS: Record<string, Attack> = {
+  '10,3': 'thrust', // Dagger
+  '10,4': 'thrust', // Main Gauche
+  '10,5': 'thrust', // Rapier
+  '10,28': 'thrust', // Spear
+  '10,30': 'thrust', // Awl-Pike
+  '10,29': 'thrust', // Trident
+  '10,34': 'thrust', // Pike
+  '10,31': 'thrust', // Lance
+  '10,25': 'flail', // Ball-and-Chain
+  '10,23': 'flail', // Morning Star
+  '10,22': 'flail', // Flail
+  '10,26': 'flail', // Two-Handed Great Flail
+  '10,18': 'whip', // Whip
+};
+const FIRES: Record<string, Fire> = {
+  '10,47': 'sling',
+  '10,43': 'bow', // Short Bow
+  '10,44': 'bow', // Long Bow
+  '10,45': 'crossbow', // Light Crossbow
+  '10,46': 'crossbow', // Heavy Crossbow
+};
+const ANIMS = ['chop', 'thrust', 'flail', 'whip', 'bow', 'crossbow', 'sling', 'bob'].map((a) => `anim-${a}`);
+
 /** Launchers sit higher than melee weapons, fully in view */
 const LAUNCHERS = new Set(['10,43', '10,44', '10,45', '10,46', '10,47']);
 const LAUNCHER_OVERHANG = -0.06;
@@ -144,10 +171,16 @@ export class WeaponView {
     this.sprite.style.filter = this.filter;
   }
 
-  /** A melee swing */
+  /** A melee attack, in the weapon's own style */
   swing(): void {
     if (this.shooting) return;
-    this.play('swing');
+    const t = this.weapon;
+    this.play(t ? ATTACKS[`${t[0]},${t[1]}`] ?? 'chop' : 'chop');
+  }
+
+  /** A chop, whatever the weapon (digging) */
+  private chop(): void {
+    if (!this.shooting) this.play('chop');
   }
 
   /** Firing: raise the launcher (if any) and recoil */
@@ -159,7 +192,7 @@ export class WeaponView {
       this.render();
     }, SHOT_MS);
     this.render();
-    this.play('recoil');
+    this.play(FIRES[`${this.launcher[0]},${this.launcher[1]}`] ?? 'bow');
   }
 
   /** Digging: a few swings, as the engine repeats the tunnel command */
@@ -167,13 +200,13 @@ export class WeaponView {
     for (const t of this.digTimers) clearTimeout(t);
     this.digTimers = [];
     for (let i = 0; i < DIG_SWINGS; i++) {
-      this.digTimers.push(window.setTimeout(() => this.swing(), i * DIG_EVERY_MS));
+      this.digTimers.push(window.setTimeout(() => this.chop(), i * DIG_EVERY_MS));
     }
   }
 
-  /** A step */
+  /** A step (never interrupting an attack) */
   bob(): void {
-    if (!this.el.classList.contains('swing') && !this.el.classList.contains('recoil')) this.play('bob');
+    if (!ANIMS.some((a) => a !== 'anim-bob' && this.el.classList.contains(a))) this.play('bob');
   }
 
   /**
@@ -220,10 +253,10 @@ export class WeaponView {
     return e;
   }
 
-  private play(anim: 'swing' | 'recoil' | 'bob') {
-    this.el.classList.remove('swing', 'recoil', 'bob');
+  private play(anim: Attack | Fire | 'bob') {
+    this.el.classList.remove(...ANIMS);
     void this.el.offsetWidth; // restart the animation
-    this.el.classList.add(anim);
+    this.el.classList.add(`anim-${anim}`);
   }
 
   private render(resized = false) {

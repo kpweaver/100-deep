@@ -132,6 +132,9 @@ What reaches the client, and why it is safe:
   or rubble (Angband digs with the weapon), shows the launcher
   recoiling when you fire, bobs as you walk and dims without a light. Each
   tile is measured so its hilt end runs off the bottom-right corner.
+  Each weapon family has its own motion: thrusts (daggers, rapiers,
+  spears), chops, flail whirls and a whip flick; crossbows are held at an
+  angle and recoil, bows draw and release, slings whirl.
 - Dark silhouettes (opt-in departure from stock, chosen by the project
   owner): `snapshot.c` exports the feature of unknown grids that are in
   view but unlit (`square_isview`, mimics applied) as a seventh map-cell
