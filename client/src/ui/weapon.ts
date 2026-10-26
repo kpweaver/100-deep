@@ -141,6 +141,8 @@ const HANDS_URL = 'art/hands.png';
 const HAND_ROWS = ['skin', 'leather', 'gauntlets', 'mithral', 'caestus', 'alchemist'];
 /** The hand's size relative to the weapon's */
 const HAND_SCALE = 0.6;
+/** How far below the screen edge the hand's tile is anchored (fraction of its size) */
+const HAND_SINK = 0.36;
 /** Glove tiles ("row,col" in the Gervais sheet) to hand materials */
 const GLOVES: Record<string, string> = {
   '0,25': 'leather', // Set of Leather Gloves
@@ -216,7 +218,9 @@ export class WeaponView {
       `background-size:${size * 2}px ${size * HAND_ROWS.length}px`,
       `background-position:${-size}px ${-row * size}px`,
       `width:${size}px`, `height:${size}px`,
-      `left:${Math.round(window.innerWidth * 0.06)}px`, `bottom:${-Math.round(size * 0.12)}px`,
+      // The tile ends at the wrist: anchor it low enough that the cut edge
+      // stays below the screen through the whole gesture (see fp-cast)
+      `left:${Math.round(window.innerWidth * 0.06)}px`, `bottom:${-Math.round(size * HAND_SINK)}px`,
       `--glow:${glow}`, `filter:${this.filter} drop-shadow(0 0 ${Math.round(size / 16)}px ${glow})`,
     ].join(';'));
     this.hand.classList.remove('anim-cast');

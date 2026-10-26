@@ -47,13 +47,16 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 .fp-weapon.anim-bob { animation: fp-bob 0.25s ease-in-out; }
 .fp-weapon.anim-lower { animation: fp-lower 0.7s ease-in-out; }
 /* The off hand: hidden below the view until a cast raises it */
-.fp-hand { position: absolute; image-rendering: pixelated; transform: translateY(110%); pointer-events: none; }
+.fp-hand { position: absolute; image-rendering: pixelated; transform: translateY(110%); transform-origin: 50% 100%; pointer-events: none; }
 .fp-hand.anim-cast { animation: fp-cast 0.7s ease-out; }
+/* Rises from below, pivoting at the wrist; the lift (at most 20% of the
+   hand) stays under its 36% anchor depth (HAND_SINK in ui/weapon.ts), so
+   the tile's cut-off wrist never shows */
 @keyframes fp-cast {
   0% { transform: translateY(110%); }
-  30% { transform: translate(8%, -6%) rotate(8deg); }
-  45% { transform: translate(14%, -12%) rotate(10deg) scale(1.04); }
-  70% { transform: translate(10%, -8%) rotate(8deg); }
+  30% { transform: translate(8%, -12%) rotate(7deg); }
+  45% { transform: translate(12%, -20%) rotate(9deg) scale(1.04); }
+  70% { transform: translate(9%, -14%) rotate(7deg); }
   100% { transform: translateY(110%); }
 }
 @keyframes fp-lower {
