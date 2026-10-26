@@ -440,3 +440,27 @@ test('debug commands need --cheats and mark the character', async () => {
   assert.equal(cheat.state!.player!.depth, 5);
   await cheat.stop();
 });
+
+test('spells report bolt effects the player can see', async () => {
+  process.env.THANG_CHEATS = '1';
+  const s = new Session();
+  await s.start();
+  delete process.env.THANG_CHEATS;
+  await s.newGame('High-Elf', 'Mage', 'Sparks');
+  // Experienced enough that Magic Missile rarely fails
+  await s.request({ type: 'debug', action: 'exp', value: 20000 });
+  const book = s.state!.inventory!.find((i) => /First Spells/.test(i.name))!;
+  await s.request({ type: 'command', action: 'study', book: book.handle, spell: 0 });
+  await s.request({ type: 'debug', action: 'jump', value: 1 });
+  await s.request({ type: 'debug', action: 'summon', name: 'Grip, Farmer Maggot\'s Dog' });
+  await s.command({ action: 'target_closest' });
+  const before = s.history.length;
+  let effects: { kind: string }[] = [];
+  for (let tries = 0; tries < 5 && !effects.length; tries++) {
+    await s.request({ type: 'debug', action: 'cure' });
+    await s.command({ action: 'cast', book: book.handle, spell: 0, useTarget: true });
+    effects = s.history.slice(before).flatMap((m) => (m.type === 'state' ? m.effects ?? [] : []));
+  }
+  assert.ok(effects.some((e) => e.kind === 'bolt'), `expected a bolt effect, got ${JSON.stringify(effects)}; ${JSON.stringify(s.history.slice(before - 6).flatMap((m) => (m.type === "state" ? (m.messages ?? []).map((x) => x.text) : m.type === "error" ? [m.message] : [])))}`);
+  await s.stop();
+});

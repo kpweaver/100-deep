@@ -151,7 +151,8 @@ static void ev_new_level(game_event_type type, game_event_data *data, void *user
 
 static void ev_bolt(game_event_type type, game_event_data *data, void *user)
 {
-	if (!data->bolt.seen || !data->bolt.drawing || fx_count >= MAX_PENDING) return;
+	/* bolt.drawing is always false in 4.2's project(); visibility is "seen" */
+	if (!data->bolt.seen || fx_count >= MAX_PENDING) return;
 	jw_obj_begin(&fx_buf);
 	jw_kstr(&fx_buf, "kind", data->bolt.beam ? "beam" : "bolt");
 	jw_kint(&fx_buf, "proj", data->bolt.proj_type);
@@ -185,8 +186,12 @@ static void ev_missile(game_event_type type, game_event_data *data, void *user)
 
 static void ev_explosion(game_event_type type, game_event_data *data, void *user)
 {
-	int i;
-	if (!data->explosion.drawing || fx_count >= MAX_PENDING) return;
+	int i, seen = 0;
+	/* explosion.drawing is always false in 4.2; draw what the player sees */
+	if (fx_count >= MAX_PENDING) return;
+	for (i = 0; i < data->explosion.num_grids; i++)
+		if (data->explosion.player_sees_grid[i]) seen++;
+	if (!seen) return;
 	jw_obj_begin(&fx_buf);
 	jw_kstr(&fx_buf, "kind", "explosion");
 	jw_kint(&fx_buf, "proj", data->explosion.proj_type);
@@ -848,6 +853,7 @@ static void write_player(jw *w)
 	jw_kint(w, "y", player->grid.y);
 	jw_kint(w, "depth", player->depth);
 	jw_kint(w, "maxDepth", player->max_depth);
+	jw_kbool(w, "daytime", is_daytime());
 	jw_kint(w, "level", player->lev);
 	jw_kint(w, "maxLevel", player->max_lev);
 	jw_kint(w, "exp", player->exp);

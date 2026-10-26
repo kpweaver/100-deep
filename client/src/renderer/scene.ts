@@ -81,20 +81,35 @@ export class SceneRenderer {
     this.cam.setAspect(w / h);
   }
 
-  setOutdoors(outdoors: boolean): void {
+  setOutdoors(outdoors: boolean, daytime = false): void {
     this.outdoors = outdoors;
+    this.daytime = outdoors && daytime;
     // Soft atmospheric fog on terrain only (entities opt out of fog)
-    if (outdoors) {
+    if (outdoors && daytime) {
+      const sky = new THREE.Color(0x8fb6dc);
+      this.scene.background = sky;
+      this.scene.fog = new THREE.Fog(sky, 14, 70);
+      this.ambient.intensity = 1.35;
+      this.shade.intensity = 0.6;
+    } else if (outdoors) {
       const sky = new THREE.Color(0x1c2230);
       this.scene.background = sky;
       this.scene.fog = new THREE.Fog(sky, 6, 34);
       this.ambient.intensity = 0.8;
+      this.shade.intensity = 0.25;
     } else {
       this.scene.background = new THREE.Color(0x000000);
       this.scene.fog = new THREE.Fog(0x000000, 4, 24);
       this.ambient.intensity = 0.55;
+      this.shade.intensity = 0.25;
     }
   }
+
+  /** Animation speed (1 = normal); slowed for debugging and screenshot capture */
+  timeScale = 1;
+
+  /** Daylight in the town (Angband's day/night cycle) */
+  daytime = false;
 
   /** The engine's light radius sizes the torch glow */
   setTorchRadius(radius: number): void {
@@ -109,7 +124,7 @@ export class SceneRenderer {
   start(): void {
     const loop = () => {
       requestAnimationFrame(loop);
-      const dt = Math.min(0.1, this.clock.getDelta());
+      const dt = Math.min(0.1, this.clock.getDelta()) * this.timeScale;
       this.time += dt;
       this.onFrame?.(dt);
       this.cam.tick(dt);

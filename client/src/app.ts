@@ -306,10 +306,12 @@ export class App implements InputHandler {
       this.lastHp = null;
       this.syncView();
     }
+    // Sunrise and nightfall in the town
+    if (r && p && !c.levelChanged && p.depth === 0 && r.daytime !== !!p.daytime) r.setOutdoors(true, !!p.daytime);
     if (c.levelChanged && r && p) {
       r.dungeon.clear();
       r.entities.clear();
-      r.setOutdoors(p.depth === 0);
+      r.setOutdoors(p.depth === 0, !!p.daytime);
       r.cam.teleport(p.x, p.y);
       this.faceOpenSide();
       this.hud.showBanner(p.depth === 0 ? 'The Town' : `${p.depth * 50} feet (level ${p.depth})`);
@@ -367,7 +369,7 @@ export class App implements InputHandler {
     r.dungeon.clear();
     r.entities.clear();
     if (!p || this.state.phase === 'menu') return;
-    r.setOutdoors(p.depth === 0);
+    r.setOutdoors(p.depth === 0, !!p.daytime);
     r.setTorchRadius(p.light);
     r.cam.teleport(p.x, p.y);
     this.faceOpenSide();

@@ -106,6 +106,8 @@ export interface PlayerState {
   y: number;
   depth: number;
   maxDepth: number;
+  /** Angband's day/night cycle (it only changes how the town looks) */
+  daytime?: boolean;
   level: number;
   maxLevel: number;
   exp: number;
@@ -442,8 +444,11 @@ export type ClientMessage =
    * (never relayed by the bridge).  Marks the character as a cheater.
    */
   | { type: 'debug'; action: 'exp' | 'jump'; value: number }
+  /** Teleport to a room grid with at least `value` monsters nearby (if any) */
+  | { type: 'debug'; action: 'room'; value?: number }
+  | { type: 'debug'; action: 'teleport'; x: number; y: number }
   | { type: 'debug'; action: 'summon'; name: string }
-  | { type: 'debug'; action: 'map' | 'light' | 'cure' };
+  | { type: 'debug'; action: 'map' | 'light' | 'cure' | 'dawn' };
 
 /* ------------------------------------------------------------------ */
 /* Direction helpers (Angband keypad layout)                           */

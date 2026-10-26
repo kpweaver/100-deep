@@ -367,10 +367,45 @@ static void run_world(void)
 /* ------------------------------------------------------------------------
  * Debug commands (only with --cheats): the stock game's debug mode
  * ------------------------------------------------------------------------ */
-static void handle_debug(const jv *msg)
+
+/*
+ * A random empty room grid with at least min_mon monsters within 8 grids
+ * (the best available if none has that many).
+ */
+static bool pick_room_grid(int min_mon, struct loc *out)
 {
-	const char *action = jv_get_str(msg, "action", "");
-	long value = jv_get_int(msg, "value", 0);
+	struct loc grid, best = loc(0, 0);
+	int best_score = -1, seen = 0;
+
+	for (grid.y = 1; grid.y < cave->height - 1; grid.y++) {
+		for (grid.x = 1; grid.x < cave->width - 1; grid.x++) {
+			int i, mons = 0, score;
+			if (!square_isroom(cave, grid) || !square_isempty(cave, grid)) continue;
+			if (distance(grid, player->grid) < 10) continue;
+			for (i = 1; i < cave_monster_max(cave); i++) {
+				struct monster *mon = cave_monster(cave, i);
+				if (mon->race && distance(mon->grid, grid) <= 8) mons++;
+			}
+			/* Enough monsters: pick uniformly among qualifying grids */
+			score = mons >= min_mon ? 1000 : mons;
+			if (score > best_score) {
+				best_score = score;
+				best = grid;
+				seen = 1;
+			} else if (score == best_score && one_in_(++seen)) {
+				best = grid;
+			}
+		}
+	}
+	if (best_score < 0) return false;
+	*out = best;
+	return true;
+}
+
+static void handle_debug(const jv *req)
+{
+	const char *action = jv_get_str(req, "action", "");
+	long value = jv_get_int(req, "value", 0);
 
 	if (!opt_cheats) {
 		proto_send_error("no_cheats", "Debug commands are disabled");
@@ -393,7 +428,7 @@ static void handle_debug(const jv *msg)
 		cmd_set_arg_number(cmdq_peek(), "level", (int)value);
 		cmd_set_arg_choice(cmdq_peek(), "choice", 0);
 	} else if (streq(action, "summon")) {
-		struct monster_race *race = lookup_monster(jv_get_str(msg, "name", ""));
+		struct monster_race *race = lookup_monster(jv_get_str(req, "name", ""));
 		if (!race) {
 			proto_send_error("bad_value", "No such monster");
 			return;
@@ -406,6 +441,36 @@ static void handle_debug(const jv *msg)
 		cmdq_push(CMD_WIZ_CURE_ALL);
 	} else if (streq(action, "light")) {
 		cmdq_push(CMD_WIZ_WIZARD_LIGHT);
+	} else if (streq(action, "room")) {
+		struct loc grid;
+		if (!pick_room_grid((int)value, &grid)) {
+			proto_send_error("bad_value", "No room on this level");
+			return;
+		}
+		cmdq_push(CMD_WIZ_TELEPORT_TO);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+	} else if (streq(action, "teleport")) {
+		struct loc grid = loc((int)jv_get_int(req, "x", -1), (int)jv_get_int(req, "y", -1));
+		if (!square_in_bounds_fully(cave, grid) || !square_ispassable(cave, grid)) {
+			proto_send_error("bad_value", "Cannot teleport there");
+			return;
+		}
+		cmdq_push(CMD_WIZ_TELEPORT_TO);
+		cmd_set_arg_point(cmdq_peek(), "point", grid);
+	} else if (streq(action, "dawn")) {
+		/* Advance the clock to the next sunrise, as process_world() would */
+		long day = 10L * z_info->day_length;
+		player->noscore |= NOSCORE_DEBUG;
+		turn = (turn / day + 1) * day;
+		if (!player->depth) {
+			msg("The sun has risen.");
+			cave_illuminate(cave, true);
+		}
+		player->upkeep->update |= (PU_UPDATE_VIEW | PU_MONSTERS);
+		player->upkeep->redraw |= PR_MAP;
+		handle_stuff(player);
+		snapshot_send(false);
+		return;
 	} else {
 		proto_send_error("bad_value", "Unknown debug action '%s'", action);
 		return;
