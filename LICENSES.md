@@ -24,7 +24,7 @@ License, version 2, **or** the "Angband licence":
 - **engine/adapter** links the Angband core into one executable, so it is a
   derivative work. It is licensed under the **GNU GPL, version 2**, which is
   compatible with Angband's dual licence. Each source file is offered under
-  GPLv2. Copyright (c) 2026 Thangorodrim contributors.
+  GPLv2. Copyright (c) 2026 100 Deep contributors.
 - **bridge, client, shared, tests and scripts** run as separate processes or
   in the browser and communicate with the engine only through the JSON
   protocol. For simplicity they are also distributed under **GPLv2**

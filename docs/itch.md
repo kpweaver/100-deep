@@ -35,7 +35,7 @@ and the tile sheet).
 
 ```bash
 brew install emscripten        # or install emsdk (Linux, Windows)
-npm run build:web              # -> client/dist-web/ and build/thangorodrim-web.zip
+npm run build:web              # -> client/dist-web/ and build/100-deep-web.zip
 npm run serve:web              # try it at http://localhost:4173
 npm run test:wasm              # engine tests against the WebAssembly build
 ```
@@ -48,7 +48,7 @@ client uses.
 
 1. Create a project (Dashboard > Create new project):
    - **Kind of project:** HTML
-   - **Uploads:** `build/thangorodrim-web.zip`, and tick *This file will be
+   - **Uploads:** `build/100-deep-web.zip`, and tick *This file will be
      played in the browser*.
 2. Embed options:
    - **Viewport:** 1280 × 720 (the UI scales; 960 × 600 also works).
@@ -70,12 +70,12 @@ client uses.
 ```bash
 butler login
 npm run build:web
-ITCH_TARGET=yourname/thangorodrim npm run publish:itch
+ITCH_TARGET=yourname/100-deep npm run publish:itch
 ```
 
 CI does the same on pushes to `main` once you set the repository secret
 `BUTLER_API_KEY` and the variable `ITCH_TARGET` (see `.github/workflows/ci.yml`).
-Every CI run also uploads the built site as the `thangorodrim-web` artifact.
+Every CI run also uploads the built site as the `100-deep-web` artifact.
 
 ## Limitations
 

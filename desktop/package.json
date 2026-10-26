@@ -1,8 +1,8 @@
 {
-  "name": "thangorodrim-desktop",
+  "name": "100-deep-desktop",
   "private": true,
   "version": "0.1.0",
-  "description": "Desktop (and future Steam) shell for Thangorodrim",
+  "description": "Desktop (and future Steam) shell for 100 Deep",
   "license": "GPL-2.0-only",
   "type": "module",
   "main": "src/main.mjs",
@@ -20,8 +20,8 @@
     "esbuild": "^0.25.0"
   },
   "build": {
-    "appId": "com.thangorodrim.game",
-    "productName": "Thangorodrim",
+    "appId": "com.hundreddeep.game",
+    "productName": "100 Deep",
     "directories": {
       "output": "release"
     },
@@ -91,5 +91,5 @@
       "category": "Game"
     }
   },
-  "productName": "Thangorodrim"
+  "productName": "100 Deep"
 }

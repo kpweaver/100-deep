@@ -1,5 +1,5 @@
 /**
- * Thangorodrim desktop shell (Electron).
+ * 100 Deep desktop shell (Electron).
  *
  * Runs the same bridge and native engine as the web build, in-process, on a
  * private localhost port, and shows the client in a single window.  Saves
@@ -17,6 +17,10 @@ import { startBridge } from '../dist/bridge.mjs';
 import { initSteam } from './steam.mjs';
 
 const smokeTest = process.argv.includes('--smoke-test');
+
+// The game was called Thangorodrim before; keep using its data (saves) if present
+const legacyData = join(app.getPath('appData'), 'Thangorodrim');
+if (existsSync(legacyData) && !existsSync(app.getPath('userData'))) app.setPath('userData', legacyData);
 const here = dirname(fileURLToPath(import.meta.url));
 const exe = process.platform === 'win32' ? '.exe' : '';
 
@@ -66,7 +70,7 @@ async function createWindow() {
     minWidth: 800,
     minHeight: 500,
     backgroundColor: '#000000',
-    title: 'Thangorodrim',
+    title: '100 Deep',
     show: false,
     autoHideMenuBar: true,
     // Steam Deck (gamescope) and big-picture setups expect fullscreen

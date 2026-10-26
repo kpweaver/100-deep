@@ -1,6 +1,6 @@
 /**
  * \file adapter.h
- * \brief Shared declarations for the Thangorodrim headless Angband adapter.
+ * \brief Shared declarations for the 100 Deep headless Angband adapter.
  *
  * The adapter replaces Angband's terminal UI ("textui") with a structured
  * JSON-lines protocol on stdin/stdout.  It never reimplements game rules:

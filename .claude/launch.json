@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "thangorodrim",
+      "name": "100-deep",
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/dev.ts"],
       "port": 5173

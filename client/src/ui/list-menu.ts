@@ -70,7 +70,11 @@ export class ListMenu<T = unknown> {
           this.highlight();
           if (!item.disabled) this.opts.onSelect(item, i);
         },
-        onmouseenter: () => {
+        // Only real pointer movement: a menu appearing under a resting
+        // cursor must not steal the selection (Enter would pick that row)
+        onmousemove: (e: Event) => {
+          const { movementX, movementY } = e as MouseEvent;
+          if ((movementX === 0 && movementY === 0) || this.index === i) return;
           this.index = i;
           this.highlight();
         },

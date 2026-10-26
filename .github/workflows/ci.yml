@@ -40,10 +40,10 @@ jobs:
         with:
           submodules: recursive
       - name: Build image
-        run: docker build -t thangorodrim .
+        run: docker build -t 100-deep .
       - name: Smoke test the container
         run: |
-          docker run -d --name thang -p 8787:8787 thangorodrim
+          docker run -d --name thang -p 8787:8787 100-deep
           for i in $(seq 1 30); do curl -fs http://127.0.0.1:8787/health && break; sleep 1; done
           curl -fs http://127.0.0.1:8787/health | grep '"mode":"hosted"'
           docker logs thang
@@ -67,11 +67,11 @@ jobs:
         run: npm run test:wasm
       - uses: actions/upload-artifact@v4
         with:
-          name: thangorodrim-web
+          name: 100-deep-web
           path: client/dist-web
       # Optional: publish to itch.io on pushes to main.  Set the repository
       # secret BUTLER_API_KEY (itch.io > Settings > API keys) and the
-      # variable ITCH_TARGET (e.g. yourname/thangorodrim).
+      # variable ITCH_TARGET (e.g. yourname/100-deep).
       - name: Push to itch.io
         if: github.ref == 'refs/heads/main' && vars.ITCH_TARGET != ''
         env:

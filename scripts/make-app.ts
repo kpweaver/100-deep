@@ -1,7 +1,7 @@
 /**
- * Creates Thangorodrim.app (macOS) in the repository root: a clickable app
+ * Creates "100 Deep.app" (macOS) in the repository root: a clickable app
  * you can keep in the Dock or Applications.  It opens Terminal running
- * Thangorodrim.command.  The icon is a Gervais tile (Smaug the Golden,
+ * "100 Deep.command".  The icon is a Gervais tile (Smaug the Golden,
  * CC BY 3.0) scaled up with nearest-neighbour so its pixels stay crisp.
  *
  *   npm run make-app
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { deflateSync, inflateSync } from 'node:zlib';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const app = join(root, 'Thangorodrim.app');
+const app = join(root, '100 Deep.app');
 const ATLAS = join(root, 'engine/upstream/lib/tiles/gervais/32x32.png');
 // "monster:Smaug the Golden:0x95:0xB2" in graf-dvg.prf -> row 0x15, col 0x32
 const ICON_TILE = { row: 0x15, col: 0x32 };
@@ -158,12 +158,12 @@ writeFileSync(join(app, 'Contents/Info.plist'), `<?xml version="1.0" encoding="U
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Thangorodrim</string>
-  <key>CFBundleDisplayName</key><string>Thangorodrim</string>
-  <key>CFBundleIdentifier</key><string>local.thangorodrim.launcher</string>
+  <key>CFBundleName</key><string>100 Deep</string>
+  <key>CFBundleDisplayName</key><string>100 Deep</string>
+  <key>CFBundleIdentifier</key><string>local.hundreddeep.launcher</string>
   <key>CFBundleVersion</key><string>0.1.0</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleExecutable</key><string>Thangorodrim</string>
+  <key>CFBundleExecutable</key><string>launcher</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>LSMinimumSystemVersion</key><string>11.0</string>
 </dict>
@@ -172,17 +172,17 @@ writeFileSync(join(app, 'Contents/Info.plist'), `<?xml version="1.0" encoding="U
 
 // The repository path is recorded so the app keeps working when moved to
 // Applications or the Dock; if the repo moves, rerun "npm run make-app".
-const exec = join(app, 'Contents/MacOS/Thangorodrim');
+const exec = join(app, 'Contents/MacOS/launcher');
 writeFileSync(exec, `#!/bin/sh
 REPO=${JSON.stringify(root)}
-if [ ! -f "$REPO/Thangorodrim.command" ]; then
+if [ ! -f "$REPO/100 Deep.command" ]; then
   REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 fi
-if [ ! -f "$REPO/Thangorodrim.command" ]; then
-  osascript -e 'display alert "Thangorodrim" message "Cannot find the game folder. Run npm run make-app again from the repository."'
+if [ ! -f "$REPO/100 Deep.command" ]; then
+  osascript -e 'display alert "100 Deep" message "Cannot find the game folder. Run npm run make-app again from the repository."'
   exit 1
 fi
-open -a Terminal "$REPO/Thangorodrim.command"
+open -a Terminal "$REPO/100 Deep.command"
 `);
 chmodSync(exec, 0o755);
 console.log(`Created ${app}`);

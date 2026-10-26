@@ -3,7 +3,7 @@ node_modules
 build
 var
 client/dist
-Thangorodrim.app
+100 Deep.app
 .git
 *.log
 .DS_Store

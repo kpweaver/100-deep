@@ -23,7 +23,7 @@ function open(url: string): void {
   }).unref();
 }
 
-/** Is a Thangorodrim bridge already answering on this address? */
+/** Is a 100 Deep bridge already answering on this address? */
 async function alreadyRunning(url: string): Promise<boolean> {
   try {
     const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(1500) });
@@ -61,7 +61,7 @@ try {
 } catch (e) {
   if (e instanceof BridgeError && e.code === 'port_in_use') {
     if (await alreadyRunning(url)) {
-      console.log(`[bridge] Thangorodrim is already running at ${url}`);
+      console.log(`[bridge] 100 Deep is already running at ${url}`);
       if (openBrowser) {
         open(url);
         process.exit(0);

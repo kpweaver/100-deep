@@ -1,5 +1,5 @@
 {
-  "name": "thangorodrim",
+  "name": "100-deep",
   "private": true,
   "version": "0.1.0",
   "description": "First-person, controller-friendly frontend for the real Angband engine",
@@ -29,7 +29,7 @@
     "make-app": "node scripts/make-app.ts",
     "test:bridge": "node --test tests/bridge/*.test.ts",
     "test:wasm": "node --test tests/engine/wasm.test.ts",
-    "publish:itch": "butler push client/dist-web ${ITCH_TARGET:?set ITCH_TARGET=yourname/thangorodrim}:html5"
+    "publish:itch": "butler push client/dist-web ${ITCH_TARGET:?set ITCH_TARGET=yourname/100-deep}:html5"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

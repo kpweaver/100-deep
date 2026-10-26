@@ -3,7 +3,7 @@
  * so the game is a folder of static files (no server).  Output:
  *
  *   client/dist-web/            the site (open via any static web server)
- *   build/thangorodrim-web.zip  the same, zipped for itch.io (HTML5 upload)
+ *   build/100-deep-web.zip  the same, zipped for itch.io (HTML5 upload)
  *
  * Needs Emscripten (brew install emscripten, or emsdk) and zip.
  *
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const wasmBuild = join(root, 'build/wasm');
 const out = join(root, 'client/dist-web');
-const zip = join(root, 'build/thangorodrim-web.zip');
+const zip = join(root, 'build/100-deep-web.zip');
 const lib = join(root, 'engine/upstream/lib');
 const run = (cmd: string, args: string[], cwd = root) => execFileSync(cmd, args, { cwd, stdio: 'inherit' });
 

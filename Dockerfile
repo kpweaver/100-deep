@@ -1,8 +1,8 @@
-# Thangorodrim server image: the native Angband engine + WebSocket bridge +
+# 100 Deep server image: the native Angband engine + WebSocket bridge +
 # built client, in hosted (multi-session) mode.
 #
-#   docker build -t thangorodrim .
-#   docker run -p 8787:8787 -v thangorodrim-data:/data thangorodrim
+#   docker build -t 100-deep .
+#   docker run -p 8787:8787 -v 100-deep-data:/data 100-deep
 #
 # Requires the engine/upstream submodule to be checked out in the build
 # context (git submodule update --init).

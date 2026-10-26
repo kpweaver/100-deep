@@ -1,4 +1,4 @@
-# Thangorodrim
+# 100 Deep
 
 A first-person, controller-friendly frontend for **Angband**, inspired by
 [Orbrun](https://orbrun.app). Every game rule (combat, monster AI, dungeon
@@ -26,7 +26,7 @@ tests run TypeScript directly through Node's type stripping.
 
 ### One click (macOS)
 
-Double-click **`Thangorodrim.command`** in the repository folder. A Terminal
+Double-click **`100 Deep.command`** in the repository folder. A Terminal
 window opens; it installs dependencies and builds on first run, then starts
 the game and opens it in your browser. Close the window (or press Ctrl+C) to
 save and quit.
@@ -34,7 +34,7 @@ save and quit.
 For an app you can keep in the Dock or Applications:
 
 ```bash
-npm run make-app          # creates Thangorodrim.app (icon: Smaug's Gervais tile)
+npm run make-app          # creates "100 Deep.app" (icon: Smaug's Gervais tile)
 ```
 
 If the game is already running, launching again just opens the browser.
@@ -42,7 +42,7 @@ If the game is already running, launching again just opens the browser.
 ### One command
 
 ```bash
-git clone --recurse-submodules <this repo> && cd Thangorodrim
+git clone --recurse-submodules <this repo> && cd <repo folder>
 npm install
 npm start                 # builds engine + client, serves http://127.0.0.1:8787 and opens it
 ```

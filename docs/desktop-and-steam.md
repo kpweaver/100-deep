@@ -11,7 +11,7 @@ in-process, on a private `127.0.0.1` port, and shows the client in one
 window:
 
 - Saves live in the per-user app data directory (macOS:
-  `~/Library/Application Support/Thangorodrim/data`).
+  `~/Library/Application Support/100 Deep/data`; saves from when the game was called Thangorodrim are picked up automatically).
 - Quitting (window close, Cmd+Q, Alt+F4) saves the game first.
 - F11 toggles fullscreen. On Steam Deck (`SteamDeck=1`, set by gamescope) it
   starts fullscreen.

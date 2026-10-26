@@ -32,7 +32,7 @@ export class TitleLayer extends Layer {
     super('title-layer');
     this.menu = new ListMenu<string>({ items: [], letters: false, onSelect: (i) => this.choose(i.data) });
     this.el.append(h('div', { class: 'title-panel' },
-      h('h1', {}, 'THANGORODRIM'),
+      h('h1', {}, '100 DEEP'),
       h('div', { class: 'subtitle' }, 'A first-person journey through the pits of Angband'),
       this.menu.el,
       this.status,

@@ -1,5 +1,5 @@
 /**
- * Thangorodrim engine protocol, version 1.
+ * 100 Deep engine protocol, version 1.
  *
  * Transport: one JSON object per line on the engine's stdin/stdout, relayed
  * unchanged over a WebSocket by the bridge.  The engine is authoritative for

@@ -1,11 +1,11 @@
-# Thangorodrim engine build.
+# 100 Deep engine build.
 #
 # Builds the unmodified upstream Angband core (upstream's own OurCoreLib
 # object library) and links it with our headless protocol adapter.  The
 # upstream checkout is a git submodule and is never edited.
 
 cmake_minimum_required(VERSION 3.16)
-project(ThangorodrimEngine C)
+project(HundredDeepEngine C)
 
 set(ADAPTER_SOURCES
 	adapter/src/json.c

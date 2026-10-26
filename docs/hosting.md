@@ -1,4 +1,4 @@
-# Hosting Thangorodrim online
+# Hosting 100 Deep online
 
 To let people play for free without running a server, use the browser
 build instead (static files, saves stay in each player's browser). See
@@ -44,8 +44,8 @@ local game), and "Save and quit" in the game stops it cleanly.
 
 ```bash
 git submodule update --init           # the image builds Angband from the submodule
-docker build -t thangorodrim .
-docker run -p 8787:8787 -v thangorodrim-data:/data thangorodrim
+docker build -t 100-deep .
+docker run -p 8787:8787 -v 100-deep-data:/data 100-deep
 ```
 
 Or `docker compose up -d --build` with the provided `docker-compose.yml`. It

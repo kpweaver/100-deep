@@ -1,6 +1,6 @@
 #!/bin/sh
 # One-step launcher: set up (first run), build, start the game and open the
-# browser.  Used by Thangorodrim.command and Thangorodrim.app.
+# browser.  Used by "100 Deep.command" and "100 Deep.app".
 # Closing the window or pressing Ctrl+C saves the game and quits.
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,13 +19,13 @@ pause_and_exit() {
 
 need() {
   if ! command -v "$1" >/dev/null 2>&1; then
-    echo "Thangorodrim needs '$1' but it was not found."
+    echo "100 Deep needs '$1' but it was not found."
     echo "$2"
     pause_and_exit
   fi
 }
 
-echo "=== Thangorodrim ==="
+echo "=== 100 Deep ==="
 need node "Install Node.js 23.6 or newer (https://nodejs.org or: brew install node)."
 need cmake "Install CMake (https://cmake.org or: brew install cmake)."
 need cc "Install the Xcode command line tools: xcode-select --install"
