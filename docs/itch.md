@@ -4,8 +4,8 @@ Status: **working**. The WebAssembly build runs the whole game in the
 browser: the same unmodified Angband core and adapter as the native engine,
 compiled with Emscripten. It was tested from a sub-path static server (as
 itch.io serves it) in Chromium: new character, play, autosave, reload, then
-Continue. It has not yet been uploaded to itch.io (that needs your account),
-nor tried in Safari or Firefox.
+Continue. It is on itch.io as a draft at <https://chiefkweav.itch.io/100deep>;
+it has not yet been tried in Safari or Firefox.
 
 ## How it works
 
@@ -70,11 +70,12 @@ client uses.
 ```bash
 butler login
 npm run build:web
-ITCH_TARGET=yourname/100-deep npm run publish:itch
+npm run publish:itch    # pushes to chiefkweav/100deep (override with ITCH_TARGET)
 ```
 
 CI does the same on pushes to `main` once you set the repository secret
-`BUTLER_API_KEY` and the variable `ITCH_TARGET` (see `.github/workflows/ci.yml`).
+`BUTLER_API_KEY` and the variable `ITCH_TARGET` = `chiefkweav/100deep` (see
+`.github/workflows/ci.yml`).
 Every CI run also uploads the built site as the `100-deep-web` artifact.
 
 ## Limitations
