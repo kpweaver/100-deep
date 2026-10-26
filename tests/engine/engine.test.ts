@@ -362,7 +362,11 @@ test('character death follows the native flow and a new game can start', async (
   assert.equal(st.phase, 'dead');
   assert.ok(st.player!.dead && st.player!.diedFrom, 'died_from recorded');
   // No more commands for the dead
-  assert.equal((await s.command({ action: 'walk', dir: 2 })).type, 'error');
+  // (wait for the error itself: a state from the death can still be in flight)
+  const deadTurn = st.turn;
+  s.send({ type: 'command', action: 'walk', dir: 2 });
+  assert.equal((await s.next('error')).type, 'error');
+  assert.equal(s.state!.turn, deadTurn);
   // The dead savefile cannot be resumed
   s.send({ type: 'load_game' });
   const err = await s.next('error');
@@ -407,19 +411,21 @@ test('stock subwindows (lists, recall, character sheet) come from Angband', asyn
   await s.start();
   delete process.env.THANG_CHEATS;
   await s.newGame('Human', 'Warrior', 'Tester');
+  // A town monster in view depends on the platform's RNG use, so bring one
+  await s.request({ type: 'debug', action: 'summon', name: 'scruffy little dog' });
   const text = (p: { lines: unknown[][] } | null | undefined) =>
     (p?.lines ?? []).map((l) => l.map((seg) => (typeof (seg as unknown[])[0] === 'string' ? (seg as [string])[0] : '#')).join('')).join('\n');
-  const first = s.history.filter((m): m is StateMessage => m.type === 'state').pop()!;
-  assert.ok(first.panels?.monsterList, 'monster list sent with the first game state');
+  const states = s.history.filter((m): m is StateMessage => m.type === 'state');
+  assert.ok(states.find((m) => m.phase === 'game')?.panels?.monsterList, 'monster list sent with the first game state');
+  const first = states.filter((m) => m.panels?.monsterList).pop()!;
   const visible = (first.monsters ?? []).filter((m) => m.inView);
   assert.match(text(first.panels!.monsterList), visible.length ? new RegExp(`You can see ${visible.length} monster`) : /You can see no monsters/);
-  assert.match(text(first.panels!.itemList), /object/);
+  // Only changed panels are re-sent: the item list came with the first state
+  assert.match(text(states.find((m) => m.panels?.itemList)!.panels!.itemList), /object/);
   // Tile glyphs survive as atlas coordinates
   assert.ok(first.panels!.monsterList!.lines.some((l) => l.some((seg) => Array.isArray(seg[0]))));
 
-  // Targeting tracks the monster, so its recall appears (and only changed panels are re-sent).
-  // A town monster in view depends on the platform's RNG use, so bring one
-  await s.request({ type: 'debug', action: 'summon', name: 'scruffy little dog' });
+  // Targeting tracks the monster, so its recall appears (and only changed panels are re-sent)
   const r = (await s.command({ action: 'target_closest' })) as StateMessage;
   assert.ok(r.panels?.monsterRecall?.title, 'recall for the targeted monster');
   assert.match(text(r.panels!.monsterRecall), /town/i);
