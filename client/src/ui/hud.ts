@@ -49,6 +49,7 @@ export class Hud {
     this.weapon = new WeaponView(atlas);
     this.el = h('div', { class: 'hud' },
       this.weapon.el,
+      this.weapon.hand,
       this.vignette,
       h('div', { class: 'hud-top-left' }, this.hp.el, this.sp.el, this.xp.el, this.info, this.statusEl),
       h('div', { class: 'hud-top-right' }, this.minimap.canvas, this.sidebar),

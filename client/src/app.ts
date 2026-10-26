@@ -447,6 +447,7 @@ export class App implements InputHandler {
       // The weapon in hand: launchers fire, and digging uses the weapon (as in Angband)
       if (m.action === 'fire' || m.action === 'fire_at_nearest') this.hud.weapon.shoot();
       else if (m.action === 'tunnel' && this.diggableAt(m.dir)) this.hud.weapon.dig();
+      else if (m.action === 'cast') this.hud.weapon.cast(this.state.player?.class ?? '');
       if (!AUTO_FACE_ACTIONS.has(m.action)) this.heading.reset();
       this.lastAction = m.action;
       if (this.pending) {

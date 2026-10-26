@@ -7,7 +7,9 @@
  * digs with the wielded weapon), shows the launcher recoiling when you
  * fire, bobs as you walk, and dims with the light you carry.  Each tile is
  * measured so its hilt end runs off the bottom-right corner, whatever the
- * item's size and position within its tile.  Purely presentational.
+ * item's size and position within its tile.  Casting raises the off hand
+ * (art/hands.png, scripts/make-hand-tiles.py), gloved if you wear gloves,
+ * glowing in your class's colour.  Purely presentational.
  */
 import type { EquipSlot, Tile } from '@thang/protocol';
 import type { TileAtlas } from '../sprites/atlas.ts';
@@ -132,7 +134,24 @@ const FIRES: Record<string, Fire> = {
   '10,45': 'crossbow', // Light Crossbow
   '10,46': 'crossbow', // Heavy Crossbow
 };
-const ANIMS = ['chop', 'thrust', 'flail', 'whip', 'bow', 'crossbow', 'sling', 'bob'].map((a) => `anim-${a}`);
+const ANIMS = ['chop', 'thrust', 'flail', 'whip', 'bow', 'crossbow', 'sling', 'bob', 'lower'].map((a) => `anim-${a}`);
+
+/** The hands sheet (art/hands.png): rows of materials, columns right/left */
+const HANDS_URL = 'art/hands.png';
+const HAND_ROWS = ['skin', 'leather', 'gauntlets', 'mithral', 'caestus', 'alchemist'];
+/** Glove tiles ("row,col" in the Gervais sheet) to hand materials */
+const GLOVES: Record<string, string> = {
+  '0,25': 'leather', // Set of Leather Gloves
+  '0,26': 'gauntlets', // Set of Gauntlets
+  '0,28': 'mithral', // Set of Mithral Gauntlets
+  '0,29': 'caestus', // Set of Caestus
+  '0,77': 'alchemist', // Set of Alchemist's Gloves
+};
+/** The glow of a cast, by the colour of each class's magic */
+const CAST_GLOW: Record<string, string> = {
+  Mage: '#6aa8ff', Rogue: '#6aa8ff', Ranger: '#7fe07a', Druid: '#7fe07a',
+  Priest: '#ffd75a', Paladin: '#ffd75a', Necromancer: '#b45aff', Blackguard: '#ff5a4a',
+};
 
 /** Launchers sit higher than melee weapons, fully in view */
 const LAUNCHERS = new Set(['10,43', '10,44', '10,45', '10,46', '10,47']);
@@ -142,6 +161,9 @@ const DEFAULT_POSE: Pose = 'flipY';
 
 export class WeaponView {
   readonly el = h('div', { class: 'fp-weapon' });
+  /** The off (left) hand, shown while casting */
+  readonly hand = h('div', { class: 'fp-hand' });
+  private gloves = 'skin';
   private sprite = h('div', { class: 'fp-weapon-sprite' });
   private weapon: Tile | null = null;
   private launcher: Tile | null = null;
@@ -161,6 +183,9 @@ export class WeaponView {
   setEquipment(equipment: EquipSlot[]): void {
     this.weapon = equipment.find((e) => e.slot === 'weapon')?.item?.tile ?? null;
     this.launcher = equipment.find((e) => e.slot === 'shooting')?.item?.tile ?? null;
+    const g = equipment.find((e) => e.slot === 'hands')?.item?.tile;
+    // Unknown gloves (e.g. mining gloves) look like leather
+    this.gloves = g ? GLOVES[`${g[0]},${g[1]}`] ?? 'leather' : 'skin';
     this.render();
   }
 
@@ -176,6 +201,25 @@ export class WeaponView {
     if (this.shooting) return;
     const t = this.weapon;
     this.play(t ? ATTACKS[`${t[0]},${t[1]}`] ?? 'chop' : 'chop');
+  }
+
+  /** Casting: the off hand rises glowing, the weapon hand dips */
+  cast(playerClass: string): void {
+    const size = this.size || 32 * 8;
+    const row = Math.max(0, HAND_ROWS.indexOf(this.gloves));
+    const glow = CAST_GLOW[playerClass] ?? '#6aa8ff';
+    this.hand.setAttribute('style', [
+      `background-image:url(${HANDS_URL})`,
+      `background-size:${size * 2}px ${size * HAND_ROWS.length}px`,
+      `background-position:${-size}px ${-row * size}px`,
+      `width:${size}px`, `height:${size}px`,
+      `left:${Math.round(window.innerWidth * 0.06)}px`, `bottom:${-Math.round(size * 0.12)}px`,
+      `--glow:${glow}`, `filter:${this.filter} drop-shadow(0 0 ${Math.round(size / 16)}px ${glow})`,
+    ].join(';'));
+    this.hand.classList.remove('anim-cast');
+    void this.hand.offsetWidth;
+    this.hand.classList.add('anim-cast');
+    if (!this.shooting) this.play('lower');
   }
 
   /** A chop, whatever the weapon (digging) */
@@ -253,7 +297,7 @@ export class WeaponView {
     return e;
   }
 
-  private play(anim: Attack | Fire | 'bob') {
+  private play(anim: Attack | Fire | 'bob' | 'lower') {
     this.el.classList.remove(...ANIMS);
     void this.el.offsetWidth; // restart the animation
     this.el.classList.add(`anim-${anim}`);

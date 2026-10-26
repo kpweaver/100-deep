@@ -45,6 +45,23 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 .fp-weapon.anim-crossbow { animation: fp-crossbow 0.8s ease-out; }
 .fp-weapon.anim-sling { animation: fp-sling 0.5s ease-in-out; }
 .fp-weapon.anim-bob { animation: fp-bob 0.25s ease-in-out; }
+.fp-weapon.anim-lower { animation: fp-lower 0.7s ease-in-out; }
+/* The off hand: hidden below the view until a cast raises it */
+.fp-hand { position: absolute; image-rendering: pixelated; transform: translateY(110%); pointer-events: none; }
+.fp-hand.anim-cast { animation: fp-cast 0.7s ease-out; }
+@keyframes fp-cast {
+  0% { transform: translateY(110%); }
+  30% { transform: translate(8%, -6%) rotate(8deg); }
+  45% { transform: translate(14%, -12%) rotate(10deg) scale(1.04); }
+  70% { transform: translate(10%, -8%) rotate(8deg); }
+  100% { transform: translateY(110%); }
+}
+@keyframes fp-lower {
+  0% { transform: none; }
+  30% { transform: translate(6%, 22%); }
+  70% { transform: translate(6%, 22%); }
+  100% { transform: none; }
+}
 /* Wind up, strike across toward the centre (rising into view), recover */
 @keyframes fp-chop {
   0% { transform: none; }
