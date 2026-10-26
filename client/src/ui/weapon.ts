@@ -139,6 +139,8 @@ const ANIMS = ['chop', 'thrust', 'flail', 'whip', 'bow', 'crossbow', 'sling', 'b
 /** The hands sheet (art/hands.png): rows of materials, columns right/left */
 const HANDS_URL = 'art/hands.png';
 const HAND_ROWS = ['skin', 'leather', 'gauntlets', 'mithral', 'caestus', 'alchemist'];
+/** The hand's size relative to the weapon's */
+const HAND_SCALE = 0.6;
 /** Glove tiles ("row,col" in the Gervais sheet) to hand materials */
 const GLOVES: Record<string, string> = {
   '0,25': 'leather', // Set of Leather Gloves
@@ -205,7 +207,8 @@ export class WeaponView {
 
   /** Casting: the off hand rises glowing, the weapon hand dips */
   cast(playerClass: string): void {
-    const size = this.size || 32 * 8;
+    // About 60% of the weapon's scale, in whole multiples of the 32px tile
+    const size = 32 * Math.max(3, Math.round(((this.size || 32 * 8) / 32) * HAND_SCALE));
     const row = Math.max(0, HAND_ROWS.indexOf(this.gloves));
     const glow = CAST_GLOW[playerClass] ?? '#6aa8ff';
     this.hand.setAttribute('style', [
