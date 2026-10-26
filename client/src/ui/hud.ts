@@ -8,6 +8,7 @@ import type { GameState } from '../state/game-state.ts';
 import type { TileAtlas } from '../sprites/atlas.ts';
 import { add, clear, h, paletteColor } from './dom.ts';
 import { Minimap } from './minimap.ts';
+import { WeaponView } from './weapon.ts';
 import { renderPanel } from './panel-view.ts';
 
 export interface ContextHint {
@@ -39,11 +40,15 @@ export class Hud {
   readonly sidebar = h('div', { class: 'hud-sidebar' }, this.sideMonsters, h('hr'), this.sideItems);
   private banner = h('div', { class: 'hud-banner' });
   private vignette = h('div', { class: 'hud-vignette' });
+  /** The first-person weapon in the right hand (under the HUD panels) */
+  readonly weapon: WeaponView;
   private recent: { el: HTMLElement; at: number }[] = [];
 
   constructor(private state: GameState, private atlas: () => TileAtlas | null) {
     this.minimap = new Minimap(state);
+    this.weapon = new WeaponView(atlas);
     this.el = h('div', { class: 'hud' },
+      this.weapon.el,
       this.vignette,
       h('div', { class: 'hud-top-left' }, this.hp.el, this.sp.el, this.xp.el, this.info, this.statusEl),
       h('div', { class: 'hud-top-right' }, this.minimap.canvas, this.sidebar),

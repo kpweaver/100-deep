@@ -238,6 +238,7 @@ export class App implements InputHandler {
         // The HUD and panels may have been drawn before the atlas could supply tiles
         this.hud.update();
         this.hud.updatePanels();
+        this.hud.weapon.setEquipment(this.state.equipment);
       });
     }
     try {
@@ -318,6 +319,7 @@ export class App implements InputHandler {
       this.heading.reset();
       this.exploring = false;
     } else if (c.moved && r && p) {
+      this.hud.weapon.bob();
       if (this.lastAction && AUTO_FACE_ACTIONS.has(this.lastAction)) this.followPath(p.x - c.moved.fromX, p.y - c.moved.fromY);
       r.cam.moveTo(p.x, p.y, this.cornerPath(c.moved.fromX, c.moved.fromY, p.x, p.y));
     } else if (c.player && r && p && (r.cam.gridX !== p.x || r.cam.gridY !== p.y)) {
@@ -327,6 +329,7 @@ export class App implements InputHandler {
     if (c.entities || c.map) this.refreshEntities();
     if (c.player && p) {
       r?.setTorch(p.lightRadius ?? p.light, !!p.unlight);
+      this.hud.weapon.setLight(p.lightRadius ?? p.light, !!p.unlight);
       if (this.lastHp !== null && p.hp < this.lastHp && this.state.phase === 'game') {
         r?.cam.shake();
         this.hud.hurt();
@@ -336,6 +339,8 @@ export class App implements InputHandler {
     }
     if (c.messages) {
       this.hud.addMessages(c.messages);
+      // Your own melee attacks swing the weapon (monsters' use mon_* types)
+      if (c.messages.some((m) => m.sound === 'hit' || m.sound === 'miss')) this.hud.weapon.swing();
       for (const m of c.messages) {
         this.sfx.play(m.sound);
         // Angband's level-up message (MSG_LEVEL, sound "level")
@@ -345,6 +350,7 @@ export class App implements InputHandler {
     if (c.effects && r) r.effects.play(c.effects);
     if (c.prompt) this.syncPrompt();
     if (c.store) this.syncStore();
+    if (c.gear) this.hud.weapon.setEquipment(this.state.equipment);
     if (c.gear && this.inventory?.isOpen) this.inventory.refresh();
     if (c.panels) {
       this.hud.updatePanels();
@@ -472,6 +478,7 @@ export class App implements InputHandler {
   }
 
   private command(c: Omit<CommandMessage, 'type'>): void {
+    if (c.action === 'fire' || c.action === 'fire_at_nearest') this.hud.weapon.shoot();
     this.send({ type: 'command', ...c } as CommandMessage);
   }
 

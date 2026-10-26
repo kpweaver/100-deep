@@ -124,6 +124,10 @@ What reaches the client, and why it is safe:
   colours, chosen by the project owner for a cohesive first-person look.
   Monsters, objects, traps and effects ignore lighting, so anything Angband
   shows is always drawn clearly.
+- `ui/weapon.ts` draws the wielded weapon's Gervais tile in the right hand
+  (flipped so the hilt is in the hand). It swings when the engine reports
+  your melee attacks (`hit`/`miss` message types), shows the launcher
+  recoiling when you fire, bobs as you walk and dims without a light.
 - Dark silhouettes (opt-in departure from stock, chosen by the project
   owner): `snapshot.c` exports the feature of unknown grids that are in
   view but unlit (`square_isview`, mimics applied) as a seventh map-cell
