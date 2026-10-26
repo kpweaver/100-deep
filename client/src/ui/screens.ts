@@ -39,7 +39,9 @@ export class TitleLayer extends Layer {
       this.menu.el,
       this.status,
       h('div', { class: 'credits' },
-        'Game engine: Angband 4.2 (angband.github.io) · Tiles: David Gervais (CC BY 3.0) & contributors')));
+        h('div', {}, 'Game engine: Angband 4.2 (angband.github.io)'),
+        h('div', {}, 'Tiles: David Gervais (CC BY 3.0) & contributors'),
+        h('div', {}, 'Source (GPLv2): github.com/kpweaver/100-deep'))));
     this.refresh();
   }
 

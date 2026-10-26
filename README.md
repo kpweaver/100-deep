@@ -250,6 +250,7 @@ upstream functions it depends on.
 
 ## Licensing
 
-See [LICENSES.md](LICENSES.md). In short, Angband is GPLv2 or the Angband
-licence, the adapter that links it is GPLv2, and the Gervais tiles are
-CC BY 3.0 with attribution.
+The source is published at <https://github.com/kpweaver/100-deep> under the GNU GPL, version 2 (see
+[LICENSE](LICENSE)). See [LICENSES.md](LICENSES.md) for the details: Angband is
+GPLv2 or the Angband licence, this project's code is GPLv2, and the Gervais
+tiles are CC BY 3.0 with attribution.

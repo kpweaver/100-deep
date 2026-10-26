@@ -58,8 +58,8 @@ client uses.
    - Leave *SharedArrayBuffer support* off: it isn't needed.
    - *Mobile friendly:* off (needs a keyboard or controller).
 3. Description: credit **Angband** (GPLv2), **David Gervais' tiles**
-   (CC BY 3.0) and link the source repository (see LICENSES.md, which is
-   also included in the zip under `licenses/`).
+   (CC BY 3.0) and link the source repository, https://github.com/kpweaver/100-deep (GPLv2
+   requires it; see LICENSES.md, which is also in the zip under `licenses/`).
 4. Save, then press *View page* and check that a controller works in the
    embedded frame and in fullscreen.
 

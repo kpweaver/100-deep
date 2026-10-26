@@ -46,6 +46,7 @@ mkdirSync(join(out, 'tiles/gervais'), { recursive: true });
 copyFileSync(join(lib, 'tiles/gervais/32x32.png'), join(out, 'tiles/gervais/32x32.png'));
 mkdirSync(join(out, 'licenses'), { recursive: true });
 copyFileSync(join(root, 'LICENSES.md'), join(out, 'licenses/LICENSES.md'));
+copyFileSync(join(root, 'LICENSE'), join(out, 'licenses/gpl-2.0.txt'));
 copyFileSync(join(root, 'engine/upstream/docs/copying.rst'), join(out, 'licenses/angband-copying.rst'));
 
 // 4. Zip for itch.io: index.html must be at the top level of the archive

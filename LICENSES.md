@@ -1,5 +1,9 @@
 # Licences and attribution
 
+**Source code:** <https://github.com/kpweaver/100-deep>. The complete source of every build (engine,
+adapter, game data, server and client) is published there under the GNU GPL,
+version 2; the full licence text is in [LICENSE](LICENSE).
+
 > This is a summary from reviewing the licence files. It is not legal advice.
 > Check the upstream texts before redistributing builds.
 
