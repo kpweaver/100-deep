@@ -97,9 +97,9 @@ const POSES: Record<string, Pose> = {
   '10,31': 'flipX', // Lance
   '10,42': 'none', // Scythe of Slicing
   '10,32': 'flipX', // Lucerne Hammer
-  '10,47': 'flipX', // Sling
-  '10,43': 'rotm90', // Short Bow
-  '10,44': 'rotm90', // Long Bow
+  '10,47': 'flipY', // Sling (curve toward the centre)
+  '10,43': 'flipY', // Short Bow (curve toward the centre)
+  '10,44': 'flipY', // Long Bow (curve toward the centre)
   '10,45': 'none', // Light Crossbow
   '10,46': 'none', // Heavy Crossbow
   '7,30': 'rotm90', // Shovel
