@@ -30,12 +30,12 @@ License, version 2, **or** the "Angband licence":
   protocol. For simplicity they are also distributed under **GPLv2**
   (`"license": "GPL-2.0-only"` in package.json).
 
-## Game data (build/lib)
+## Game data (engine/lib)
 
-The game runs with Angband's data files (GPLv2, like the engine) with names
-changed by `engine/renames.txt`. The modified data is generated at build
-time and distributed under the same licence; the table and script that make
-it are part of this repository.
+`engine/lib` is a modified copy of Angband 4.2.6's data files (GPLv2, like
+the engine), with names changed (see docs/renames-from-tolkien.txt) and
+further changes over time. It is distributed under the same licence. The
+Gervais tiles it contains are CC BY 3.0 (below).
 
 ## David Gervais' 32×32 tiles
 

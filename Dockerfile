@@ -42,8 +42,8 @@ COPY --from=build /src/node_modules ./node_modules
 COPY --from=build /src/shared ./shared
 COPY --from=build /src/bridge ./bridge
 COPY --from=build /src/build/engine/angband-headless ./build/engine/angband-headless
-# Game data (with the renames applied) and the Gervais tiles, from build/lib
-COPY --from=build /src/build/lib ./lib
+# The game's data (engine/lib, our fork of Angband's) and the Gervais tiles
+COPY --from=build /src/engine/lib ./lib
 COPY --from=build /src/engine/upstream/docs/copying.rst ./engine/upstream/docs/copying.rst
 COPY --from=build /src/client/dist ./client/dist
 COPY LICENSES.md README.md ./

@@ -4,7 +4,7 @@
  */
 import { afterEach, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { DIR_OFFSETS, type Direction, type StateMessage } from '@thang/protocol';
 import { REPO_ROOT } from '../../bridge/src/engine.ts';
@@ -140,7 +140,7 @@ test('only known terrain, visible monsters and known objects reach the client', 
 });
 
 test('monster and player tiles come from the Gervais pref file', async () => {
-  const prf = readFileSync(resolve(REPO_ROOT, 'build/lib/tiles/gervais/graf-dvg.prf'), 'utf8');
+  const prf = readFileSync(resolve(REPO_ROOT, 'engine/lib/tiles/gervais/graf-dvg.prf'), 'utf8');
   const tiles = new Map<string, [number, number]>();
   for (const line of prf.split('\n')) {
     const m = /^monster:([^:]+):0x([0-9A-Fa-f]+):0x([0-9A-Fa-f]+)/.exec(line);
@@ -472,4 +472,35 @@ test('game data uses the renamed (non-Tolkien) names', async () => {
   assert.ok(h.races.includes('Halfling') && h.races.includes('Highborn'));
   assert.ok(!h.races.includes('Hobbit') && !h.races.includes('Dunadan'));
   await s.stop();
+});
+
+test('tile prefs only name monsters that exist (engine/lib)', () => {
+  // The engine stops reading a pref file at the first unknown monster, which
+  // silently drops every tile after it (objects come last)
+  const lib = resolve(REPO_ROOT, 'engine/lib');
+  const names = new Set(readFileSync(resolve(lib, 'gamedata/monster.txt'), 'utf8').split('\n')
+    .filter((l) => l.startsWith('name:')).map((l) => l.slice(5).toLowerCase()));
+  const missing: string[] = [];
+  for (const f of ['graf-dvg.prf', 'xtra-dvg.prf']) {
+    for (const line of readFileSync(resolve(lib, 'tiles/gervais', f), 'utf8').split('\n')) {
+      const m = /^monster:([^:]+):/.exec(line);
+      if (m && m[1] !== '<player>' && !names.has(m[1].toLowerCase())) missing.push(`${f}: ${m[1]}`);
+    }
+  }
+  assert.deepEqual(missing, []);
+});
+
+test('game data has no Tolkien-specific names (engine/lib)', () => {
+  // See docs/renames-from-tolkien.txt.  Monster bases are internal and exempt.
+  const banned = /\b(Sauron|Morgoth|Melkor|Saruman|Smaug|Shelob|Ungoliant|Witch-King|Nazgûl|Ringwraith|Balrogs?|Hobbits?|hobbits?|Dúnadan|Dunadan|Dúnedain|wargs?|uruks?|Uruk|snaga|Maiar?|Mithril|mithril|Miruvor|Andúril|Glamdring|Orcrist|Narya|Nenya|Vilya|Angband|Gondor|Mordor|Moria|Númenor|Westernesse|Gondolin|Angmar|Umbar|Valar|Noldor|Sindar|Beleriand|Middle-earth|Galadriel|Elendil|Isildur|Gandalf|Bilbo|Frodo)\b/;
+  const dir = resolve(REPO_ROOT, 'engine/lib/gamedata');
+  const hits: string[] = [];
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.txt'))) {
+    readFileSync(resolve(dir, f), 'utf8').split('\n').forEach((line, i) => {
+      if (line.startsWith('#') || line.startsWith('base:') || (f === 'monster_base.txt' && line.startsWith('name:'))) return;
+      const m = banned.exec(line);
+      if (m) hits.push(`${f}:${i + 1}: ${m[0]}`);
+    });
+  }
+  assert.deepEqual(hits, []);
 });

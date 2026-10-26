@@ -41,8 +41,8 @@ if(EMSCRIPTEN)
 	)
 	target_compile_options(angband-web PRIVATE -O2 -Wno-unused-parameter)
 	# Game data the engine reads (no tile images: the client loads those).
-	# build/lib: upstream data with the renames applied (scripts/build-lib.ts)
-	set(LIB ${CMAKE_CURRENT_SOURCE_DIR}/../build/lib)
+	# The game's own data (our fork of Angband's lib)
+	set(LIB ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 	set(WEB_PRELOAD
 		"SHELL:--preload-file ${LIB}/gamedata@/lib/gamedata"
 		"SHELL:--preload-file ${LIB}/customize@/lib/customize"

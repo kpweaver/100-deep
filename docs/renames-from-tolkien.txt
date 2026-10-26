@@ -1,14 +1,14 @@
-# Name changes applied to Angband's game data when building build/lib
-# (scripts/build-lib.ts).  The upstream files are never edited.
+# Names changed when the game data was forked from Angband 4.2.6
+# (engine/upstream @ f3082213b) into engine/lib.  A historical record: the
+# changes are now written directly in engine/lib.  It is also a checklist
+# for anything merged in from a later upstream release.
 #
-# Goal: no Tolkien-specific names (people, places, peoples, creatures, artifacts).
-# Generic fantasy terms (orc, troll, elf, dwarf, wight...) stay, as do the
-# dwarf names Tolkien took from the Norse Voluspa (Durin, Thorin, Nain...),
-# and names Angband invented itself.
+# Generic fantasy terms (orc, troll, elf, dwarf, wight...) were kept, as were
+# the dwarf names Tolkien took from the Norse Voluspa (Durin, Thorin, Nain...)
+# and names Angband invented itself.  Monster bases stayed as they were (they
+# are internal; the engine looks up the base "Morgoth" by name).
 #
-# Format:  old => new        (case-sensitive, whole words, longest match first)
-# Applied to gamedata/*.txt and the tile pref files, except comment lines and
-# "base:" lines (monster bases are internal; the engine looks one up by name).
+# Format:  old => new
 
 # --- Bosses (chosen by the user) ---------------------------------------
 Morgoth, Lord of Darkness => Abaddon, Lord of the Abyss

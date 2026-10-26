@@ -15,7 +15,7 @@ import { deflateSync, inflateSync } from 'node:zlib';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const app = join(root, '100 Deep.app');
-const ATLAS = join(root, 'engine/upstream/lib/tiles/gervais/32x32.png');
+const ATLAS = join(root, 'engine/lib/tiles/gervais/32x32.png');
 // "monster:Smaug the Golden:0x95:0xB2" in graf-dvg.prf -> row 0x15, col 0x32
 const ICON_TILE = { row: 0x15, col: 0x32 };
 

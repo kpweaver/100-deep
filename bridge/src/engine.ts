@@ -31,21 +31,10 @@ export interface EngineOptions {
   debug?: boolean;
 }
 
-/**
- * Angband's data with the game's renames applied (scripts/build-lib.ts,
- * run by npm run build:engine).  Falls back to upstream's unrenamed data.
- */
-function defaultLibDir(): string {
-  const built = resolve(REPO_ROOT, 'build/lib');
-  if (existsSync(resolve(built, 'gamedata'))) return built;
-  console.warn('[engine] build/lib is missing (run npm run build:engine); using upstream names');
-  return resolve(REPO_ROOT, 'engine/upstream/lib');
-}
-
 export function defaultEngineOptions(): Required<Omit<EngineOptions, 'seed'>> {
   return {
     binary: process.env.THANG_ENGINE ?? resolve(REPO_ROOT, 'build/engine/angband-headless'),
-    libDir: process.env.THANG_LIB ?? defaultLibDir(),
+    libDir: process.env.THANG_LIB ?? resolve(REPO_ROOT, 'engine/lib'),
     dataDir: process.env.THANG_DATA ?? resolve(REPO_ROOT, 'var/data'),
     save: process.env.THANG_SAVE ?? 'hero',
     debug: !!process.env.THANG_DEBUG,

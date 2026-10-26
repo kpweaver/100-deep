@@ -18,7 +18,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const wasmBuild = join(root, 'build/wasm');
 const out = join(root, 'client/dist-web');
 const zip = join(root, 'build/100-deep-web.zip');
-const lib = join(root, 'build/lib');
+const lib = join(root, 'engine/lib');
 const run = (cmd: string, args: string[], cwd = root) => execFileSync(cmd, args, { cwd, stdio: 'inherit' });
 
 try {
@@ -31,9 +31,7 @@ if (!existsSync(join(root, 'engine/upstream/src/game-world.c'))) {
   run('git', ['submodule', 'update', '--init', 'engine/upstream']);
 }
 
-// 1. Game data with the renames applied (build/lib), then the engine ->
-//    WebAssembly (build/wasm/angband.mjs, .wasm, .data)
-run('node', ['scripts/build-lib.ts']);
+// 1. Engine -> WebAssembly (build/wasm/angband.mjs, .wasm, .data; game data from engine/lib)
 run('emcmake', ['cmake', '-S', 'engine', '-B', wasmBuild, '-DCMAKE_BUILD_TYPE=Release']);
 run('cmake', ['--build', wasmBuild, '--target', 'angband-web', '-j', '8']);
 

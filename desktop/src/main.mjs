@@ -37,7 +37,7 @@ function paths() {
   const repo = resolve(here, '../..');
   return {
     binary: join(repo, 'build/engine', `angband-headless${exe}`),
-    libDir: join(repo, 'build/lib'),
+    libDir: join(repo, 'engine/lib'),
     clientDir: join(repo, 'client/dist'),
   };
 }

@@ -24,7 +24,7 @@ nor tried in Safari or Firefox.
   engine saves quietly once it has been idle for a second after play (at
   most every 5 s), plus Angband's own level-change autosave, so closing the
   tab loses at most a few seconds. Save and quit saves explicitly.
-- Game data (`gamedata`, `customize`, `help`, `screens`, tile prefs) is
+- Game data from `engine/lib` (`gamedata`, `customize`, `help`, `screens`, tile prefs) is
   packed into `engine/angband.data`. The client loads the Gervais tile
   image separately.
 
