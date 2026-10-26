@@ -140,7 +140,7 @@ test('only known terrain, visible monsters and known objects reach the client', 
 });
 
 test('monster and player tiles come from the Gervais pref file', async () => {
-  const prf = readFileSync(resolve(REPO_ROOT, 'engine/upstream/lib/tiles/gervais/graf-dvg.prf'), 'utf8');
+  const prf = readFileSync(resolve(REPO_ROOT, 'build/lib/tiles/gervais/graf-dvg.prf'), 'utf8');
   const tiles = new Map<string, [number, number]>();
   for (const line of prf.split('\n')) {
     const m = /^monster:([^:]+):0x([0-9A-Fa-f]+):0x([0-9A-Fa-f]+)/.exec(line);
@@ -307,7 +307,7 @@ test('save and reload restore the same game', async () => {
 test('closing stdin saves the game (abnormal client termination)', async () => {
   const a = new Session({ save: 'eof' });
   await a.start();
-  await a.newGame('Hobbit', 'Rogue', 'Bilbo');
+  await a.newGame('Halfling', 'Rogue', 'Bosco');
   const dir = a.findDir((f, x, y) => isPassable(f) && !a.monsterAt(x, y))!;
   await a.command({ action: 'walk', dir });
   const pos = { x: a.player.x, y: a.player.y };
@@ -325,7 +325,7 @@ test('character death follows the native flow and a new game can start', async (
   // Deterministic with this seed: a hobbit mage who never eats or rests
   const s = new Session({ seed: 31337, save: 'doomed' });
   await s.start();
-  await s.newGame('Hobbit', 'Mage', 'Frodo');
+  await s.newGame('Halfling', 'Mage', 'Fosco');
   const step = (dx: number, dy: number) =>
     Number(Object.entries(DIR_OFFSETS).find(([, o]) => o[0] === Math.sign(dx) && o[1] === Math.sign(dy))![0]) as Direction;
   for (let n = 0; n < 3000 && s.state!.phase === 'game'; n++) {
@@ -452,7 +452,7 @@ test('spells report bolt effects the player can see', async () => {
   const book = s.state!.inventory!.find((i) => /First Spells/.test(i.name))!;
   await s.request({ type: 'command', action: 'study', book: book.handle, spell: 0 });
   await s.request({ type: 'debug', action: 'jump', value: 1 });
-  await s.request({ type: 'debug', action: 'summon', name: 'Grip, Farmer Maggot\'s Dog' });
+  await s.request({ type: 'debug', action: 'summon', name: 'Grip, Farmer Hayward\'s Dog' });
   await s.command({ action: 'target_closest' });
   const before = s.history.length;
   let effects: { kind: string }[] = [];
@@ -462,5 +462,14 @@ test('spells report bolt effects the player can see', async () => {
     effects = s.history.slice(before).flatMap((m) => (m.type === 'state' ? m.effects ?? [] : []));
   }
   assert.ok(effects.some((e) => e.kind === 'bolt'), `expected a bolt effect, got ${JSON.stringify(effects)}; ${JSON.stringify(s.history.slice(before - 6).flatMap((m) => (m.type === "state" ? (m.messages ?? []).map((x) => x.text) : m.type === "error" ? [m.message] : [])))}`);
+  await s.stop();
+});
+
+test('game data uses the renamed (non-Tolkien) names', async () => {
+  const s = new Session();
+  await s.start();
+  const h = s.hello!;
+  assert.ok(h.races.includes('Halfling') && h.races.includes('Highborn'));
+  assert.ok(!h.races.includes('Hobbit') && !h.races.includes('Dunadan'));
   await s.stop();
 });

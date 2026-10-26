@@ -36,27 +36,27 @@
         "to": "engine/angband-headless"
       },
       {
-        "from": "../engine/upstream/lib/gamedata",
+        "from": "../build/lib/gamedata",
         "to": "lib/gamedata"
       },
       {
-        "from": "../engine/upstream/lib/customize",
+        "from": "../build/lib/customize",
         "to": "lib/customize"
       },
       {
-        "from": "../engine/upstream/lib/help",
+        "from": "../build/lib/help",
         "to": "lib/help"
       },
       {
-        "from": "../engine/upstream/lib/screens",
+        "from": "../build/lib/screens",
         "to": "lib/screens"
       },
       {
-        "from": "../engine/upstream/lib/tiles/list.txt",
+        "from": "../build/lib/tiles/list.txt",
         "to": "lib/tiles/list.txt"
       },
       {
-        "from": "../engine/upstream/lib/tiles/gervais",
+        "from": "../build/lib/tiles/gervais",
         "to": "lib/tiles/gervais"
       },
       {

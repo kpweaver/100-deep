@@ -34,7 +34,7 @@ ENV NODE_ENV=production \
     THANG_PORT=8787 \
     THANG_DATA=/data \
     THANG_ENGINE=/app/build/engine/angband-headless \
-    THANG_LIB=/app/engine/upstream/lib \
+    THANG_LIB=/app/lib \
     THANG_CLIENT_DIR=/app/client/dist
 WORKDIR /app
 COPY --from=build /src/package.json ./
@@ -42,13 +42,8 @@ COPY --from=build /src/node_modules ./node_modules
 COPY --from=build /src/shared ./shared
 COPY --from=build /src/bridge ./bridge
 COPY --from=build /src/build/engine/angband-headless ./build/engine/angband-headless
-# Game data, plus only the tile set we are licensed to use
-COPY --from=build /src/engine/upstream/lib/gamedata ./engine/upstream/lib/gamedata
-COPY --from=build /src/engine/upstream/lib/customize ./engine/upstream/lib/customize
-COPY --from=build /src/engine/upstream/lib/help ./engine/upstream/lib/help
-COPY --from=build /src/engine/upstream/lib/screens ./engine/upstream/lib/screens
-COPY --from=build /src/engine/upstream/lib/tiles/list.txt ./engine/upstream/lib/tiles/list.txt
-COPY --from=build /src/engine/upstream/lib/tiles/gervais ./engine/upstream/lib/tiles/gervais
+# Game data (with the renames applied) and the Gervais tiles, from build/lib
+COPY --from=build /src/build/lib ./lib
 COPY --from=build /src/engine/upstream/docs/copying.rst ./engine/upstream/docs/copying.rst
 COPY --from=build /src/client/dist ./client/dist
 COPY LICENSES.md README.md ./

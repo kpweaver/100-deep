@@ -65,7 +65,7 @@ export class TitleLayer extends Layer {
   }
 }
 
-const NAMES = ['Beren', 'Luthien', 'Turin', 'Hurin', 'Morwen', 'Haleth', 'Barahir', 'Idril', 'Tuor', 'Earendil', 'Galdor', 'Nienor'];
+const NAMES = ['Aldric', 'Brenna', 'Cedric', 'Dara', 'Edric', 'Fiona', 'Garrick', 'Helena', 'Ivo', 'Jora', 'Kael', 'Lyra'];
 
 /** Character creation using the engine's own race/class lists */
 export function startBirth(ctx: UiContext, onDone: () => void): void {

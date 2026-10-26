@@ -30,6 +30,13 @@ License, version 2, **or** the "Angband licence":
   protocol. For simplicity they are also distributed under **GPLv2**
   (`"license": "GPL-2.0-only"` in package.json).
 
+## Game data (build/lib)
+
+The game runs with Angband's data files (GPLv2, like the engine) with names
+changed by `engine/renames.txt`. The modified data is generated at build
+time and distributed under the same licence; the table and script that make
+it are part of this repository.
+
 ## David Gervais' 32×32 tiles
 
 `engine/upstream/lib/tiles/gervais/32x32.png` and the associated pref files

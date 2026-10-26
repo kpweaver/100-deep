@@ -109,7 +109,7 @@ test('idle games are saved and stopped, and can be resumed later', async () => {
   const b = await bridge({ mode: 'hosted', idleSeconds: 5 });
   const a = client(b);
   const { session } = await a.waitFor((m) => m.event === 'session');
-  a.send({ type: 'new_game', race: 'Hobbit', class: 'Rogue', name: 'Sleeper' });
+  a.send({ type: 'new_game', race: 'Halfling', class: 'Rogue', name: 'Sleeper' });
   await a.waitFor((m) => m.type === 'state' && m.phase === 'game');
   a.ws.close();
   await a.closed;
