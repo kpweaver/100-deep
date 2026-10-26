@@ -135,7 +135,7 @@ export function startBridge(opts: BridgeOptions = {}) {
 
   const newSession = (id: string, dataDir: string, save: string) => {
     const s = new GameSession({
-      id, dataDir, save, debug: cfg.debug, logDir, msgsPerSecond: cfg.msgsPerSecond,
+      id, dataDir, save, debug: cfg.debug, cheats: cfg.cheats, logDir, msgsPerSecond: cfg.msgsPerSecond,
       binary: engineDefaults.binary, libDir: engineDefaults.libDir,
       onShutdownRequest: cfg.mode === 'local' ? opts.onShutdownRequest : undefined,
       onEnd: (sess) => {

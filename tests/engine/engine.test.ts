@@ -421,3 +421,22 @@ test('stock subwindows (lists, recall, character sheet) come from Angband', asyn
   assert.ok(c1.type === 'screen' && /Acid:/.test(text(c1)) && /pFear:/.test(text(c1)));
   await s.stop();
 });
+
+test('debug commands need --cheats and mark the character', async () => {
+  const plain = new Session();
+  await plain.start();
+  await plain.newGame('Human', 'Warrior', 'Honest');
+  const refused = await plain.request({ type: 'debug', action: 'jump', value: 5 });
+  assert.equal(refused.type, 'error');
+  assert.equal((refused as { code?: string }).code, 'no_cheats');
+  await plain.stop();
+
+  process.env.THANG_CHEATS = '1';
+  const cheat = new Session();
+  await cheat.start(); // the engine reads THANG_CHEATS when it spawns
+  delete process.env.THANG_CHEATS;
+  await cheat.newGame('Human', 'Warrior', 'Cheater');
+  await cheat.request({ type: 'debug', action: 'jump', value: 5 });
+  assert.equal(cheat.state!.player!.depth, 5);
+  await cheat.stop();
+});

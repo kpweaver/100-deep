@@ -94,6 +94,8 @@ export class App implements InputHandler {
   constructor(private root: HTMLElement) {
     this.conn = useWasmEngine() ? new WorkerConnection() : new Connection(Connection.defaultUrl());
     this.conn.debug = new URLSearchParams(location.search).has('debug');
+    // ?debug: reachable from the console (and scripts) as window.thang
+    if (this.conn.debug) (window as unknown as { thang?: App }).thang = this;
     const uiRoot = h('div', { class: 'ui-root' });
     this.ui = new UiManager(uiRoot, this.input);
     this.hud = new Hud(this.state, () => this.atlas);

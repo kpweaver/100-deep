@@ -23,6 +23,8 @@ export interface SessionOptions {
   dataDir: string;
   save: string;
   debug: boolean;
+  /** Relay Angband debug commands (local development only) */
+  cheats?: boolean;
   /** Directory for traffic transcripts, or null for none */
   logDir: string | null;
   msgsPerSecond: number;
@@ -150,7 +152,8 @@ export class GameSession {
       else this.event({ type: 'bridge', event: 'shutdown_refused' });
       return;
     }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || typeof type !== 'string' || !CLIENT_TYPES.has(type)) return;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || typeof type !== 'string'
+      || !(CLIENT_TYPES.has(type) || (type === 'debug' && this.opts.cheats))) return;
     const compact = JSON.stringify(parsed);
     this.log('in', compact);
     if (!this.engine.send(compact)) {

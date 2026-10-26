@@ -436,7 +436,14 @@ export type ClientMessage =
   | { type: 'query'; what: 'item'; item: string }
   | { type: 'query'; what: 'book'; item: string }
   | { type: 'query'; what: 'character'; page: 0 | 1 }
-  | { type: 'query'; what: 'monster'; monster: number };
+  | { type: 'query'; what: 'monster'; monster: number }
+  /**
+   * Angband's debug-mode commands; only when the engine runs with --cheats
+   * (never relayed by the bridge).  Marks the character as a cheater.
+   */
+  | { type: 'debug'; action: 'exp' | 'jump'; value: number }
+  | { type: 'debug'; action: 'summon'; name: string }
+  | { type: 'debug'; action: 'map' | 'light' | 'cure' };
 
 /* ------------------------------------------------------------------ */
 /* Direction helpers (Angband keypad layout)                           */

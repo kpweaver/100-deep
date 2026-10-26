@@ -38,6 +38,7 @@ The bridge adds `{"type":"bridge","event":"engine_exit"|"engine_started"|"engine
 | `answer` / `cancel` | prompt pending | Must carry the prompt's `id`. `value` is the choice; `aim` answers may use `monster` or `useTarget`, and `spell` answers include `book`. |
 | `options` | game | `set: {name: bool}`. Interface options only. |
 | `query` | game | `what: 'item' \| 'book'` with `item`, or `what: 'monster'` with `monster`. Read-only; RNG state is preserved. |
+| `debug` | game | Only when the engine runs with `--cheats` (or `THANG_CHEATS=1`); the bridge never relays it. `action: 'exp' \| 'jump'` with `value`, `'summon'` with a monster `name`, or `'map' \| 'light' \| 'cure'`. Runs Angband's own debug-mode commands and marks the character as a cheater. |
 | `save` | game | Saves like the stock "save game" command. |
 | `close_game` | game / dead | Saves (if alive) and returns the engine to the title (`menu` phase); reply is `hello` + `state`. |
 | `quit` | any | Saves (if alive) and exits. EOF does the same. |

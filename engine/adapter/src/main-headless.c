@@ -10,7 +10,12 @@
  *
  * Usage:
  *   angband-headless --lib <angband lib dir> --data <writable dir>
- *                    [--save <name>] [--seed <n>] [--debug]
+ *                    [--save <name>] [--seed <n>] [--debug] [--cheats]
+ *
+ * --cheats (or THANG_CHEATS=1) enables the "debug" message, which runs
+ * Angband's own debug-mode commands (for tests, screenshots and
+ * development).  Characters touched by it are marked as cheaters, as in
+ * the stock game's debug mode.
  */
 #include "adapter.h"
 
@@ -54,6 +59,7 @@ static const char *opt_lib = NULL;
 static const char *opt_data = NULL;
 static const char *opt_save = "hero";
 static long opt_seed = -1;
+static bool opt_cheats = false;
 
 /* ------------------------------------------------------------------------
  * Logging / fatal errors
@@ -359,6 +365,57 @@ static void run_world(void)
 }
 
 /* ------------------------------------------------------------------------
+ * Debug commands (only with --cheats): the stock game's debug mode
+ * ------------------------------------------------------------------------ */
+static void handle_debug(const jv *msg)
+{
+	const char *action = jv_get_str(msg, "action", "");
+	long value = jv_get_int(msg, "value", 0);
+
+	if (!opt_cheats) {
+		proto_send_error("no_cheats", "Debug commands are disabled");
+		return;
+	}
+	if (session_phase != PHASE_GAME || !character_generated) {
+		proto_send_error("no_game", "No character loaded");
+		return;
+	}
+
+	if (streq(action, "exp")) {
+		cmdq_push(CMD_WIZ_INCREASE_EXP);
+		cmd_set_arg_number(cmdq_peek(), "quantity", (int)value);
+	} else if (streq(action, "jump")) {
+		if (value < 0 || value >= z_info->max_depth) {
+			proto_send_error("bad_value", "No such level");
+			return;
+		}
+		cmdq_push(CMD_WIZ_JUMP_LEVEL);
+		cmd_set_arg_number(cmdq_peek(), "level", (int)value);
+		cmd_set_arg_choice(cmdq_peek(), "choice", 0);
+	} else if (streq(action, "summon")) {
+		struct monster_race *race = lookup_monster(jv_get_str(msg, "name", ""));
+		if (!race) {
+			proto_send_error("bad_value", "No such monster");
+			return;
+		}
+		cmdq_push(CMD_WIZ_SUMMON_NAMED);
+		cmd_set_arg_number(cmdq_peek(), "index", race->ridx);
+	} else if (streq(action, "map")) {
+		cmdq_push(CMD_WIZ_MAGIC_MAP);
+	} else if (streq(action, "cure")) {
+		cmdq_push(CMD_WIZ_CURE_ALL);
+	} else if (streq(action, "light")) {
+		cmdq_push(CMD_WIZ_WIZARD_LIGHT);
+	} else {
+		proto_send_error("bad_value", "Unknown debug action '%s'", action);
+		return;
+	}
+
+	player->noscore |= NOSCORE_DEBUG;
+	run_world();
+}
+
+/* ------------------------------------------------------------------------
  * Read-only queries (never change game state)
  * ------------------------------------------------------------------------ */
 static void send_textblock(const char *what, const char *title, textblock *tb)
@@ -475,7 +532,7 @@ static void usage(void)
 {
 	fprintf(stderr,
 		"usage: angband-headless --lib <dir> --data <dir> [--save <name>] "
-		"[--seed <n>] [--debug]\n");
+		"[--seed <n>] [--debug] [--cheats]\n");
 	exit(2);
 }
 
@@ -496,9 +553,11 @@ int main(int argc, char *argv[])
 		else if (streq(argv[i], "--save") && i + 1 < argc) opt_save = argv[++i];
 		else if (streq(argv[i], "--seed") && i + 1 < argc) opt_seed = atol(argv[++i]);
 		else if (streq(argv[i], "--debug")) thang_debug = true;
+		else if (streq(argv[i], "--cheats")) opt_cheats = true;
 		else usage();
 	}
 	if (getenv("THANG_DEBUG")) thang_debug = true;
+	if (getenv("THANG_CHEATS") && streq(getenv("THANG_CHEATS"), "1")) opt_cheats = true;
 	if (!opt_lib || !opt_data) usage();
 
 	/* Wide-character text conversion requires a UTF-8 locale */
@@ -586,6 +645,8 @@ int main(int argc, char *argv[])
 			}
 		} else if (streq(type, "query")) {
 			handle_query(msg);
+		} else if (streq(type, "debug")) {
+			handle_debug(msg);
 		} else if (streq(type, "quit")) {
 			on_eof();
 			jv_free(msg);

@@ -30,6 +30,8 @@ export interface BridgeConfig {
   msgsPerSecond: number;
   clientDir: string;
   debug: boolean;
+  /** Local mode with THANG_CHEATS=1: relay Angband debug commands ('debug') */
+  cheats: boolean;
   log: boolean;
 }
 
@@ -53,6 +55,7 @@ export function loadConfig(overrides: Partial<BridgeConfig> = {}, env = process.
     msgsPerSecond: int(env.THANG_MSGS_PER_SECOND, 30, 1, 1000),
     clientDir: resolve(env.THANG_CLIENT_DIR ?? resolve(REPO_ROOT, 'client/dist')),
     debug: !!env.THANG_DEBUG,
+    cheats: mode === 'local' && env.THANG_CHEATS === '1',
     log: !!env.THANG_DEBUG,
   };
   for (const [k, v] of Object.entries(overrides)) {
