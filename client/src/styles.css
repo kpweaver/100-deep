@@ -34,14 +34,16 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 /* ---------- HUD ---------- */
 .hud { position: absolute; inset: 0; pointer-events: none; }
 .fp-weapon { position: absolute; }
-/* Gervais weapons are drawn hilt top-right; flipped, the hilt is in the hand and the blade leans in */
-.fp-weapon-sprite { image-rendering: pixelated; transform: scaleY(-1); }
-.fp-weapon.swing { animation: fp-swing 0.28s ease-out; }
+/* Each weapon tile is posed by ui/weapon.ts so the hilt is in the hand */
+.fp-weapon-sprite { image-rendering: pixelated; }
+.fp-weapon.swing { animation: fp-swing 0.32s ease-out; }
 .fp-weapon.recoil { animation: fp-recoil 0.35s ease-out; }
 .fp-weapon.bob { animation: fp-bob 0.25s ease-in-out; }
+/* Wind up, strike across toward the centre (rising into view), recover */
 @keyframes fp-swing {
   0% { transform: none; }
-  35% { transform: translate(-14%, -8%) rotate(-38deg); }
+  18% { transform: translate(3%, 2%) rotate(10deg); }
+  50% { transform: translate(-30%, -16%) rotate(-28deg); }
   100% { transform: none; }
 }
 @keyframes fp-recoil {

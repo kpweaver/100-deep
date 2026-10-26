@@ -125,7 +125,9 @@ What reaches the client, and why it is safe:
   Monsters, objects, traps and effects ignore lighting, so anything Angband
   shows is always drawn clearly.
 - `ui/weapon.ts` draws the wielded weapon's Gervais tile in the right hand
-  (flipped so the hilt is in the hand). It swings when the engine reports
+  (posed per tile, since Gervais draws weapons in different orientations,
+  so the hilt is in the hand and flail heads dangle toward the centre). It
+  swings when the engine reports
   your melee attacks (`hit`/`miss` message types) and when you dig at rock
   or rubble (Angband digs with the weapon), shows the launcher
   recoiling when you fire, bobs as you walk and dims without a light. Each

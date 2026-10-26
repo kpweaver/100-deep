@@ -1,6 +1,7 @@
 /**
- * First-person weapon: the wielded weapon's own Gervais tile, flipped so
- * the hilt sits in the right hand and the blade leans in, drawn as crisp pixels in the
+ * First-person weapon: the wielded weapon's own Gervais tile, posed (per
+ * tile: Gervais draws weapons in different orientations) so the hilt sits
+ * in the right hand and the blade or head leans in toward the centre, drawn as crisp pixels in the
  * lower right of the view.  It swings when the engine reports a melee
  * attack (Angband's "hit"/"miss" message types) and when you dig (Angband
  * digs with the wielded weapon), shows the launcher recoiling when you
@@ -22,6 +23,95 @@ const OVERHANG = 0.18;
 
 /** Opaque extent of a tile, in tile pixels (inclusive) */
 interface Extent { left: number; top: number; right: number; bottom: number }
+
+/**
+ * How each tile is turned so the hilt ends up bottom-right.  Gervais draws
+ * most swords hilt top-right, most hafted weapons, polearms and diggers
+ * handle bottom-left, and a few already hilt bottom-right; each has two
+ * poses with the hilt in the hand, mirrored along the weapon's length.
+ * The pose chosen is the more upright one with the edge, guard or head
+ * facing the centre; flails hold the grip with the head dangling toward
+ * the centre.
+ */
+type Pose = 'none' | 'flipX' | 'flipY' | 'rot180' | 'rot90' | 'rotm90' | 'transpose';
+const POSE_CSS: Record<Pose, string> = {
+  none: 'none',
+  flipX: 'scaleX(-1)',
+  flipY: 'scaleY(-1)',
+  rot180: 'scale(-1, -1)',
+  rot90: 'rotate(90deg)',
+  rotm90: 'rotate(-90deg)',
+  transpose: 'matrix(0, 1, 1, 0, 0, 0)',
+};
+/** Where a tile pixel (x, y) lands after posing, in an n x n tile */
+const POSE_MAP: Record<Pose, (x: number, y: number, n: number) => [number, number]> = {
+  none: (x, y) => [x, y],
+  flipX: (x, y, n) => [n - 1 - x, y],
+  flipY: (x, y, n) => [x, n - 1 - y],
+  rot180: (x, y, n) => [n - 1 - x, n - 1 - y],
+  rot90: (x, y, n) => [n - 1 - y, x],
+  rotm90: (x, y, n) => [y, n - 1 - x],
+  transpose: (x, y) => [y, x],
+};
+/** Weapon and launcher tiles ("row,col" in the Gervais sheet) */
+const POSES: Record<string, Pose> = {
+  '10,3': 'flipY', // Dagger
+  '10,4': 'flipY', // Main Gauche
+  '10,5': 'rot90', // Rapier
+  '10,8': 'flipY', // Short Sword
+  '10,10': 'rot90', // Cutlass
+  '10,9': 'rot90', // Tulwar
+  '10,11': 'flipY', // Scimitar
+  '10,13': 'flipY', // Long Sword
+  '10,12': 'flipY', // Broad Sword
+  '10,66': 'none', // Bastard Sword
+  '10,14': 'flipY', // Katana
+  '10,16': 'flipY', // Zweihander
+  '10,15': 'flipY', // Executioner's Sword
+  '10,17': 'none', // Blade of Chaos
+  '10,18': 'flipX', // Whip
+  '10,25': 'rot180', // Ball-and-Chain (held by the chain's end)
+  '10,23': 'rotm90', // Morning Star
+  '10,22': 'rotm90', // Flail
+  '10,26': 'rotm90', // Two-Handed Great Flail
+  '10,20': 'flipX', // Mace
+  '10,24': 'flipX', // Lead-Filled Mace
+  '10,21': 'flipX', // Quarterstaff
+  '10,19': 'none', // War Hammer, Maul
+  '10,63': 'none', // Great Hammer
+  '10,27': 'flipX', // Mace of Disruption
+  '10,57': 'flipX', // Throwing Hammer
+  '10,28': 'flipX', // Spear
+  '10,30': 'flipX', // Awl-Pike
+  '10,29': 'flipX', // Trident
+  '10,38': 'flipX', // Halberd
+  '10,34': 'flipX', // Pike
+  '10,35': 'flipX', // Beaked Axe
+  '10,36': 'flipX', // Broad Axe
+  '10,33': 'flipX', // Battle Axe
+  '10,39': 'flipX', // Lochaber Axe
+  '10,40': 'flipX', // Great Axe
+  '10,102': 'flipX', // Throwing Axe
+  '10,41': 'none', // Scythe
+  '10,37': 'flipX', // Glaive
+  '10,31': 'flipX', // Lance
+  '10,42': 'none', // Scythe of Slicing
+  '10,32': 'flipX', // Lucerne Hammer
+  '10,47': 'flipX', // Sling
+  '10,43': 'flipX', // Short Bow
+  '10,44': 'flipX', // Long Bow
+  '10,45': 'none', // Light Crossbow
+  '10,46': 'none', // Heavy Crossbow
+  '7,30': 'rotm90', // Shovel
+  '7,27': 'flipX', // Pick
+  '7,29': 'flipX', // Mattock
+  '10,48': 'none', // Mighty Hammer
+};
+/** Launchers sit higher than melee weapons, fully in view */
+const LAUNCHERS = new Set(['10,43', '10,44', '10,45', '10,46', '10,47']);
+const LAUNCHER_OVERHANG = -0.06;
+/** Tiles not listed (none expected) are assumed drawn hilt top-right */
+const DEFAULT_POSE: Pose = 'flipY';
 
 export class WeaponView {
   readonly el = h('div', { class: 'fp-weapon' });
@@ -87,26 +177,26 @@ export class WeaponView {
   }
 
   /**
-   * Position the element so the item's hilt end (its top in the tile, its
-   * bottom once flipped) hangs off the bottom of the view and its right
-   * edge sits near the right edge.
+   * Position the element so the posed item's hilt end (its bottom-right)
+   * hangs off the bottom of the view near the right edge, and swings pivot
+   * there.
    */
-  private seat(atlas: TileAtlas, tile: Tile, size: number) {
-    const e = this.extent(atlas, tile);
+  private seat(atlas: TileAtlas, tile: Tile, size: number, pose: Pose) {
+    const e = this.extent(atlas, tile, pose);
     const cell = atlas.cellW;
     const px = size / cell;
     const itemH = e.bottom - e.top + 1;
-    // Flipped vertically: the empty rows above the item end up below it
-    const below = e.top * px;
+    const below = (cell - 1 - e.bottom) * px;
     const right = (cell - 1 - e.right) * px;
-    this.el.style.bottom = `${-(below + itemH * OVERHANG * px)}px`;
+    const overhang = LAUNCHERS.has(`${tile[0]},${tile[1]}`) ? LAUNCHER_OVERHANG : OVERHANG;
+    this.el.style.bottom = `${-(below + itemH * overhang * px)}px`;
     this.el.style.right = `${Math.round(window.innerWidth * 0.03 - right)}px`;
-    // Swing about the hand: the item's flipped bottom-right corner
-    this.el.style.transformOrigin = `${((e.right + 1) / cell) * 100}% ${((cell - e.top) / cell) * 100}%`;
+    this.el.style.transformOrigin = `${((e.right + 1) / cell) * 100}% ${((e.bottom + 1) / cell) * 100}%`;
   }
 
-  private extent(atlas: TileAtlas, tile: Tile): Extent {
-    const key = `${tile[0]},${tile[1]}`;
+  /** Opaque extent of a tile after posing */
+  private extent(atlas: TileAtlas, tile: Tile, pose: Pose): Extent {
+    const key = `${tile[0]},${tile[1]},${pose}`;
     let e = this.extents.get(key);
     if (e) return e;
     e = { left: 0, top: 0, right: atlas.cellW - 1, bottom: atlas.cellH - 1 };
@@ -117,10 +207,11 @@ export class WeaponView {
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           if (data[(y * width + x) * 4 + 3] < 16) continue;
-          if (x < l) l = x;
-          if (x > r) r = x;
-          if (y < t) t = y;
-          if (y > b) b = y;
+          const [px, py] = POSE_MAP[pose](x, y, width);
+          if (px < l) l = px;
+          if (px > r) r = px;
+          if (py < t) t = py;
+          if (py > b) b = py;
         }
       }
       if (r >= 0) e = { left: l, top: t, right: r, bottom: b };
@@ -149,8 +240,10 @@ export class WeaponView {
     if (!resized && tile === this.shown && size === this.size) return;
     this.shown = tile;
     this.size = size;
-    this.sprite.setAttribute('style', tile ? `${atlas.css(tile, size)};filter:${this.filter}` : 'display:none');
+    const pose = tile ? POSES[`${tile[0]},${tile[1]}`] ?? DEFAULT_POSE : DEFAULT_POSE;
+    this.sprite.setAttribute('style', tile
+      ? `${atlas.css(tile, size)};filter:${this.filter};transform:${POSE_CSS[pose]}` : 'display:none');
     this.el.classList.toggle('empty', !tile);
-    if (tile) this.seat(atlas, tile, size);
+    if (tile) this.seat(atlas, tile, size, pose);
   }
 }
