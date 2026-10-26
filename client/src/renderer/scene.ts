@@ -22,6 +22,44 @@ export interface RenderSettings {
   fov: number;
 }
 
+/**
+ * The town sky: a stepped twilight gradient, dark violet overhead to a
+ * blood-red horizon (by day) or a faint ember glow (by night).  The camera
+ * never pitches, so a screen-space gradient with the horizon at mid-height
+ * is enough.
+ */
+const SKY: Record<'day' | 'night', [number, number, number][]> = {
+  day: [[22, 14, 36], [52, 24, 62], [104, 36, 70], [166, 58, 66]],
+  night: [[5, 4, 10], [12, 8, 22], [26, 12, 34], [52, 18, 38]],
+};
+const skyCache = new Map<string, THREE.Texture>();
+
+function skyTexture(kind: 'day' | 'night'): THREE.Texture {
+  let t = skyCache.get(kind);
+  if (t) return t;
+  const c = document.createElement('canvas');
+  c.width = 1;
+  c.height = 64;
+  const g = c.getContext('2d')!;
+  const stops = SKY[kind];
+  const BANDS = 14;
+  for (let y = 0; y < 64; y++) {
+    // Top of the screen to the horizon (mid-height), in whole bands
+    const f = Math.min(1, Math.floor((y / 32) * BANDS) / (BANDS - 1));
+    const i = Math.min(stops.length - 2, Math.floor(f * (stops.length - 1)));
+    const k = f * (stops.length - 1) - i;
+    const [a, b] = [stops[i], stops[i + 1]];
+    g.fillStyle = `rgb(${a.map((v, j) => Math.round(v + (b[j] - v) * k)).join(',')})`;
+    g.fillRect(0, y, 1, 1);
+  }
+  t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.magFilter = THREE.NearestFilter;
+  t.minFilter = THREE.NearestFilter;
+  skyCache.set(kind, t);
+  return t;
+}
+
 export class SceneRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
@@ -76,7 +114,7 @@ export class SceneRenderer {
     this.outdoors = outdoors;
     this.daytime = outdoors && daytime;
     this.dungeon.light.setMode(!outdoors ? 'dungeon' : daytime ? 'day' : 'night');
-    this.scene.background = new THREE.Color(!outdoors ? 0x000000 : daytime ? 0x8fb6dc : 0x1c2230);
+    this.scene.background = !outdoors ? new THREE.Color(0x000000) : skyTexture(daytime ? 'day' : 'night');
   }
 
   /** Animation speed (1 = normal); slowed for debugging and screenshot capture */

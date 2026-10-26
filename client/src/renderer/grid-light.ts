@@ -138,11 +138,12 @@ export class GridLight {
           vec3 light;
           float fade;
           if (lightMode == 2) {
-            light = vec3(1.0);
+            // Town by day under a red twilight sky
+            light = vec3(0.92, 0.78, 0.84);
             fade = 1.0;
           } else {
-            float ambient = lightMode == 1 ? 0.3 : 0.06;
-            light = vec3(ambient) + torch * torchColor + room * vec3(0.6, 0.48, 0.34);
+            vec3 ambient = lightMode == 1 ? vec3(0.3, 0.24, 0.34) : vec3(0.06);
+            light = ambient + torch * torchColor + room * vec3(0.6, 0.48, 0.34);
             // Darkness in steps of whole squares
             fade = exp(-pow(dist * (lightMode == 1 ? 0.045 : 0.075), 2.0));
             fade = ceil(fade * 6.0) / 6.0;

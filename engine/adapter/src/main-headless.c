@@ -433,6 +433,29 @@ static void handle_debug(const jv *req)
 			proto_send_error("bad_value", "No such monster");
 			return;
 		}
+		if (rf_has(race->flags, RF_UNIQUE) && race->cur_num >= race->max_num) {
+			/* A unique already on the level (a quest boss): bring it over */
+			int i;
+			struct loc grid;
+			for (i = 1; i < cave_monster_max(cave); i++) {
+				struct monster *mon = cave_monster(cave, i);
+				if (!mon || mon->race != race) continue;
+				if (scatter_ext(cave, &grid, 1, player->grid, 1, true,
+						square_isempty))
+					monster_swap(mon->grid, grid);
+				break;
+			}
+			if (i >= cave_monster_max(cave)) {
+				proto_send_error("bad_value", "That unique cannot appear");
+				return;
+			}
+			player->noscore |= NOSCORE_DEBUG;
+			player->upkeep->update |= (PU_UPDATE_VIEW | PU_MONSTERS);
+			player->upkeep->redraw |= PR_MAP;
+			handle_stuff(player);
+			snapshot_send(false);
+			return;
+		}
 		cmdq_push(CMD_WIZ_SUMMON_NAMED);
 		cmd_set_arg_number(cmdq_peek(), "index", race->ridx);
 	} else if (streq(action, "map")) {
