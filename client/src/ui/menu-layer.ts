@@ -106,9 +106,24 @@ export class TextLayer extends Layer {
  * Text entry usable with keyboard (type) or controller (pick from
  * suggestions, which the caller provides).
  */
+/** On-screen keyboard rows (controller text entry); special keys are named */
+const OSK_ROWS = [
+  'abcdefghij'.split(''),
+  'klmnopqrst'.split(''),
+  'uvwxyz@!=#'.split(''),
+  '1234567890'.split(''),
+  ['Shift', 'Space', 'Del', 'Done'],
+];
+
 export class TextInputLayer extends Layer {
   private input: HTMLInputElement;
   private menu: ListMenu<string> | null = null;
+  /** On-screen keyboard, for controllers (A types, X deletes, Y shift, Start done) */
+  private osk = h('div', { class: 'osk hidden' });
+  private oskOn = false;
+  private oskRow = 0;
+  private oskCol = 0;
+  private shift = false;
 
   constructor(private ctx: UiContext, title: string, initial: string, maxLength: number,
     private done: (value: string | null) => void, suggestions: string[] = []) {
@@ -134,7 +149,7 @@ export class TextInputLayer extends Layer {
     }
     this.el.append(h('div', { class: 'panel narrow' },
       h('div', { class: 'panel-title' }, title),
-      h('div', { class: 'panel-text' }, this.input, this.menu ? h('div', { class: 'suggestions' }, this.menu.el) : null),
+      h('div', { class: 'panel-text' }, this.input, this.menu ? h('div', { class: 'suggestions' }, this.menu.el) : null, this.osk),
       h('div', { class: 'panel-footer' },
         h('span', {}, h('kbd', {}, 'Enter'), 'Accept'),
         h('span', {}, h('kbd', {}, 'Esc / B'), 'Cancel'))));
@@ -142,6 +157,61 @@ export class TextInputLayer extends Layer {
 
   onOpen(): void {
     if (this.ctx.input.lastDevice === 'keyboard') setTimeout(() => this.input.focus(), 0);
+    // With a controller and nothing to pick from, type on the on-screen keyboard
+    else if (!this.menu) this.showOsk(true);
+  }
+
+  private showOsk(on: boolean) {
+    this.oskOn = on;
+    this.osk.classList.toggle('hidden', !on);
+    this.menu?.el.parentElement?.classList.toggle('hidden', on);
+    this.renderOsk();
+  }
+
+  private renderOsk() {
+    if (!this.oskOn) return;
+    this.osk.replaceChildren(...OSK_ROWS.map((row, r) => h('div', { class: 'osk-row' },
+      ...row.map((k, c) => h('span', {
+        class: `osk-key${k.length > 1 ? ' wide' : ''}${r === this.oskRow && c === this.oskCol ? ' selected' : ''}${k === 'Shift' && this.shift ? ' on' : ''}`,
+        onclick: () => { this.oskRow = r; this.oskCol = c; this.press(); },
+      }, k.length > 1 ? k : this.shift ? k.toUpperCase() : k)))),
+      h('div', { class: 'osk-help' }, 'A type · X delete · Y shift · Start done · B cancel'));
+  }
+
+  private type(s: string) {
+    const max = this.input.maxLength > 0 ? this.input.maxLength : 1e9;
+    if (this.input.value.length < max) this.input.value += s;
+  }
+
+  private press() {
+    const k = OSK_ROWS[this.oskRow][this.oskCol];
+    if (k === 'Shift') this.shift = !this.shift;
+    else if (k === 'Space') this.type(' ');
+    else if (k === 'Del') this.input.value = this.input.value.slice(0, -1);
+    else if (k === 'Done') return this.finish(this.input.value);
+    else this.type(this.shift ? k.toUpperCase() : k);
+    this.renderOsk();
+  }
+
+  private oskInput(ev: InputEvent): boolean {
+    const rows = OSK_ROWS.length;
+    if (ev.ui === 'up' || ev.ui === 'down') {
+      this.oskRow = (this.oskRow + (ev.ui === 'up' ? -1 : 1) + rows) % rows;
+      this.oskCol = Math.min(this.oskCol, OSK_ROWS[this.oskRow].length - 1);
+    } else if (ev.ui === 'left' || ev.ui === 'right') {
+      const n = OSK_ROWS[this.oskRow].length;
+      this.oskCol = (this.oskCol + (ev.ui === 'left' ? -1 : 1) + n) % n;
+    } else if (ev.ui === 'confirm') return this.press(), true;
+    else if (ev.ui === 'secondary') this.input.value = this.input.value.slice(0, -1);
+    else if (ev.ui === 'tertiary') this.shift = !this.shift;
+    else if (ev.ui === 'menu') { this.finish(this.input.value); return true; }
+    else if (ev.ui === 'back') {
+      if (this.menu) this.showOsk(false);
+      else this.finish(null);
+      return true;
+    }
+    this.renderOsk();
+    return true;
   }
 
   onClose(): void {
@@ -154,9 +224,12 @@ export class TextInputLayer extends Layer {
   }
 
   handleInput(ev: InputEvent): boolean {
+    if (this.oskOn) return this.oskInput(ev);
     if (this.menu) {
       if (ev.ui === 'tertiary') {
-        this.input.focus();
+        // Type your own: keyboard players get the text box, controllers the on-screen keyboard
+        if (ev.device === 'gamepad') this.showOsk(true);
+        else this.input.focus();
         return true;
       }
       this.menu.handleInput(ev);

@@ -15,6 +15,8 @@ import {
 } from '@thang/protocol';
 import { Connection, type Transport } from './protocol/connection.ts';
 import { WorkerConnection, useWasmEngine } from './wasm/worker-connection.ts';
+import { openCommandMenu, openUseMenu } from './ui/command-menus.ts';
+import { AimLayer, LookLayer, type TargetingHooks } from './ui/targeting.ts';
 import { HeadingFollower } from './camera/heading.ts';
 import { GameState, type StateChange } from './state/game-state.ts';
 import { TileAtlas } from './sprites/atlas.ts';
@@ -28,8 +30,8 @@ import { PromptLayer } from './ui/prompt-layer.ts';
 import { TextLayer } from './ui/menu-layer.ts';
 import { PanelLayer } from './ui/panel-view.ts';
 import {
-  DeathLayer, InventoryLayer, MapLayer, StoreLayer, TitleLayer, openQuickMenu,
-  openSystemMenu, startBirth,
+  DeathLayer, InventoryLayer, MapLayer, StoreLayer, TitleLayer,
+  openMessageLog, openSystemMenu, startBirth,
 } from './ui/screens.ts';
 import { Sfx } from './audio/sfx.ts';
 import { h } from './ui/dom.ts';
@@ -594,9 +596,13 @@ export class App implements InputHandler {
         break;
       case 'spells': this.command({ action: 'cast' }); break;
       case 'study': this.command({ action: 'study' }); break;
-      case 'quick':
-        openQuickMenu(this.ctx, { save: () => this.send({ type: 'save' }), panels: (w) => this.openPanels(w) });
+      case 'useMenu': openUseMenu(this.ctx); break;
+      case 'commands': this.openCommands(); break;
+      case 'aim':
+        if (this.state.monsters.some((m) => m.inView)) this.ui.open(new AimLayer(this.ctx, this.targetingHooks()));
+        else this.state.note('Nothing in sight to aim at.');
         break;
+      case 'look': this.ui.open(new LookLayer(this.ctx, this.targetingHooks())); break;
       case 'monsterList': this.openPanels('monsterList'); break;
       case 'itemList': this.openPanels('itemList'); break;
       case 'recall': this.openPanels('recall'); break;
@@ -617,6 +623,34 @@ export class App implements InputHandler {
   }
 
   private faceTargetSoon = false;
+
+  private targetingHooks(): TargetingHooks {
+    return {
+      face: (x, y) => {
+        const p = this.state.player;
+        if (!p || !this.renderer || (x === p.x && y === p.y)) return;
+        const ang = Math.atan2(x - p.x, -(y - p.y));
+        this.renderer.cam.face(FACING_TO_DIR[((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8]);
+      },
+      // The recall panel follows the engine's tracked monster: give it a moment
+      recall: () => setTimeout(() => this.openPanels('recall'), 150),
+    };
+  }
+
+  private openCommands(): void {
+    openCommandMenu(this.ctx, {
+      save: () => this.send({ type: 'save' }),
+      panels: (w) => this.openPanels(w),
+      map: () => this.ui.open(new MapLayer(this.ctx)),
+      look: () => this.ui.open(new LookLayer(this.ctx, this.targetingHooks())),
+      aim: () => this.handleInput({ game: 'aim', device: this.input.lastDevice, repeat: false }),
+      messages: () => openMessageLog(this.ctx),
+      system: () => openSystemMenu(this.ctx, {
+        save: () => this.send({ type: 'save' }),
+        quitToTitle: () => this.send({ type: 'close_game' }),
+      }),
+    });
+  }
 
   /* ---------------------------------------------------------------- */
   /* Facing while the engine moves us (explore, travel, run)           */
@@ -698,7 +732,7 @@ export class App implements InputHandler {
     this.state.note('Nothing to interact with here.');
   }
 
-  /** Attack: fire at the nearest foe if equipped to, else melee */
+  /** Autofight: melee an adjacent foe, else fire at the nearest, else step toward it */
   private attack(): void {
     const s = this.state;
     const p = s.player;
@@ -719,8 +753,18 @@ export class App implements InputHandler {
     if (hasLauncher && s.quiver.length && s.monsters.some((m) => m.inView)) {
       return this.command({ action: 'fire_at_nearest' });
     }
-    // Swing at the air ahead (native walk into nothing just moves, so don't)
-    this.state.note(s.monsters.some((m) => m.inView) ? 'No adjacent foe, and nothing to shoot with.' : 'No foe in sight.');
+    // Autofight: close in on the nearest visible monster, one step at a time
+    const near = s.monsters.filter((m) => m.inView)
+      .sort((a, b) => Math.max(Math.abs(a.x - p.x), Math.abs(a.y - p.y)) - Math.max(Math.abs(b.x - p.x), Math.abs(b.y - p.y)))[0];
+    if (near) {
+      const dx = Math.sign(near.x - p.x), dy = Math.sign(near.y - p.y);
+      const dir = Object.entries(DIR_OFFSETS).find(([, [ox, oy]]) => ox === dx && oy === dy)?.[0];
+      if (dir) {
+        this.renderer?.cam.face(Number(dir) as Direction);
+        return this.command({ action: 'walk', dir: Number(dir) as Direction });
+      }
+    }
+    this.state.note('No foe in sight.');
   }
 
   private continueExplore(m: StateMessage): void {
@@ -798,11 +842,11 @@ export class App implements InputHandler {
     else if (aheadShape === 'door_open') primary = 'Close door';
     else if (aheadShape === 'rubble' || aheadShape === 'passable_rubble') primary = 'Clear rubble';
     if (primary) hints.push({ button: pr.interact ?? 'A', label: primary });
-    if (s.monsters.some((m) => m.inView)) hints.push({ button: pr.attack ?? 'F', label: 'Attack' }, { button: pr.targetNext ?? 'Tab', label: 'Target' });
+    if (s.monsters.some((m) => m.inView)) hints.push({ button: pr.attack ?? 'F', label: 'Fight' }, { button: pr.aim ?? 'T', label: 'Aim' });
     else hints.push({ button: pr.explore ?? 'X', label: this.exploring ? 'Exploring…' : 'Explore' });
     hints.push({ button: pr.inventory ?? 'I', label: 'Gear' });
-    if (p.canCast) hints.push({ button: pr.spells ?? 'Z', label: p.spellNoun ? `Cast ${p.spellNoun}` : 'Cast' });
-    hints.push({ button: pr.quick ?? 'V', label: 'Actions' });
+    hints.push({ button: pr.useMenu ?? 'U', label: p.canCast ? 'Cast & use' : 'Use' });
+    hints.push({ button: pr.commands ?? 'V', label: 'Commands' });
     this.hud.setHints(hints);
   }
 

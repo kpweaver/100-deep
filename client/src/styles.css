@@ -262,3 +262,19 @@ kbd { display: inline-block; min-width: 1.6em; text-align: center; margin-right:
   .minimap { width: 130px; }
   .menu-detail { display: none; }
 }
+
+/* Aim and Examine: the world stays visible; a bar sits above the hints */
+.layer.aim-layer { background: transparent; align-items: flex-end; pointer-events: none; }
+.aim-bar { margin-bottom: 64px; min-width: 360px; max-width: 80vw; padding: 8px 16px; background: var(--panel); border: 1px solid #5a4a2a; text-align: center; pointer-events: auto; }
+.aim-title { color: var(--gold); font-size: 16px; }
+.aim-name { font-size: 16px; margin: 4px 0; }
+.aim-help { display: flex; gap: 16px; justify-content: center; font-size: 16px; color: #b8a888; }
+
+/* On-screen keyboard (controller text entry) */
+.osk { margin-top: 10px; }
+.osk-row { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; }
+.osk-key { min-width: 32px; padding: 2px 6px; text-align: center; border: 1px solid #3a3020; background: rgba(0,0,0,0.5); font-size: 16px; }
+.osk-key.wide { min-width: 80px; }
+.osk-key.selected { border-color: var(--gold); color: var(--gold); background: rgba(80,60,20,0.6); }
+.osk-key.on { color: #7fe07a; }
+.osk-help { text-align: center; color: #b8a888; font-size: 16px; margin-top: 6px; }

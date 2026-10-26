@@ -6,19 +6,23 @@ export type GameAction =
   | 'moveForward' | 'moveBack' | 'strafeLeft' | 'strafeRight'
   | 'turnLeft' | 'turnRight'
   | 'interact'      // contextual: stairs, pick up, open door ahead
-  | 'attack'        // fire at nearest if possible, otherwise melee ahead
+  | 'attack'        // autofight: melee adjacent, fire if possible, else step toward the nearest foe
   | 'explore'
   | 'wait'
   | 'rest'
   | 'targetNext' | 'targetPrev'
-  | 'inventory' | 'spells' | 'quick' | 'map' | 'character' | 'menu'
+  | 'inventory' | 'spells' | 'map' | 'character' | 'menu'
   | 'cancel'
   | 'runForward'
   | 'walkDir1' | 'walkDir2' | 'walkDir3' | 'walkDir4' | 'walkDir6'
   | 'walkDir7' | 'walkDir8' | 'walkDir9'
   | 'goUp' | 'goDown'
   | 'study'
-  | 'monsterList' | 'itemList' | 'recall' | 'toggleSidebar';
+  | 'monsterList' | 'itemList' | 'recall' | 'toggleSidebar'
+  | 'useMenu'       // spells, magic devices, potions, scrolls, missiles
+  | 'commands'      // every command, by category
+  | 'aim'           // pick and cycle a target, then fire at it
+  | 'look';         // examine visible monsters and objects
 
 export type UiAction =
   | 'up' | 'down' | 'left' | 'right'
@@ -51,16 +55,18 @@ export type PromptKey = GameAction | UiAction | 'tabs' | 'zoom' | 'dpad' | 'scro
 export const PROMPTS: Record<Device, Partial<Record<PromptKey, string>>> = {
   keyboard: {
     interact: 'Space', attack: 'F', explore: 'X', wait: '.', rest: 'R',
-    targetNext: 'Tab', inventory: 'I', spells: 'Z', quick: 'V', map: 'M',
+    targetNext: 'Tab', inventory: 'I', spells: 'Z', map: 'M',
+    useMenu: 'U', commands: 'V', aim: 'T', look: 'L',
     character: 'C', menu: 'Esc', confirm: 'Enter', back: 'Esc',
     secondary: 'Shift+Enter', tertiary: '?', moveForward: 'W', turnLeft: 'Q', turnRight: 'E',
     goUp: '<', goDown: '>',
     tabs: 'Tab', zoom: '+/-', dpad: 'Arrows', scroll: '↑/↓', page: '←/→',
   },
   gamepad: {
-    interact: 'A', attack: 'RT', explore: 'X', wait: 'R3', rest: 'LB▸Rest',
-    targetNext: 'RB', inventory: 'Y', spells: 'LT', quick: 'LB', map: 'Select',
-    character: 'Select', menu: 'Start', confirm: 'A', back: 'B',
+    interact: 'A', attack: 'RT', explore: 'LT', wait: 'LB', rest: 'Hold LB',
+    targetNext: 'RB', inventory: 'Y', spells: 'X', map: 'R3',
+    useMenu: 'X', commands: 'Select', aim: 'RB', look: 'L3',
+    character: 'Start', menu: 'Start', confirm: 'A', back: 'B',
     secondary: 'X', tertiary: 'Y', moveForward: 'L↑', turnLeft: 'R←', turnRight: 'R→',
     goUp: 'A', goDown: 'A',
     tabs: 'LB/RB', zoom: 'LT/RT', dpad: 'D-pad', scroll: 'D-pad ↑/↓', page: 'D-pad ←/→',

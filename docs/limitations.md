@@ -7,9 +7,9 @@ These systems all exist in the engine. Only the UI to reach them is missing.
 - **Targeting arbitrary grids** (aiming a ball spell at an empty grid). Aim
   prompts offer targetable monsters, the current target and directions.
   `target_set_location` is not exposed.
-- **The look command** as an interactive cursor. The map cursor shows what
-  is known at a grid, and monster recall works for visible monsters, but
-  there is no stepping through "interesting" grids like `l`/`x`.
+- **Looking at arbitrary grids.** Examine (L / L3) steps through the
+  visible monsters and objects with recall, and the map cursor shows what is
+  known at any grid, but there is no free look cursor over terrain in 3D.
 - **Knowledge menus** (`~`): monster, object, artifact and rune knowledge
   browsers, and the character history and notes.
 - **Point-buy stat editing** at birth (`CMD_BUY_STAT`/`CMD_SELL_STAT`): only
@@ -70,17 +70,17 @@ These systems all exist in the engine. Only the UI to reach them is missing.
 
 ## Not tested
 
-- **Physical controllers**: the Gamepad API path (standard mapping, Xbox and
-  PlayStation layouts) is implemented, but this build was not tried with
-  real hardware. Steam Deck is untested.
+- **Physical controllers**: every button, the tap/hold on LB, hold-to-run
+  and the on-screen keyboard were driven through the Gamepad API with a
+  simulated standard-mapping pad, but not with real hardware. Steam Deck is
+  untested.
 ## Recommended next steps
 
-1. Look/target cursor in 3D: highlight grids, cycle "interesting" things,
-   target locations.
+1. A free look/target cursor over grids in 3D (target locations, look at
+   terrain).
 2. Knowledge menus, via the same virtual-terminal capture used for the
    subwindows (`panels.c`).
 3. A birth screen with point-buy stats and the birth options page.
-4. Rebinding UI and per-controller glyphs (Xbox vs PlayStation).
+4. A rebinding UI.
 5. Per-step animation of runs and pathing, by streaming intermediate
    snapshots on `EVENT_PLAYERMOVED` (cosmetic only).
-6. A WebAssembly build of the same adapter for a server-less web version.

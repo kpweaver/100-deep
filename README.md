@@ -86,28 +86,33 @@ Add `?debug` to the client URL to log protocol messages in the browser console.
 Turning only changes your view. Angband has no facing, so turning never
 costs a game turn.
 
+The controller layout follows Orbrun's: one contextual button, a few
+menus, and an action bar that always says what each button does.
+
 | Action | Keyboard | Controller |
 |---|---|---|
 | Move forward / back | W / S, ↑ / ↓ | Left stick, D-pad ↑/↓ |
 | Strafe | A / D | Left stick ←/→ |
 | Turn 45° | Q / E, ← / → | Right stick, D-pad ←/→ |
-| Run | Shift+W | — |
-| Interact (stairs, pick up, open/close door, enter shop, clear rubble, disarm) | Space / Enter | A |
-| Attack (melee adjacent, else fire at nearest if you have a launcher) | F | RT |
-| Auto-explore (repeats until something happens) | X | X |
-| Cycle target (turns to face it) | Tab / Shift+Tab | RB |
-| Inventory & equipment | I | Y |
-| Cast a spell / study | Z / Shift+Z | LT |
-| Quick actions (rest, stairs travel, doors, tunnel, throw, save…) | V | LB |
-| Rest as needed | R | LB ▸ Rest |
-| Wait a turn | . / Numpad 5 | R3 |
-| Map (cursor + travel there) | M | Select |
-| Character sheet (stock `C` screen, 2 pages) | C | LB ▸ Character sheet |
-| Visible monster list / item list / recall popups (←/→ to switch) | [ / ] | LB ▸ lists |
-| Show/hide the monster & item lists under the minimap | \\ | Options |
+| Run | Shift+W | Hold forward |
+| Interact (stairs, pick up, open/close door, enter shop, clear rubble, attack ahead) | Space / Enter | A |
+| Back / cancel | Esc | B |
+| Use: spells, study, wands, staffs, rods, activation, potions, scrolls, missiles | U (Z casts, Shift+Z studies) | X |
+| Gear: pack and equipment | I | Y |
+| Wait a turn / rest as needed | . / R | LB / hold LB |
+| Aim: pick a target, cycle targets, then fire (or throw) | T | RB (LB/RB cycle, A fires) |
+| Auto-explore (repeats until something happens) | X | LT |
+| Autofight: attack adjacent, fire if you can, else close in | F | RT |
+| Examine: step through what you can see, recall monsters | L | L3 |
+| Level map (cursor + travel there) | M | R3 |
+| Character sheet | C | Start ▸ / Select ▸ Look & knowledge |
+| Pause / system menu (options, controls, messages, save, quit) | Esc | Start |
+| **All commands**, by category (every engine command, including steal, refill, inscribe, alter, jump, auto-pickup, ignore toggling) | V | Select |
+| Visible monster list / item list / recall popups (←/→ to switch) | [ / ] | Select ▸ Look & knowledge |
+| Cycle target outside aim mode | Tab / Shift+Tab | — |
 | Absolute 8-way walk | Numpad 1–9 | — |
-| Pause / system menu (options, save, save & return to title, save & quit) | Esc | Start |
-| Menus | ↑↓ + Enter, letter shortcuts a–z, Esc | D-pad/stick + A, B to go back |
+| Text prompts (inscriptions, names) | Keyboard | On-screen keyboard (A types, X deletes, Y shift, Start done) |
+| Menus | ↑↓ + Enter, letter shortcuts a–z, Esc | D-pad/stick + A, B to go back, LB/RB tabs, LT/RT page |
 
 Every implemented feature can be used without a mouse. Button prompts match
 your controller: Xbox, PlayStation (✕○□△) or Nintendo labels are detected

@@ -35,9 +35,12 @@ const KEYS: Record<string, KeyBinding> = {
   Tab: { game: 'targetNext', ui: 'tabNext' },
   KeyI: { game: 'inventory' },
   KeyZ: { game: 'spells' },
-  KeyV: { game: 'quick' },
+  KeyV: { game: 'commands' },
   KeyM: { game: 'map' },
   KeyC: { game: 'character' },
+  KeyU: { game: 'useMenu' },
+  KeyT: { game: 'aim' },
+  KeyL: { game: 'look' },
   PageUp: { ui: 'pageUp' },
   PageDown: { ui: 'pageDown' },
   Numpad1: { game: 'walkDir1' }, Numpad2: { game: 'walkDir2' }, Numpad3: { game: 'walkDir3' },
@@ -48,23 +51,40 @@ const KEYS: Record<string, KeyBinding> = {
 /* Standard gamepad mapping indices */
 const B = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, SELECT: 8, START: 9, L3: 10, R3: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
 
+/**
+ * Controller layout, after Orbrun's: A does what the moment calls for, B
+ * backs out, X uses (spells, devices, potions...), Y is gear, LB waits (hold
+ * to rest), RB aims then fires, LT explores, RT autofights, L3 examines,
+ * R3 shows the map, Start is character and system, Select lists every
+ * command.  In menus the same buttons confirm, go back, page and switch tabs.
+ */
 const PAD_BUTTONS: Record<number, KeyBinding> = {
   [B.A]: { game: 'interact', ui: 'confirm' },
   [B.B]: { game: 'cancel', ui: 'back' },
-  [B.X]: { game: 'explore', ui: 'secondary' },
+  [B.X]: { game: 'useMenu', ui: 'secondary' },
   [B.Y]: { game: 'inventory', ui: 'tertiary' },
-  [B.LB]: { game: 'quick', ui: 'tabPrev' },
-  [B.RB]: { game: 'targetNext', ui: 'tabNext' },
-  [B.LT]: { game: 'spells', ui: 'pageUp' },
+  // LB's game action is decided on release or hold (see HOLD_ACTIONS)
+  [B.LB]: { ui: 'tabPrev' },
+  [B.RB]: { game: 'aim', ui: 'tabNext' },
+  [B.LT]: { game: 'explore', ui: 'pageUp' },
   [B.RT]: { game: 'attack', ui: 'pageDown' },
-  [B.SELECT]: { game: 'map', ui: 'back' },
+  [B.SELECT]: { game: 'commands', ui: 'back' },
   [B.START]: { game: 'menu', ui: 'menu' },
-  [B.R3]: { game: 'wait' },
+  [B.L3]: { game: 'look' },
+  [B.R3]: { game: 'map' },
   [B.UP]: { game: 'moveForward', ui: 'up' },
   [B.DOWN]: { game: 'moveBack', ui: 'down' },
   [B.LEFT]: { game: 'turnLeft', ui: 'left' },
   [B.RIGHT]: { game: 'turnRight', ui: 'right' },
 };
+
+/** Buttons with a tap and a hold action in play: LB waits a turn, or rests when held */
+const HOLD_ACTIONS: Record<number, { tap: GameAction; hold: GameAction }> = {
+  [B.LB]: { tap: 'wait', hold: 'rest' },
+};
+const HOLD_TIME = 0.45;
+/** Holding forward (stick or d-pad) this long starts a run */
+const RUN_HOLD_TIME = 0.5;
 
 const DEADZONE = 0.45;
 const REPEAT_DELAY = 0.35;
@@ -75,7 +95,7 @@ const REPEATABLE = new Set<string>([
   'up', 'down', 'left', 'right', 'pageUp', 'pageDown',
 ]);
 
-interface HeldState { binding: KeyBinding; time: number; next: number }
+interface HeldState { binding: KeyBinding; time: number; next: number; button?: number; held?: boolean; ran?: boolean }
 
 export class InputManager {
   private stack: InputHandler[] = [];
@@ -198,20 +218,37 @@ export class InputManager {
 
     for (const [id, binding] of active) {
       const held = this.padHeld.get(id);
+      const button = id.startsWith('b') ? Number(id.slice(1)) : undefined;
       if (!held) {
         this.setDevice('gamepad');
-        this.padHeld.set(id, { binding, time: 0, next: REPEAT_DELAY });
+        this.padHeld.set(id, { binding, time: 0, next: REPEAT_DELAY, button });
         this.dispatch({ ...binding, device: 'gamepad', repeat: false });
       } else {
         held.time += dt;
+        const hold = button !== undefined ? HOLD_ACTIONS[button] : undefined;
+        if (hold && !held.held && held.time >= HOLD_TIME) {
+          held.held = true;
+          this.dispatch({ game: hold.hold, device: 'gamepad', repeat: false });
+        }
         const name = binding.game ?? binding.ui ?? '';
-        if (REPEATABLE.has(name) && held.time >= held.next) {
+        // Holding forward runs (once); the run then continues in the engine
+        if (name === 'moveForward' && !held.ran && held.time >= RUN_HOLD_TIME) {
+          held.ran = true;
+          this.dispatch({ game: 'runForward', device: 'gamepad', repeat: false });
+        }
+        if (REPEATABLE.has(name) && !held.ran && held.time >= held.next) {
           held.next += REPEAT_RATE;
           this.dispatch({ ...binding, device: 'gamepad', repeat: true });
         }
       }
     }
-    for (const id of [...this.padHeld.keys()]) if (!active.has(id)) this.padHeld.delete(id);
+    for (const [id, held] of [...this.padHeld]) {
+      if (active.has(id)) continue;
+      // A short press of a tap/hold button does its tap action on release
+      const hold = held.button !== undefined ? HOLD_ACTIONS[held.button] : undefined;
+      if (hold && !held.held) this.dispatch({ game: hold.tap, device: 'gamepad', repeat: false });
+      this.padHeld.delete(id);
+    }
   }
 
   private notePad(pad: Gamepad) {

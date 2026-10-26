@@ -261,8 +261,13 @@ describe('controller button labels', () => {
     const ps = promptsFor('gamepad', 'playstation');
     expect(ps.confirm).toBe('✕');
     expect(ps.back).toBe('○');
-    expect(ps.rest).toBe('L1▸Rest');
+    expect(ps.rest).toBe('Hold L1');
     expect(ps.tabs).toBe('L1/R1');
+    // Orbrun-style layout: X uses, RB aims, L3 examines, Select lists every command
+    expect(ps.useMenu).toBe('□');
+    expect(ps.aim).toBe('R1');
+    expect(ps.look).toBe('L3');
+    expect(ps.commands).toBe('Share');
     const nin = promptsFor('gamepad', 'nintendo');
     expect(nin.confirm).toBe('B'); // bottom button is labelled B on Nintendo pads
     expect(nin.attack).toBe('ZR');

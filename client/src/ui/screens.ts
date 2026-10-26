@@ -274,51 +274,6 @@ export class InventoryLayer extends Layer {
 /* Quick actions (LB)                                                  */
 /* ------------------------------------------------------------------ */
 
-export function openQuickMenu(ctx: UiContext, extra: { save: () => void; panels: (which: 'monsterList' | 'itemList' | 'recall' | 'character') => void }): void {
-  type Q = () => void;
-  const cmd = (c: Omit<CommandMessage, 'type'>): Q => () => ctx.send({ type: 'command', ...c } as CommandMessage);
-  const items: MenuItem<Q>[] = [
-    { label: 'Rest as needed', detail: 'until HP/SP full or disturbed', data: cmd({ action: 'rest', mode: 'as_needed' }) },
-    { label: 'Rest until HP & SP full', data: cmd({ action: 'rest', mode: 'hp_sp' }) },
-    { label: 'Rest 10 turns', data: cmd({ action: 'rest', mode: 'turns', turns: 10 }) },
-    { label: 'Hold / wait a turn', data: cmd({ action: 'hold' }) },
-    { label: 'Auto-explore', data: cmd({ action: 'explore' }) },
-    { label: 'Travel to nearest down staircase', data: cmd({ action: 'navigate_down' }) },
-    { label: 'Travel to nearest up staircase', data: cmd({ action: 'navigate_up' }) },
-    { label: 'Go down staircase', data: cmd({ action: 'go_down' }) },
-    { label: 'Go up staircase', data: cmd({ action: 'go_up' }) },
-    { label: 'Fire at nearest', data: cmd({ action: 'fire_at_nearest' }) },
-    { label: 'Throw an item', data: cmd({ action: 'throw' }) },
-    { label: 'Cast a spell', data: cmd({ action: 'cast' }) },
-    { label: 'Study a book', data: cmd({ action: 'study' }) },
-    { label: 'Open (choose direction)', data: cmd({ action: 'open' }) },
-    { label: 'Close a door', data: cmd({ action: 'close' }) },
-    { label: 'Tunnel', data: cmd({ action: 'tunnel' }) },
-    { label: 'Disarm a trap or chest', data: cmd({ action: 'disarm' }) },
-    { label: 'Alter terrain', data: cmd({ action: 'alter' }) },
-    { label: 'Walk into a trap (jump)', data: cmd({ action: 'jump' }) },
-    { label: 'Use any item', data: cmd({ action: 'use' }) },
-    { label: 'Visible monster list', data: () => extra.panels('monsterList') },
-    { label: 'Visible item list', data: () => extra.panels('itemList') },
-    { label: 'Recall (tracked monster or item)', data: () => extra.panels('recall') },
-    { label: 'Character sheet', data: () => extra.panels('character') },
-    { label: 'Repeat level feeling', data: cmd({ action: 'feeling' }) },
-    { label: 'Toggle unignore', data: cmd({ action: 'toggle_unignore' }) },
-    { label: 'Clear target', data: cmd({ action: 'target_clear' }) },
-    { label: 'Save game', data: extra.save },
-  ];
-  const layer: MenuLayer<Q> = new MenuLayer(ctx, {
-    title: 'Actions',
-    items,
-    letters: true,
-    onSelect: (i) => {
-      layer.close();
-      i.data();
-    },
-  });
-  ctx.ui.open(layer);
-}
-
 /* ------------------------------------------------------------------ */
 /* Full map, character sheet, system menu                              */
 /* ------------------------------------------------------------------ */
@@ -447,7 +402,7 @@ export function openSystemMenu(ctx: UiContext, actions: { save: () => void; quit
   ctx.ui.open(layer);
 }
 
-function openMessageLog(ctx: UiContext) {
+export function openMessageLog(ctx: UiContext) {
   const lines = ctx.state.log.slice(-200).map((m) => (m.count > 1 ? `${m.text} (x${m.count})` : m.text));
   const el = h('div', { class: 'message-log' }, lines.map((l) => h('div', {}, l)));
   const layer = new TextLayer('Messages', el);
@@ -706,21 +661,23 @@ export function controlsHelp(): HTMLElement {
     ['Move forward / back', 'W / S, ↑ / ↓', 'Left stick, D-pad ↑/↓'],
     ['Strafe', 'A / D', 'Left stick ←/→'],
     ['Turn 45°', 'Q / E, ← / →', 'Right stick, D-pad ←/→'],
-    ['Run', 'Shift + W', '—'],
-    ['Interact (stairs, pick up, open, attack ahead)', 'Space / Enter', 'A'],
-    ['Attack / fire at nearest', 'F', 'RT'],
-    ['Auto-explore', 'X', 'X'],
-    ['Cycle target', 'Tab / Shift+Tab', 'RB'],
-    ['Inventory & equipment', 'I', 'Y'],
-    ['Cast a spell', 'Z', 'LT'],
-    ['Quick actions (rest, stairs, doors, …)', 'V', 'LB'],
-    ['Rest', 'R', 'LB ▸ Rest'],
-    ['Wait a turn', '. or Numpad 5', 'R3'],
-    ['Map', 'M', 'Select'],
-    ['Character', 'C', '—'],
+    ['Run', 'Shift + W', 'Hold forward'],
+    ['Interact (stairs, doors, attack, pick up, shops)', 'Space / Enter', 'A'],
+    ['Back / cancel', 'Esc', 'B'],
+    ['Use: spells, wands, staffs, rods, potions, scrolls…', 'U (Z casts)', 'X'],
+    ['Gear (pack and equipment)', 'I', 'Y'],
+    ['Wait a turn / rest', '. / R', 'LB / hold LB'],
+    ['Aim, then fire', 'T', 'RB (then A)'],
+    ['Auto-explore', 'X', 'LT'],
+    ['Autofight (attack, fire, or close in)', 'F', 'RT'],
+    ['Examine (look at what you see)', 'L', 'L3'],
+    ['Level map', 'M', 'R3'],
+    ['Character and system menu', 'C / Esc', 'Start'],
+    ['All commands, by category', 'V', 'Select'],
+    ['Cycle target', 'Tab / Shift+Tab', 'RB in aim mode'],
     ['Stairs up / down', '< / >', 'A on stairs'],
     ['Absolute direction walk', 'Numpad 1-9', '—'],
-    ['Pause / system menu', 'Esc', 'Start'],
+    ['Type text (inscriptions, names)', 'Keyboard', 'On-screen keyboard'],
   ];
   return h('table', { class: 'controls' },
     h('tr', {}, h('th', {}, 'Action'), h('th', {}, 'Keyboard'), h('th', {}, 'Controller')),
