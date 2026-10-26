@@ -13,6 +13,8 @@ export class KnownMap {
   inView = new Uint8Array(0);
   /** Feature of unknown grids that are in view but unlit (silhouettes) */
   dark = new Uint8Array(0);
+  /** Known grids with room light (they glow when seen, and stay remembered as lit) */
+  glow = new Uint8Array(0);
   traps = new Map<number, Tile>();
   /** Incremented on every change, so consumers can cheaply detect updates */
   version = 0;
@@ -49,14 +51,16 @@ export class KnownMap {
       this.light = new Uint8Array(n);
       this.inView = new Uint8Array(n);
       this.dark = new Uint8Array(n);
+      this.glow = new Uint8Array(n);
       this.traps.clear();
       this.generation++;
     }
-    for (const [x, y, f, light, view, trap, dark] of update.cells) {
+    for (const [x, y, f, light, view, trap, dark, glow] of update.cells) {
       if (!this.inBounds(x, y)) continue;
       const i = this.index(x, y);
       this.feat[i] = f;
       this.dark[i] = dark ?? 0;
+      this.glow[i] = glow ?? 0;
       this.light[i] = light;
       this.inView[i] = view;
       if (trap) this.traps.set(i, trap);

@@ -12,19 +12,17 @@ import type { FeatureClass, WallMaterial } from '../state/features.ts';
 import type { KnownMap } from '../state/known-map.ts';
 import type { TileAtlas } from '../sprites/atlas.ts';
 import { createSurfaceTextures, type SurfaceTextures } from './textures.ts';
+import { GridLight } from './grid-light.ts';
 
 export const WALL_HEIGHT = 1.0;
 
 /**
- * Brightness baked into instance colours from the engine's view of each
- * grid: in view = fully lit (as the stock map draws it), remembered =
- * dimmed, like Angband's darker colours for remembered grids.
+ * Instance colours carry no lighting: grid-light.ts lights each square from
+ * the torch, room light and distance.  Only silhouettes (unknown grids in view) are tinted darker, to read as
+ * shape without detail.
  */
-const IN_VIEW = new THREE.Color(1, 1, 1);
-const REMEMBERED = new THREE.Color(0.4, 0.4, 0.47);
-const REMEMBERED_LIT = new THREE.Color(0.5, 0.5, 0.56);
-/** Unknown grids in view but unlit (opt-in silhouettes): barely there */
-const SILHOUETTE = new THREE.Color(0.18, 0.18, 0.22);
+const KNOWN = new THREE.Color(1, 1, 1);
+const SILHOUETTE = new THREE.Color(0.45, 0.45, 0.52);
 
 interface Batch {
   mesh: THREE.InstancedMesh;
@@ -51,6 +49,8 @@ export class DungeonMesh {
   private decalGeo = new THREE.PlaneGeometry(0.9, 0.9).rotateX(-Math.PI / 2);
   private rubbleGeo = new THREE.DodecahedronGeometry(0.15, 0);
   private materials = new Map<string, THREE.Material>();
+  /** Per-grid lighting shared by all terrain materials (grid-light.ts) */
+  readonly light = new GridLight();
   private batches = new Map<string, Batch>();
   private billboards = new THREE.Group();
   private tmp = new THREE.Object3D();
@@ -71,16 +71,21 @@ export class DungeonMesh {
   }
 
   private lambert(key: string, map: THREE.Texture, opts: THREE.MeshLambertMaterialParameters = {}) {
-    return this.material(key, () => new THREE.MeshLambertMaterial({ map, ...opts }));
+    return this.material(key, () => this.lit(new THREE.MeshLambertMaterial({ map, ...opts })));
+  }
+
+  private lit(m: THREE.MeshLambertMaterial): THREE.MeshLambertMaterial {
+    this.light.patch(m);
+    return m;
   }
 
   private wallMaterial(m: WallMaterial, treasure: boolean): THREE.Material {
     const key = `wall:${m}:${treasure}`;
-    return this.material(key, () => new THREE.MeshLambertMaterial({
+    return this.material(key, () => this.lit(new THREE.MeshLambertMaterial({
       map: this.tex[m],
       // Treasure veins glint faintly, as their distinct Gervais tiles do
       emissive: treasure ? new THREE.Color(0.25, 0.2, 0.02) : new THREE.Color(0, 0, 0),
-    }));
+    })));
   }
 
   /** Remove everything (on level change) */
@@ -138,6 +143,7 @@ export class DungeonMesh {
 
   rebuild(ctx: DungeonBuildContext): void {
     const { map, classes } = ctx;
+    this.light.update(map);
     const w = map.width;
     const h = map.height;
     const n = w * h;
@@ -183,8 +189,7 @@ export class DungeonMesh {
         if (!f) continue;
         const c = classes[f] ?? classes[0];
         const inView = map.inView[i] === 1;
-        const lit = map.light[i] !== 3;
-        const col = silhouette ? SILHOUETTE : inView ? IN_VIEW : lit ? REMEMBERED_LIT : REMEMBERED;
+        const col = silhouette ? SILHOUETTE : KNOWN;
 
         if (c.shape === 'wall') {
           // Skip walls nobody can see: all four neighbours solid

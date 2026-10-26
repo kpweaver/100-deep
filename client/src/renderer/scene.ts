@@ -1,8 +1,8 @@
 /**
- * Three.js scene with hybrid lighting:
- *  - Terrain gets atmosphere: a warm torch light around the player, soft
- *    ambient light and distance fog, on top of per-grid brightness baked
- *    from the engine's in-view / remembered state (dungeon-mesh.ts).
+ * Three.js scene with old-school lighting:
+ *  - Terrain is lit per grid square in discrete steps (grid-light.ts): a
+ *    torch around the player sized by the engine's light radius, Angband's
+ *    room light, and darkness that swallows distant squares.
  *  - Monsters, objects, traps and effects ignore lights and fog entirely,
  *    so anything Angband says the player can see is always drawn clearly,
  *    however far away or dark the surroundings look.
@@ -29,12 +29,6 @@ export class SceneRenderer {
   readonly dungeon: DungeonMesh;
   readonly entities: EntityLayer;
   readonly effects: EffectsLayer;
-  private ambient = new THREE.AmbientLight(0xb8b8d0, 0.55);
-  /** Fixed light so differently oriented wall faces shade differently */
-  private shade = new THREE.DirectionalLight(0xffffff, 0.25);
-  /** Warm light carried by the player, sized by the engine's light radius */
-  private torch = new THREE.PointLight(0xffc887, 2.4, 7, 1.2);
-  private torchRadius = 2;
   private clock = new THREE.Clock();
   private time = 0;
   private outdoors = false;
@@ -50,10 +44,7 @@ export class SceneRenderer {
     this.cam = new GridCamera(this.settings.fov);
     this.entities = new EntityLayer(atlas);
     this.effects = new EffectsLayer(atlas);
-    this.shade.position.set(0.6, 1, 0.35);
-    this.scene.add(this.dungeon.group, this.entities.group, this.effects.group, this.ambient, this.shade, this.cam.camera);
-    this.cam.camera.add(this.torch);
-    this.torch.position.set(0, 0.05, 0);
+    this.scene.add(this.dungeon.group, this.entities.group, this.effects.group, this.cam.camera);
     this.setOutdoors(false);
     window.addEventListener('resize', () => this.resize());
     this.resize();
@@ -84,25 +75,8 @@ export class SceneRenderer {
   setOutdoors(outdoors: boolean, daytime = false): void {
     this.outdoors = outdoors;
     this.daytime = outdoors && daytime;
-    // Soft atmospheric fog on terrain only (entities opt out of fog)
-    if (outdoors && daytime) {
-      const sky = new THREE.Color(0x8fb6dc);
-      this.scene.background = sky;
-      this.scene.fog = new THREE.Fog(sky, 14, 70);
-      this.ambient.intensity = 1.35;
-      this.shade.intensity = 0.6;
-    } else if (outdoors) {
-      const sky = new THREE.Color(0x1c2230);
-      this.scene.background = sky;
-      this.scene.fog = new THREE.Fog(sky, 6, 34);
-      this.ambient.intensity = 0.8;
-      this.shade.intensity = 0.25;
-    } else {
-      this.scene.background = new THREE.Color(0x000000);
-      this.scene.fog = new THREE.Fog(0x000000, 4, 24);
-      this.ambient.intensity = 0.55;
-      this.shade.intensity = 0.25;
-    }
+    this.dungeon.light.setMode(!outdoors ? 'dungeon' : daytime ? 'day' : 'night');
+    this.scene.background = new THREE.Color(!outdoors ? 0x000000 : daytime ? 0x8fb6dc : 0x1c2230);
   }
 
   /** Animation speed (1 = normal); slowed for debugging and screenshot capture */
@@ -111,10 +85,9 @@ export class SceneRenderer {
   /** Daylight in the town (Angband's day/night cycle) */
   daytime = false;
 
-  /** The engine's light radius sizes the torch glow */
+  /** The engine's light radius sizes the torch */
   setTorchRadius(radius: number): void {
-    this.torchRadius = radius;
-    this.torch.distance = radius > 0 ? radius + 5 : 0.01;
+    this.dungeon.light.uniforms.torchRadius.value = radius;
   }
 
   rebuildDungeon(ctx: DungeonBuildContext): void {
@@ -130,13 +103,8 @@ export class SceneRenderer {
       this.cam.tick(dt);
       this.entities.tick(dt, this.time);
       this.effects.tick(dt);
-      if (this.torchRadius > 0) {
-        // Gentle flicker
-        const flicker = Math.sin(this.time * 9.1) * 0.08 + Math.sin(this.time * 23.7) * 0.05;
-        this.torch.intensity = 1.8 + this.torchRadius * 0.35 + flicker;
-      } else {
-        this.torch.intensity = 0;
-      }
+      // The torch is centred on the player's square as the camera moves
+      this.dungeon.light.setCentre(this.cam.camera.position.x, this.cam.camera.position.z);
       this.renderer.render(this.scene, this.cam.camera);
     };
     loop();

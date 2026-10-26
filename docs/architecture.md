@@ -111,15 +111,18 @@ What reaches the client, and why it is safe:
   flags into render shapes.
 - `renderer/`: `dungeon-mesh.ts` builds instanced walls, floors, ceilings,
   doors, steps and rubble from the known map, with brightness baked into
-  instance colours (in view vs remembered). `entities.ts` draws Gervais
+  instance colours (silhouettes only). `entities.ts` draws Gervais
   billboards with interpolation, `effects.ts` animates bolts and explosions
   from engine events, and `scene.ts` renders at full display resolution
-  with MSAA, torch light sized by the engine's light radius, and fog. A
-  low-resolution "retro pixel size" mode is optional. Lighting is a
-  hybrid: terrain gets a warm torch light (sized by the engine's light
-  radius), soft ambient light and distance fog on top of per-grid
-  brightness baked from the engine's in-view/remembered state. Monsters,
-  objects, traps and effects ignore lights and fog, so anything Angband
+  with MSAA. A low-resolution "retro pixel size" mode is optional.
+  Lighting (`grid-light.ts`) is old-school and per grid square, in discrete
+  steps: a torch around the player sized by the engine's light radius,
+  room light on squares Angband marks as glowing (`SQUARE_GLOW`, sent as
+  the eighth map-cell field; remembered glowing squares stay dimly lit),
+  darkness that swallows distant squares, and fixed shades per face
+  direction. It is a deliberate departure from the stock map's per-grid
+  colours, chosen by the project owner for a cohesive first-person look.
+  Monsters, objects, traps and effects ignore lighting, so anything Angband
   shows is always drawn clearly.
 - Dark silhouettes (opt-in departure from stock, chosen by the project
   owner): `snapshot.c` exports the feature of unknown grids that are in

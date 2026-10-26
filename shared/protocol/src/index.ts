@@ -73,7 +73,11 @@ export const LIGHT_DARK = 3;
  * is shown as a faint silhouette; this is a deliberate, opt-in departure
  * from the stock map, which leaves such grids blank.
  */
-export type MapCell = [number, number, number, number, number, Tile | null, number?];
+/**
+ * [x, y, feature, lighting, inView, trapTile, darkFeature, glow]: glow is 1
+ * for known grids with room light (Angband's SQUARE_GLOW)
+ */
+export type MapCell = [number, number, number, number, number, Tile | null, number?, number?];
 
 export interface MapUpdate {
   width: number;

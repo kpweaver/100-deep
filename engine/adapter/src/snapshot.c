@@ -365,6 +365,7 @@ static int cache_w, cache_h;
 
 #define CELL_SENT	0x80000000u
 #define CELL_DARK_SHIFT	32
+#define CELL_GLOW	((uint64_t)1 << 40)
 
 void snapshot_reset_map(void)
 {
@@ -477,7 +478,7 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 			struct loc grid = loc(x, y);
 			struct grid_data g;
 			uint64_t packed;
-			int trow = 0, tcol = 0, has_trap = 0, dark = 0;
+			int trow = 0, tcol = 0, has_trap = 0, dark = 0, glow;
 			uint64_t *slot = &cell_cache[y * cache_w + x];
 
 			map_info(grid, &g);
@@ -493,6 +494,14 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 				struct feature *f = square_feat(cave, grid);
 				dark = (int)(f->mimic ? f->mimic->fidx : f->fidx);
 			}
+
+			/*
+			 * Room light (SQUARE_GLOW) for grids the player knows, so the
+			 * client can light rooms as rooms.  g.lighting cannot say this:
+			 * it describes light reaching grids in view, and remembered
+			 * grids default to LIGHTING_LIT whether they glow or not.
+			 */
+			glow = (g.f_idx != FEAT_NONE && square_isglow(cave, grid)) ? 1 : 0;
 
 			if (g.trap && !g.hallucinate &&
 					(trf_has(g.trap->flags, TRF_VISIBLE) ||
@@ -519,7 +528,8 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 				((uint32_t)has_trap << 11) |
 				((uint32_t)(trow & 0x7F) << 12) |
 				((uint32_t)(tcol & 0x7F) << 19) |
-				((uint64_t)(dark & 0xFF) << CELL_DARK_SHIFT);
+				((uint64_t)(dark & 0xFF) << CELL_DARK_SHIFT) |
+				(glow ? CELL_GLOW : 0);
 
 			if (*slot == packed) continue;
 			/* Never-seen unknown grids need not be sent on a full map */
@@ -529,7 +539,7 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 			}
 			*slot = packed;
 
-			/* [x, y, feature, lighting, inView, trapTile|null, darkFeature] */
+			/* [x, y, feature, lighting, inView, trapTile|null, darkFeature, glow] */
 			jw_arr_begin(w);
 			jw_int(w, x);
 			jw_int(w, y);
@@ -545,6 +555,7 @@ static void write_map(jw *w, bool full, struct pile_rec **piles, int *n_piles)
 				jw_null(w);
 			}
 			jw_int(w, dark);
+			jw_int(w, glow);
 			jw_arr_end(w);
 		}
 	}

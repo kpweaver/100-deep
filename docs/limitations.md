@@ -61,9 +61,10 @@ These systems all exist in the engine. Only the UI to reach them is missing.
   wall textures, because Gervais tiles are drawn for a top-down view.
 - Doors, stairs, rubble and lava have simple geometry. Shops use their
   Gervais sign as a billboard.
-- No dynamic shadows. Lighting is a torch point light sized by the engine's
-  light radius, ambient light, and per-grid brightness baked from
-  visibility.
+- No dynamic shadows. Lighting is per grid square in steps (torch radius,
+  Angband's room light, distance), so it does not show line-of-sight edges
+  the way the stock map's colours do. Monsters and objects still appear
+  exactly when Angband says they are visible.
 - Monster sprites are spherical billboards (they tilt slightly when very
   close).
 
