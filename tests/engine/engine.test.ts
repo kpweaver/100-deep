@@ -88,6 +88,13 @@ test('free actions and resyncs never advance the simulation', async () => {
   await s.next('state');
   await s.request({ type: 'query', what: 'item', item: 'inven:0' });
   await s.command({ action: 'feeling' });
+  // Free targeting: any grid on the level, as the textui's targeting mode allows
+  const p = s.state!.player!;
+  const tx = p.x + 2, ty = p.y + 1;
+  const t = (await s.command({ action: 'target_location', x: tx, y: ty })) as StateMessage;
+  assert.deepEqual(t.target, { x: tx, y: ty });
+  s.send({ type: 'command', action: 'target_location', x: -5, y: 3 });
+  assert.equal((await s.next('error')).type, 'error');
   assert.equal(s.state!.turn, turn);
   await s.stop();
 });

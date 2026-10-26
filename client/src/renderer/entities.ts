@@ -28,6 +28,8 @@ export class EntityLayer {
   private objects = new Map<string, THREE.Sprite>();
   private traps = new Map<number, THREE.Sprite>();
   private targetRing: THREE.Mesh;
+  /** Look/aim cursor: a box outline drawn through walls */
+  private cursor: THREE.LineSegments;
   private fallback: THREE.Texture;
   instant = false;
 
@@ -38,6 +40,12 @@ export class EntityLayer {
     }));
     this.targetRing.visible = false;
     this.group.add(this.targetRing);
+    this.cursor = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(0.96, 0.96, 0.96)),
+      new THREE.LineBasicMaterial({ color: 0xffd84a, transparent: true, opacity: 0.9, depthTest: false, fog: false }));
+    this.cursor.renderOrder = 10;
+    this.cursor.visible = false;
+    this.group.add(this.cursor);
 
     // Visible question mark if a tile is missing (should not happen)
     const c = document.createElement('canvas');
@@ -63,7 +71,13 @@ export class EntityLayer {
     });
   }
 
-  updateMonsters(list: MonsterInfo[], targetId: number | null): void {
+  setCursor(at: { x: number; y: number } | null): void {
+    this.cursor.visible = !!at;
+    if (at) this.cursor.position.set(at.x, 0.48, at.y);
+  }
+
+  updateMonsters(list: MonsterInfo[], target: { x: number; y: number; monster?: number } | null): void {
+    const targetId = target?.monster ?? null;
     const seen = new Set<number>();
     for (const m of list) {
       seen.add(m.id);
@@ -103,8 +117,10 @@ export class EntityLayer {
       }
     }
     const t = targetId !== null ? this.monsters.get(targetId) : undefined;
-    this.targetRing.visible = !!t;
+    // A monster target follows the monster; a location target marks its grid
+    this.targetRing.visible = !!t || (!!target && targetId === null);
     if (t) this.targetRing.position.set(t.to.x, 0.02, t.to.z);
+    else if (target) this.targetRing.position.set(target.x, 0.02, target.y);
   }
 
   updateObjects(list: ObjectPile[], playerX: number, playerY: number): void {
@@ -175,6 +191,7 @@ export class EntityLayer {
     this.objects.clear();
     this.traps.clear();
     this.targetRing.visible = false;
+    this.cursor.visible = false;
   }
 
   tick(dt: number, time: number): void {

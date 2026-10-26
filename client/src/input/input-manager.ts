@@ -3,88 +3,42 @@
  * the topmost handler (UI layers first, then the game view).
  */
 import { glyphStyleFromId, promptsFor, type Device, type GameAction, type GlyphStyle, type InputEvent, type InputHandler, type PromptKey, type UiAction } from './actions.ts';
+import { BINDABLE, BTN, defaultBindings, keyIdFromEvent, keyLabel, keysFor, padLabel, padTable, type Bindings, type KeyId, type PadBind } from './bindings.ts';
 
 interface KeyBinding { game?: GameAction; ui?: UiAction }
 
 /**
- * Default keyboard bindings (rebindable later via settings).  In menus,
- * letters are Angband-style item shortcuts, so WASD only moves in play and
- * arrow keys navigate menus.
+ * Menu keys: fixed, separate from the rebindable game keys.  In menus,
+ * letters are Angband-style item shortcuts (passed through as the raw key).
  */
-const KEYS: Record<string, KeyBinding> = {
-  KeyW: { game: 'moveForward' },
-  ArrowUp: { game: 'moveForward', ui: 'up' },
-  KeyS: { game: 'moveBack' },
-  ArrowDown: { game: 'moveBack', ui: 'down' },
-  KeyA: { game: 'strafeLeft' },
-  KeyD: { game: 'strafeRight' },
-  KeyQ: { game: 'turnLeft' },
-  ArrowLeft: { game: 'turnLeft', ui: 'left' },
-  KeyE: { game: 'turnRight' },
-  ArrowRight: { game: 'turnRight', ui: 'right' },
-  Space: { game: 'interact', ui: 'confirm' },
-  Enter: { game: 'interact', ui: 'confirm' },
-  NumpadEnter: { game: 'interact', ui: 'confirm' },
-  Escape: { game: 'menu', ui: 'back' },
-  Backspace: { ui: 'back' },
-  KeyF: { game: 'attack' },
-  KeyX: { game: 'explore' },
-  Period: { game: 'wait' },
-  Numpad5: { game: 'wait' },
-  KeyR: { game: 'rest' },
-  Tab: { game: 'targetNext', ui: 'tabNext' },
-  KeyI: { game: 'inventory' },
-  KeyZ: { game: 'spells' },
-  KeyV: { game: 'commands' },
-  KeyM: { game: 'map' },
-  KeyC: { game: 'character' },
-  KeyU: { game: 'useMenu' },
-  KeyT: { game: 'aim' },
-  KeyL: { game: 'look' },
-  PageUp: { ui: 'pageUp' },
-  PageDown: { ui: 'pageDown' },
-  Numpad1: { game: 'walkDir1' }, Numpad2: { game: 'walkDir2' }, Numpad3: { game: 'walkDir3' },
-  Numpad4: { game: 'walkDir4' }, Numpad6: { game: 'walkDir6' }, Numpad7: { game: 'walkDir7' },
-  Numpad8: { game: 'walkDir8' }, Numpad9: { game: 'walkDir9' },
+const UI_KEYS: Record<KeyId, UiAction> = {
+  ArrowUp: 'up', 'Shift+ArrowUp': 'up', Numpad8: 'up',
+  ArrowDown: 'down', 'Shift+ArrowDown': 'down', Numpad2: 'down',
+  ArrowLeft: 'left', 'Shift+ArrowLeft': 'left', Numpad4: 'left',
+  ArrowRight: 'right', 'Shift+ArrowRight': 'right', Numpad6: 'right',
+  Space: 'confirm', Enter: 'confirm', NumpadEnter: 'confirm', 'Shift+Enter': 'secondary',
+  Escape: 'back', Backspace: 'back',
+  Tab: 'tabNext', 'Shift+Tab': 'tabPrev',
+  PageUp: 'pageUp', PageDown: 'pageDown',
 };
 
-/* Standard gamepad mapping indices */
-const B = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, SELECT: 8, START: 9, L3: 10, R3: 11, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
-
-/**
- * Controller layout, after Orbrun's: A does what the moment calls for, B
- * backs out, X uses (spells, devices, potions...), Y is gear, LB waits (hold
- * to rest), RB aims then fires, LT explores, RT autofights, L3 examines,
- * R3 shows the map, Start is character and system, Select lists every
- * command.  In menus the same buttons confirm, go back, page and switch tabs.
- */
-const PAD_BUTTONS: Record<number, KeyBinding> = {
-  [B.A]: { game: 'interact', ui: 'confirm' },
-  [B.B]: { game: 'cancel', ui: 'back' },
-  [B.X]: { game: 'useMenu', ui: 'secondary' },
-  [B.Y]: { game: 'inventory', ui: 'tertiary' },
-  // LB's game action is decided on release or hold (see HOLD_ACTIONS)
-  [B.LB]: { ui: 'tabPrev' },
-  [B.RB]: { game: 'aim', ui: 'tabNext' },
-  [B.LT]: { game: 'explore', ui: 'pageUp' },
-  [B.RT]: { game: 'attack', ui: 'pageDown' },
-  [B.SELECT]: { game: 'commands', ui: 'back' },
-  [B.START]: { game: 'menu', ui: 'menu' },
-  [B.L3]: { game: 'look' },
-  [B.R3]: { game: 'map' },
-  [B.UP]: { game: 'moveForward', ui: 'up' },
-  [B.DOWN]: { game: 'moveBack', ui: 'down' },
-  [B.LEFT]: { game: 'turnLeft', ui: 'left' },
-  [B.RIGHT]: { game: 'turnRight', ui: 'right' },
+/** Menu meaning of each controller button: fixed, whatever the game bindings */
+const PAD_UI: Record<number, UiAction> = {
+  [BTN.A]: 'confirm', [BTN.B]: 'back', [BTN.X]: 'secondary', [BTN.Y]: 'tertiary',
+  [BTN.LB]: 'tabPrev', [BTN.RB]: 'tabNext', [BTN.LT]: 'pageUp', [BTN.RT]: 'pageDown',
+  [BTN.SELECT]: 'back', [BTN.START]: 'menu',
+  [BTN.UP]: 'up', [BTN.DOWN]: 'down', [BTN.LEFT]: 'left', [BTN.RIGHT]: 'right',
 };
+/** B cancels and Start opens the menu in play too; these are not rebindable */
+const PAD_FIXED_GAME: Record<number, GameAction> = { [BTN.B]: 'cancel', [BTN.START]: 'menu' };
 
-/** Buttons with a tap and a hold action in play: LB waits a turn, or rests when held */
-const HOLD_ACTIONS: Record<number, { tap: GameAction; hold: GameAction }> = {
-  [B.LB]: { tap: 'wait', hold: 'rest' },
-};
+/** A button with a hold action fires its tap action on release, if released this soon */
 const HOLD_TIME = 0.45;
 /** Holding forward (stick or d-pad) this long starts a run */
 const RUN_HOLD_TIME = 0.5;
+
+/** What a rebinding screen receives while capturing */
+export type RawInput = { kind: 'key'; id: KeyId } | { kind: 'pad'; bind: PadBind };
 
 const DEADZONE = 0.45;
 const REPEAT_DELAY = 0.35;
@@ -95,12 +49,17 @@ const REPEATABLE = new Set<string>([
   'up', 'down', 'left', 'right', 'pageUp', 'pageDown',
 ]);
 
-interface HeldState { binding: KeyBinding; time: number; next: number; button?: number; held?: boolean; ran?: boolean }
+interface HeldState { binding: KeyBinding; time: number; next: number; button?: number; held?: boolean; ran?: boolean; tap?: GameAction; hold?: GameAction; captured?: boolean }
 
 export class InputManager {
   private stack: InputHandler[] = [];
   private padHeld = new Map<string, HeldState>();
-  private keyHeld = new Set<string>();
+  /** Physical key code -> binding id, for keys held down (continuous movement) */
+  private keyHeld = new Map<string, KeyId>();
+  private bindings: Bindings = defaultBindings();
+  private pad = padTable(this.bindings);
+  /** While set, raw keys and buttons go here instead of the game (rebinding) */
+  capture: ((raw: RawInput) => void) | null = null;
   lastDevice: Device = 'keyboard';
   /** Detected controller family, for button prompts */
   padStyle: GlyphStyle = 'xbox';
@@ -120,9 +79,39 @@ export class InputManager {
     });
   }
 
-  /** Button-prompt labels for the current device and controller family */
+  get style(): GlyphStyle {
+    return this.glyphOverride === 'auto' ? this.padStyle : this.glyphOverride;
+  }
+
+  getBindings(): Bindings {
+    return this.bindings;
+  }
+
+  setBindings(b: Bindings): void {
+    this.bindings = b;
+    this.pad = padTable(b);
+    this.onDeviceChange?.(this.lastDevice);
+  }
+
+  /** Label for the key or button bound to an action, if any */
+  labelFor(action: GameAction, device: Device = this.lastDevice): string | undefined {
+    if (device === 'gamepad') {
+      const p = this.bindings.pad[action];
+      return p ? padLabel(p, this.style) : undefined;
+    }
+    const k = keysFor(this.bindings, action)[0];
+    return k ? keyLabel(k) : undefined;
+  }
+
+  /** Button-prompt labels for the current device and controller family, following the bindings */
   prompts(): Partial<Record<PromptKey, string>> {
-    return promptsFor(this.lastDevice, this.glyphOverride === 'auto' ? this.padStyle : this.glyphOverride);
+    const out: Record<string, string> = { ...promptsFor(this.lastDevice, this.style) };
+    for (const [, action] of BINDABLE) {
+      const l = this.labelFor(action);
+      if (l) out[action] = l;
+      else delete out[action];
+    }
+    return out;
   }
 
   push(h: InputHandler): void {
@@ -156,34 +145,29 @@ export class InputManager {
   private onKey(e: KeyboardEvent): void {
     if (this.textCapture) return;
     this.setDevice('keyboard');
-    let binding = KEYS[e.code] ?? {};
-    // Shift+forward runs; Shift+Tab cycles targets backwards; < and > use stairs
-    if (e.shiftKey && e.code === 'KeyW') binding = { game: 'runForward' };
-    if (e.shiftKey && e.code === 'ArrowUp') binding = { game: 'runForward', ui: 'up' };
-    if (e.shiftKey && e.code === 'Tab') binding = { game: 'targetPrev', ui: 'tabPrev' };
-    if (e.shiftKey && (e.code === 'Enter' || e.code === 'NumpadEnter')) binding = { game: 'interact', ui: 'secondary' };
-    if (e.shiftKey && e.code === 'KeyZ') binding = { game: 'study' };
-    // Angband's own keys for the visible monster and item lists
-    if (e.key === '[') binding = { game: 'monsterList' };
-    if (e.key === ']') binding = { game: 'itemList' };
-    if (e.key === '\\') binding = { game: 'toggleSidebar' };
-    if (e.key === '<') binding = { game: 'goUp' };
-    if (e.key === '>') binding = { game: 'goDown' };
-    if (binding.game || binding.ui || e.key.length === 1) {
-      if (e.code === 'Tab' || e.code === 'Space' || e.code.startsWith('Arrow') || e.code === 'Backspace') e.preventDefault();
+    if (e.metaKey || (e.ctrlKey && e.key.length !== 1)) return;
+    const id = keyIdFromEvent(e);
+    if (this.capture) {
+      if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key) || e.repeat) return;
+      e.preventDefault();
+      this.capture({ kind: 'key', id });
+      return;
     }
-    if (e.metaKey || e.ctrlKey) return;
+    const binding: KeyBinding = { game: this.bindings.keys[id], ui: UI_KEYS[id] };
+    if (e.ctrlKey && !binding.game) return;
+    // Bound keys never reach the browser (Tab focus, Space scroll, ' and / quick find, Ctrl+S...)
+    if (binding.game || binding.ui) e.preventDefault();
     const repeat = e.repeat;
     if (repeat && !REPEATABLE.has(binding.game ?? binding.ui ?? '')) return;
-    if (!repeat) this.keyHeld.add(e.code);
+    if (!repeat) this.keyHeld.set(e.code, id);
     this.dispatch({ ...binding, key: e.key, device: 'keyboard', repeat });
   }
 
   /** Continuous movement: actions currently held on any device */
   heldGameActions(): Set<GameAction> {
     const out = new Set<GameAction>();
-    for (const code of this.keyHeld) {
-      const g = KEYS[code]?.game;
+    for (const id of this.keyHeld.values()) {
+      const g = this.bindings.keys[id];
       if (g) out.add(g);
     }
     for (const h of this.padHeld.values()) if (h.binding.game) out.add(h.binding.game);
@@ -198,7 +182,11 @@ export class InputManager {
       if (!pad || !pad.connected) continue;
       const before = active.size;
       pad.buttons.forEach((b, i) => {
-        if (b.pressed && PAD_BUTTONS[i]) active.set(`b${i}`, PAD_BUTTONS[i]);
+        if (!b.pressed) return;
+        const t = this.pad.get(i);
+        const fixed = PAD_FIXED_GAME[i];
+        // A button with a hold action decides its game action on release or hold
+        active.set(`b${i}`, { game: fixed ?? (t?.hold ? undefined : t?.tap), ui: PAD_UI[i] });
       });
       if (active.size > before) this.notePad(pad);
       const [lx = 0, ly = 0, rx = 0, ry = 0] = pad.axes;
@@ -221,14 +209,15 @@ export class InputManager {
       const button = id.startsWith('b') ? Number(id.slice(1)) : undefined;
       if (!held) {
         this.setDevice('gamepad');
-        this.padHeld.set(id, { binding, time: 0, next: REPEAT_DELAY, button });
-        this.dispatch({ ...binding, device: 'gamepad', repeat: false });
+        const t = button !== undefined && !PAD_FIXED_GAME[button] ? this.pad.get(button) : undefined;
+        this.padHeld.set(id, { binding, time: 0, next: REPEAT_DELAY, button, tap: t?.hold ? t.tap : undefined, hold: t?.hold, captured: !!this.capture });
+        if (!this.capture) this.dispatch({ ...binding, device: 'gamepad', repeat: false });
       } else {
         held.time += dt;
-        const hold = button !== undefined ? HOLD_ACTIONS[button] : undefined;
-        if (hold && !held.held && held.time >= HOLD_TIME) {
+        if (this.capture) continue;
+        if (held.hold && !held.held && held.time >= HOLD_TIME) {
           held.held = true;
-          this.dispatch({ game: hold.hold, device: 'gamepad', repeat: false });
+          this.dispatch({ game: held.hold, device: 'gamepad', repeat: false });
         }
         const name = binding.game ?? binding.ui ?? '';
         // Holding forward runs (once); the run then continues in the engine
@@ -244,10 +233,14 @@ export class InputManager {
     }
     for (const [id, held] of [...this.padHeld]) {
       if (active.has(id)) continue;
-      // A short press of a tap/hold button does its tap action on release
-      const hold = held.button !== undefined ? HOLD_ACTIONS[held.button] : undefined;
-      if (hold && !held.held) this.dispatch({ game: hold.tap, device: 'gamepad', repeat: false });
       this.padHeld.delete(id);
+      if (this.capture) {
+        // Only presses that began while capturing (not the A that opened it)
+        if (held.button !== undefined && held.captured) this.capture({ kind: 'pad', bind: { button: held.button, hold: held.time >= HOLD_TIME } });
+        continue;
+      }
+      // A short press of a tap/hold button does its tap action on release
+      if (held.hold && !held.held && held.tap) this.dispatch({ game: held.tap, device: 'gamepad', repeat: false });
     }
   }
 

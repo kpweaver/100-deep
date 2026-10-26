@@ -178,6 +178,15 @@ bool commands_dispatch(const jv *msg)
 		monster_race_track(player->upkeep, mon->race);
 		return false;
 	}
+	if (streq(name, "target_location")) {
+		/* The textui's free targeting mode: any grid on the level */
+		struct loc grid = loc((int)jv_get_int(msg, "x", -1),
+			(int)jv_get_int(msg, "y", -1));
+		if (!square_in_bounds_fully(cave, grid))
+			return fail("That location cannot be targeted", NULL);
+		target_set_location(grid.y, grid.x);
+		return false;
+	}
 	if (streq(name, "fire_at_nearest")) {
 		/* Core function bound to 'h'/TAB in the textui */
 		if (!player_can_fire_prereq()) return false;

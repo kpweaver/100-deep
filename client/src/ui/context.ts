@@ -1,4 +1,5 @@
 /** Services shared by UI screens */
+import type { Bindings } from '../input/bindings.ts';
 import type { ClientMessage } from '@thang/protocol';
 import type { GameState } from '../state/game-state.ts';
 import type { TileAtlas } from '../sprites/atlas.ts';
@@ -46,6 +47,8 @@ export interface UiContext {
   /** Interface options to push to the engine for every character */
   engineOptions: Record<string, boolean>;
   facing(): number;
+  /** Apply and persist rebound controls */
+  saveBindings(b: Bindings): void;
   /** Save and quit (desktop: exit; local: stop the server; hosted: just save) */
   quit(): void;
 }

@@ -4,12 +4,10 @@
 
 These systems all exist in the engine. Only the UI to reach them is missing.
 
-- **Targeting arbitrary grids** (aiming a ball spell at an empty grid). Aim
-  prompts offer targetable monsters, the current target and directions.
-  `target_set_location` is not exposed.
-- **Looking at arbitrary grids.** Examine (L / L3) steps through the
-  visible monsters and objects with recall, and the map cursor shows what is
-  known at any grid, but there is no free look cursor over terrain in 3D.
+- **Targeting from inside a prompt.** Aim mode (`*` / RB) can target any
+  grid, but an engine aim prompt (from aiming a wand, say) offers only
+  targetable monsters, the current target and directions. Set a grid target
+  first with Aim ▸ Set target, then choose "current target".
 - **Knowledge menus** (`~`): monster, object, artifact and rune knowledge
   browsers, and the character history and notes.
 - **Point-buy stat editing** at birth (`CMD_BUY_STAT`/`CMD_SELL_STAT`): only
@@ -21,8 +19,8 @@ These systems all exist in the engine. Only the UI to reach them is missing.
   "this item" is available).
 - **Shapechange ability menus** (`view_abilities_hook` is a no-op).
 - **Multiple savefiles**: one savefile per bridge (`THANG_SAVE`).
-- **Rebinding controls** in the UI. Bindings live in
-  `client/src/input/input-manager.ts`.
+- **Rebinding limits**: a rebound action gets one key (defaults may have
+  several), menu keys are fixed, and the sticks are not rebindable.
 
 ## Behavioural notes
 
@@ -76,11 +74,9 @@ These systems all exist in the engine. Only the UI to reach them is missing.
   untested.
 ## Recommended next steps
 
-1. A free look/target cursor over grids in 3D (target locations, look at
-   terrain).
-2. Knowledge menus, via the same virtual-terminal capture used for the
+1. Knowledge menus, via the same virtual-terminal capture used for the
    subwindows (`panels.c`).
-3. A birth screen with point-buy stats and the birth options page.
-4. A rebinding UI.
-5. Per-step animation of runs and pathing, by streaming intermediate
+2. A birth screen with point-buy stats and the birth options page.
+3. A free-target option inside engine aim prompts.
+4. Per-step animation of runs and pathing, by streaming intermediate
    snapshots on `EVENT_PLAYERMOVED` (cosmetic only).

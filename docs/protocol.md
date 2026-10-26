@@ -55,7 +55,7 @@ Movement `walk run jump hold go_up go_down explore navigate_up navigate_down pat
 terrain `open close tunnel disarm alter steal`;
 objects `pickup autopickup wield takeoff drop eat quaff read use_staff aim_wand zap_rod activate use refill fire throw inscribe uninscribe ignore`;
 magic `study cast`; time `rest`;
-free actions `target_closest target_next target_prev target_clear target_monster fire_at_nearest toggle_unignore feeling`;
+free actions `target_closest target_next target_prev target_clear target_monster target_location fire_at_nearest toggle_unignore feeling` (`target_location` takes `x`, `y`: any in-bounds grid, like the textui's free targeting);
 store `store_buy store_sell store_leave`.
 
 ## Example session

@@ -1,3 +1,5 @@
+import type { GameAction as EngineAction } from '@thang/protocol';
+
 /**
  * Semantic input actions.  Devices map onto these; game and UI code only
  * ever see actions, which makes rebinding and button prompts device-agnostic.
@@ -22,7 +24,10 @@ export type GameAction =
   | 'useMenu'       // spells, magic devices, potions, scrolls, missiles
   | 'commands'      // every command, by category
   | 'aim'           // pick and cycle a target, then fire at it
-  | 'look';         // examine visible monsters and objects
+  | 'look'          // examine what you see, or any grid with a free cursor
+  | 'equipment' | 'quiver' | 'messages' | 'save' | 'saveQuit' | 'help'
+  /** An engine command sent as is; the engine asks for any item, direction or target */
+  | `cmd:${EngineAction}`;
 
 export type UiAction =
   | 'up' | 'down' | 'left' | 'right'
@@ -54,11 +59,11 @@ export type PromptKey = GameAction | UiAction | 'tabs' | 'zoom' | 'dpad' | 'scro
 /** Labels for button prompts, per device (gamepad labels are Xbox-style) */
 export const PROMPTS: Record<Device, Partial<Record<PromptKey, string>>> = {
   keyboard: {
-    interact: 'Space', attack: 'F', explore: 'X', wait: '.', rest: 'R',
-    targetNext: 'Tab', inventory: 'I', spells: 'Z', map: 'M',
-    useMenu: 'U', commands: 'V', aim: 'T', look: 'L',
+    interact: 'Space', attack: 'Tab', explore: 'x', wait: ',', rest: 'R',
+    inventory: 'i', spells: 'm', map: 'M',
+    useMenu: 'U', commands: 'Enter', aim: '*', look: 'l',
     character: 'C', menu: 'Esc', confirm: 'Enter', back: 'Esc',
-    secondary: 'Shift+Enter', tertiary: '?', moveForward: 'W', turnLeft: 'Q', turnRight: 'E',
+    secondary: 'Shift+Enter', tertiary: '?', moveForward: '↑', turnLeft: '←', turnRight: '→',
     goUp: '<', goDown: '>',
     tabs: 'Tab', zoom: '+/-', dpad: 'Arrows', scroll: '↑/↓', page: '←/→',
   },
@@ -83,14 +88,18 @@ const RESTYLE: Record<Exclude<GlyphStyle, 'xbox'>, Record<string, string>> = {
   nintendo: { A: 'B', B: 'A', X: 'Y', Y: 'X', LB: 'L', RB: 'R', LT: 'ZL', RT: 'ZR', L3: 'LS', R3: 'RS', Start: '+', Select: '−' },
 };
 
+/** An Xbox-style button label in another controller family's names */
+export function restyle(label: string, style: GlyphStyle): string {
+  if (style === 'xbox') return label;
+  const map = RESTYLE[style];
+  return label.replace(/\b(LB|RB|LT|RT|L3|R3|Start|Select|A|B|X|Y)\b/g, (t) => map[t] ?? t);
+}
+
 export function promptsFor(device: Device, style: GlyphStyle): Partial<Record<PromptKey, string>> {
   const base = PROMPTS[device];
   if (device === 'keyboard' || style === 'xbox') return base;
-  const map = RESTYLE[style];
   const out: Partial<Record<PromptKey, string>> = {};
-  for (const [k, label] of Object.entries(base)) {
-    out[k as PromptKey] = label.replace(/\b(LB|RB|LT|RT|L3|R3|Start|Select|A|B|X|Y)\b/g, (t) => map[t] ?? t);
-  }
+  for (const [k, label] of Object.entries(base)) out[k as PromptKey] = restyle(label, style);
   return out;
 }
 

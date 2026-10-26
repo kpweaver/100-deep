@@ -34,6 +34,8 @@ import {
   openMessageLog, openSystemMenu, startBirth,
 } from './ui/screens.ts';
 import { Sfx } from './audio/sfx.ts';
+import { loadBindings } from './input/bindings.ts';
+import { ControlsLayer } from './ui/controls.ts';
 import { h } from './ui/dom.ts';
 
 const COMMAND_TIMEOUT_MS = 8000;
@@ -115,8 +117,13 @@ export class App implements InputHandler {
       engineOptions: this.engineOptions,
       facing: () => this.renderer?.cam.facing ?? 0,
       quit: () => this.quit(),
+      saveBindings: (b) => {
+        this.input.setBindings(b);
+        saveJson('thang.bindings', b);
+      },
     };
 
+    this.input.setBindings(loadBindings(loadJson('thang.bindings', null)));
     this.input.push(this);
     this.input.onDeviceChange = () => this.updateHints();
     this.input.onGamepadConnected = (name) => this.state.note(`Controller connected: ${name}`);
@@ -408,8 +415,7 @@ export class App implements InputHandler {
     const r = this.renderer;
     const p = this.state.player;
     if (!r || !p) return;
-    const target = this.state.target?.monster ?? null;
-    r.entities.updateMonsters(this.state.monsters, target);
+    r.entities.updateMonsters(this.state.monsters, this.state.target ?? null);
     r.entities.updateObjects(this.state.objects, p.x, p.y);
     r.entities.updateTraps(this.state.map.traps, this.state.map.width, this.state.map.inView);
   }
@@ -598,10 +604,7 @@ export class App implements InputHandler {
       case 'study': this.command({ action: 'study' }); break;
       case 'useMenu': openUseMenu(this.ctx); break;
       case 'commands': this.openCommands(); break;
-      case 'aim':
-        if (this.state.monsters.some((m) => m.inView)) this.ui.open(new AimLayer(this.ctx, this.targetingHooks()));
-        else this.state.note('Nothing in sight to aim at.');
-        break;
+      case 'aim': this.ui.open(new AimLayer(this.ctx, this.targetingHooks())); break;
       case 'look': this.ui.open(new LookLayer(this.ctx, this.targetingHooks())); break;
       case 'monsterList': this.openPanels('monsterList'); break;
       case 'itemList': this.openPanels('itemList'); break;
@@ -615,9 +618,19 @@ export class App implements InputHandler {
           quitToTitle: () => this.send({ type: 'close_game' }),
         });
         break;
+      case 'equipment': case 'quiver':
+        this.inventory = new InventoryLayer(this.ctx, g);
+        this.ui.open(this.inventory);
+        break;
+      case 'messages': openMessageLog(this.ctx); break;
+      case 'save': this.send({ type: 'save' }); break;
+      case 'saveQuit': this.quit(); break;
+      case 'help': this.ui.open(new ControlsLayer(this.ctx)); break;
       case 'cancel':
         if (this.state.target) this.command({ action: 'target_clear' });
         break;
+      default:
+        if (g.startsWith('cmd:')) this.send({ type: 'command', action: g.slice(4) } as CommandMessage);
     }
     return true;
   }
@@ -634,6 +647,7 @@ export class App implements InputHandler {
       },
       // The recall panel follows the engine's tracked monster: give it a moment
       recall: () => setTimeout(() => this.openPanels('recall'), 150),
+      cursor: (at) => this.renderer?.entities.setCursor(at),
     };
   }
 

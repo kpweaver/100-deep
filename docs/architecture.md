@@ -156,7 +156,9 @@ What reaches the client, and why it is safe:
 - `camera/grid-camera.ts`: 8-way facing (presentational only) and
   interpolation towards engine-confirmed grids. Long jumps snap.
 - `input/`: semantic actions, keyboard and Gamepad API (standard mapping),
-  repeat handling and rumble.
+  repeat, tap/hold and rumble. `bindings.ts` holds the rebindable layouts
+  (Angband keys by default, a WASD preset, the Orbrun-style controller
+  layout), saved in `localStorage`; menu keys stay fixed.
 - `ui/`: HUD, minimap, tile map, and a layer stack with controller-navigable
   list menus. `prompt-layer.ts` renders every engine prompt kind.
 - `app.ts`: one command in flight at a time, with one buffered move; the

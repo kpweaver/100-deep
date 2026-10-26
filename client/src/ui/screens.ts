@@ -2,6 +2,8 @@
  * Game screens.  Every action here issues a native engine command (or a
  * read-only query); the engine decides what happens.
  */
+import { ControlsLayer } from './controls.ts';
+import { describeGrid } from './targeting.ts';
 import type { CommandMessage, ItemAction, ItemInfo, StoreItem } from '@thang/protocol';
 import type { InputEvent } from '../input/actions.ts';
 import type { UiContext } from './context.ts';
@@ -55,7 +57,7 @@ export class TitleLayer extends Layer {
   private choose(what: string) {
     if (what === 'load') this.ctx.send({ type: 'load_game' });
     else if (what === 'new') this.onNewGame();
-    else if (what === 'help') this.ctx.ui.open(new TextLayer('Controls', controlsHelp()));
+    else if (what === 'help') this.ctx.ui.open(new ControlsLayer(this.ctx));
     else if (what === 'quit') this.ctx.quit();
   }
 
@@ -316,21 +318,6 @@ export class MapLayer extends Layer {
     this.redraw(true);
   }
 
-  /** Describe the cursor grid from the player's knowledge only */
-  private describe(): string {
-    const s = this.ctx.state;
-    const parts: string[] = [];
-    const f = s.map.featAt(this.cx, this.cy);
-    if (!f) return 'Unknown';
-    const mon = s.monsterAt(this.cx, this.cy);
-    const obj = s.objectAt(this.cx, this.cy);
-    if (s.player && s.player.x === this.cx && s.player.y === this.cy) parts.push('You');
-    if (mon) parts.push(`${mon.name}${mon.status ? ` (${mon.status})` : ''}`);
-    if (obj) parts.push(obj.name || 'an object');
-    parts.push(s.features[f]?.name ?? '');
-    return parts.join(' · ');
-  }
-
   redraw(center = false): void {
     this.map.draw(this.ctx.facing());
     const c = this.map.cell;
@@ -338,7 +325,7 @@ export class MapLayer extends Layer {
     ctx2d.strokeStyle = '#ffd84a';
     ctx2d.lineWidth = 2;
     ctx2d.strokeRect(this.cx * c + 1, this.cy * c + 1, c - 2, c - 2);
-    this.info.textContent = this.describe();
+    this.info.textContent = describeGrid(this.ctx.state, this.cx, this.cy);
     const x = this.cx * c - this.wrap.clientWidth / 2;
     const y = this.cy * c - this.wrap.clientHeight / 2;
     if (center || Math.abs(this.wrap.scrollLeft - x) > this.wrap.clientWidth / 3) this.wrap.scrollLeft = x;
@@ -384,7 +371,7 @@ export function openSystemMenu(ctx: UiContext, actions: { save: () => void; quit
     { label: 'Resume', data: () => {} },
     { label: 'Save game', data: actions.save },
     { label: 'Options', data: () => openOptions(ctx) },
-    { label: 'Controls', data: () => ctx.ui.open(new TextLayer('Controls', controlsHelp())) },
+    { label: 'Controls', data: () => ctx.ui.open(new ControlsLayer(ctx)) },
     { label: 'Message history', data: () => openMessageLog(ctx) },
     { label: 'Save and return to title', data: actions.quitToTitle },
     { label: 'Save and quit', data: () => ctx.quit() },
@@ -656,32 +643,3 @@ export class DeathLayer extends Layer {
   }
 }
 
-export function controlsHelp(): HTMLElement {
-  const rows: [string, string, string][] = [
-    ['Move forward / back', 'W / S, ↑ / ↓', 'Left stick, D-pad ↑/↓'],
-    ['Strafe', 'A / D', 'Left stick ←/→'],
-    ['Turn 45°', 'Q / E, ← / →', 'Right stick, D-pad ←/→'],
-    ['Run', 'Shift + W', 'Hold forward'],
-    ['Interact (stairs, doors, attack, pick up, shops)', 'Space / Enter', 'A'],
-    ['Back / cancel', 'Esc', 'B'],
-    ['Use: spells, wands, staffs, rods, potions, scrolls…', 'U (Z casts)', 'X'],
-    ['Gear (pack and equipment)', 'I', 'Y'],
-    ['Wait a turn / rest', '. / R', 'LB / hold LB'],
-    ['Aim, then fire', 'T', 'RB (then A)'],
-    ['Auto-explore', 'X', 'LT'],
-    ['Autofight (attack, fire, or close in)', 'F', 'RT'],
-    ['Examine (look at what you see)', 'L', 'L3'],
-    ['Level map', 'M', 'R3'],
-    ['Character and system menu', 'C / Esc', 'Start'],
-    ['All commands, by category', 'V', 'Select'],
-    ['Cycle target', 'Tab / Shift+Tab', 'RB in aim mode'],
-    ['Stairs up / down', '< / >', 'A on stairs'],
-    ['Absolute direction walk', 'Numpad 1-9', '—'],
-    ['Type text (inscriptions, names)', 'Keyboard', 'On-screen keyboard'],
-  ];
-  return h('table', { class: 'controls' },
-    h('tr', {}, h('th', {}, 'Action'), h('th', {}, 'Keyboard'), h('th', {}, 'Controller')),
-    rows.map(([a, k, g]) => h('tr', {}, h('td', {}, a), h('td', {}, k), h('td', {}, g))),
-    h('tr', {}, h('td', { colspan: 3, class: 'note' },
-      'Turning only changes your view and never takes a game turn. Every action is executed by the Angband engine.')));
-}

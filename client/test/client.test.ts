@@ -12,6 +12,7 @@ import { GameState } from '../src/state/game-state.ts';
 import { GridCamera } from '../src/camera/grid-camera.ts';
 import { HeadingFollower } from '../src/camera/heading.ts';
 import { glyphStyleFromId, promptsFor } from '../src/input/actions.ts';
+import { bindKey, bindPad, defaultBindings, keyLabel, keysFor, loadBindings, padLabel, padTable } from '../src/input/bindings.ts';
 import { TileAtlas } from '../src/sprites/atlas.ts';
 
 const feat = (idx: number, name: string, flags: string[]): FeatureInfo => ({ idx, name, flags, tiles: [] });
@@ -272,5 +273,44 @@ describe('controller button labels', () => {
     expect(nin.confirm).toBe('B'); // bottom button is labelled B on Nintendo pads
     expect(nin.attack).toBe('ZR');
     expect(promptsFor('keyboard', 'playstation').confirm).toBe('Enter');
+  });
+});
+
+describe('bindings', () => {
+  it('defaults to Angband keys, with WASD as a preset', () => {
+    const a = defaultBindings();
+    expect(a.keys.q).toBe('cmd:quaff');
+    expect(a.keys.m).toBe('spells');
+    expect(a.keys.l).toBe('look');
+    expect(a.keys['*']).toBe('aim');
+    expect(a.keys.Enter).toBe('commands');
+    expect(a.keys.ArrowUp).toBe('moveForward');
+    const w = defaultBindings('wasd');
+    expect(w.keys.w).toBe('moveForward');
+    expect(w.keys.q).toBe('turnLeft');
+    expect(w.keys.r).toBe('cmd:read');
+  });
+
+  it('swaps when a key or button is already taken', () => {
+    const b = defaultBindings();
+    expect(bindKey(b, 'cmd:quaff', 'r')).toBe('cmd:read');
+    expect(b.keys.r).toBe('cmd:quaff');
+    expect(b.keys.q).toBe('cmd:read');
+    expect(keysFor(b, 'spells')).toEqual(['m', 'p', 'b']);
+    bindKey(b, 'spells', 'Ctrl+k');
+    expect(keysFor(b, 'spells')).toEqual(['Ctrl+k']);
+    // Controller: explore onto RT swaps with autofight
+    expect(bindPad(b, 'explore', { button: 7 })).toBe('attack');
+    expect(b.pad.attack).toEqual({ button: 6 });
+    const t = padTable(b);
+    expect(t.get(4)).toEqual({ tap: 'wait', hold: 'rest' });
+  });
+
+  it('labels keys and buttons, and survives bad saved data', () => {
+    expect(keyLabel('Shift+ArrowUp')).toBe('Shift+↑');
+    expect(keyLabel('Numpad5')).toBe('Num 5');
+    expect(padLabel({ button: 4, hold: true }, 'playstation')).toBe('Hold L1');
+    expect(loadBindings(null).keys.q).toBe('cmd:quaff');
+    expect(loadBindings({ version: 9 }).preset).toBe('angband');
   });
 });
