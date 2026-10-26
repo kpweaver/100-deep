@@ -326,7 +326,7 @@ export class App implements InputHandler {
     if (c.map) this.dungeonDirty = true;
     if (c.entities || c.map) this.refreshEntities();
     if (c.player && p) {
-      r?.setTorchRadius(p.light);
+      r?.setTorch(p.lightRadius ?? p.light, !!p.unlight);
       if (this.lastHp !== null && p.hp < this.lastHp && this.state.phase === 'game') {
         r?.cam.shake();
         this.hud.hurt();
@@ -370,7 +370,7 @@ export class App implements InputHandler {
     r.entities.clear();
     if (!p || this.state.phase === 'menu') return;
     r.setOutdoors(p.depth === 0, !!p.daytime);
-    r.setTorchRadius(p.light);
+    r.setTorch(p.lightRadius ?? p.light, !!p.unlight);
     r.cam.teleport(p.x, p.y);
     this.faceOpenSide();
     this.dungeonDirty = true;

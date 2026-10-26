@@ -3,7 +3,9 @@
  * block, in a few discrete steps, like the first-person dungeon crawlers of
  * the 80s and 90s:
  *  - torch: brightness falls off in steps with the square's distance from
- *    the player, out to the engine's light radius;
+ *    the player, sized by the player's own light radius (torch, lantern,
+ *    artifact: Angband's cur_light).  Without light, a Necromancer's
+ *    Unlight shows the adjacent squares in a cold, dim light;
  *  - room light: squares with Angband's room light (SQUARE_GLOW, sent with
  *    each known grid) are lit evenly; remembered ones only dimly;
  *  - darkness: distant squares fade to black in steps (instead of fog);
@@ -28,6 +30,7 @@ export class GridLight {
     /** The player's grid (the light follows the camera, snapped to squares) */
     lightCentre: { value: new THREE.Vector2(0, 0) },
     torchRadius: { value: 2 },
+    torchColor: { value: new THREE.Color(1.2, 0.95, 0.65) },
     /** 0 dungeon, 1 town at night, 2 town by day */
     lightMode: { value: 0 },
   };
@@ -39,6 +42,25 @@ export class GridLight {
     const blank = new THREE.DataTexture(this.data, 1, 1, THREE.RedFormat, THREE.UnsignedByteType);
     blank.needsUpdate = true;
     this.uniforms.roomLight.value = blank;
+  }
+
+  /**
+   * Angband lights squares within cur_light - 1 of the player (intensity
+   * falling by one per square); the stepped falloff here keeps those bright
+   * and lets one more square fade out.  Unlight (Necromancers) sees the
+   * adjacent squares without light.
+   */
+  setTorch(radius: number, unlight: boolean): void {
+    const u = this.uniforms;
+    if (radius > 0) {
+      u.torchRadius.value = radius;
+      u.torchColor.value.setRGB(1.2, 0.95, 0.65);
+    } else if (unlight) {
+      u.torchRadius.value = 1;
+      u.torchColor.value.setRGB(0.42, 0.42, 0.62);
+    } else {
+      u.torchRadius.value = 0;
+    }
   }
 
   setMode(mode: LightMode): void {
@@ -97,6 +119,7 @@ export class GridLight {
           uniform vec2 roomLightSize;
           uniform vec2 lightCentre;
           uniform float torchRadius;
+          uniform vec3 torchColor;
           uniform int lightMode;`)
         .replace('#include <opaque_fragment>', `
           // The square this fragment belongs to (nudged off wall faces, so a
@@ -105,10 +128,10 @@ export class GridLight {
           float dist = length(cell - lightCentre);
           float room = texture2D(roomLight, (cell + 0.5) / roomLightSize).r;
 
-          // Torch: four steps out to the light radius
+          // Torch: four steps, reaching one square past what the engine lights
           float torch = 0.0;
           if (torchRadius > 0.0) {
-            torch = clamp(1.0 - dist / (torchRadius + 1.5), 0.0, 1.0);
+            torch = clamp(1.0 - dist / (torchRadius + 1.0), 0.0, 1.0);
             torch = ceil(torch * 4.0) / 4.0;
           }
 
@@ -119,7 +142,7 @@ export class GridLight {
             fade = 1.0;
           } else {
             float ambient = lightMode == 1 ? 0.3 : 0.06;
-            light = vec3(ambient) + torch * vec3(1.2, 0.95, 0.65) + room * vec3(0.6, 0.48, 0.34);
+            light = vec3(ambient) + torch * torchColor + room * vec3(0.6, 0.48, 0.34);
             // Darkness in steps of whole squares
             fade = exp(-pow(dist * (lightMode == 1 ? 0.045 : 0.075), 2.0));
             fade = ceil(fade * 6.0) / 6.0;

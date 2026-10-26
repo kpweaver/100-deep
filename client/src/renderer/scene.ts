@@ -85,9 +85,9 @@ export class SceneRenderer {
   /** Daylight in the town (Angband's day/night cycle) */
   daytime = false;
 
-  /** The engine's light radius sizes the torch */
-  setTorchRadius(radius: number): void {
-    this.dungeon.light.uniforms.torchRadius.value = radius;
+  /** The player's own light radius (and Unlight) from the engine */
+  setTorch(radius: number, unlight: boolean): void {
+    this.dungeon.light.setTorch(radius, unlight);
   }
 
   rebuildDungeon(ctx: DungeonBuildContext): void {

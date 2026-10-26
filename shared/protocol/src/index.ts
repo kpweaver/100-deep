@@ -66,16 +66,13 @@ export const LIGHT_LIT = 2;
 export const LIGHT_DARK = 3;
 
 /**
- * [x, y, featureIdx, lighting, inView(0|1), trapTile|null, darkFeature]
+ * [x, y, featureIdx, lighting, inView(0|1), trapTile|null, darkFeature, glow]
  *
  * darkFeature is non-zero only for an *unknown* grid that is inside the
  * player's view but unlit (e.g. a dark corridor leading to a lit room).  It
  * is shown as a faint silhouette; this is a deliberate, opt-in departure
- * from the stock map, which leaves such grids blank.
- */
-/**
- * [x, y, feature, lighting, inView, trapTile, darkFeature, glow]: glow is 1
- * for known grids with room light (Angband's SQUARE_GLOW)
+ * from the stock map, which leaves such grids blank.  glow is 1 for known
+ * grids with room light (Angband's SQUARE_GLOW).
  */
 export type MapCell = [number, number, number, number, number, Tile | null, number?, number?];
 
@@ -124,7 +121,12 @@ export interface PlayerState {
   gold: number;
   ac: number;
   speed: number;
+  /** Light level of the player's square: own light, room glow and monster light (the stock status bar's "Light") */
   light: number;
+  /** The player's own light source radius (state.cur_light; can be negative for darkness) */
+  lightRadius?: number;
+  /** The player can see adjacent squares without light (Necromancer's Unlight) */
+  unlight?: boolean;
   burden: number;
   resting: boolean;
   repeats: number;

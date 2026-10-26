@@ -878,7 +878,11 @@ static void write_player(jw *w)
 	jw_kint(w, "gold", player->au);
 	jw_kint(w, "ac", player->known_state.ac + player->known_state.to_a);
 	jw_kint(w, "speed", player->state.speed - 110);
+	/* Light level of the player's square (the stock status bar's "Light") */
 	jw_kint(w, "light", square_light(cave, player->grid));
+	/* The player's own light source radius, and the Unlight ability */
+	jw_kint(w, "lightRadius", player->state.cur_light);
+	jw_kbool(w, "unlight", player_has(player, PF_UNLIGHT));
 	jw_kint(w, "burden", player->upkeep->total_weight);
 	jw_kbool(w, "resting", player_is_resting(player));
 	jw_kint(w, "repeats", cmd_get_nrepeats());
