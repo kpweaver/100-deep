@@ -230,12 +230,20 @@ describe('HeadingFollower (auto-explore facing)', () => {
     expect(new Set(run(zigzag, 2))).toEqual(new Set([2]));
   });
 
-  it('turns once at a corner and then holds', () => {
-    const path: [number, number][] = [[1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]];
-    const facings = run(path, 2);
-    expect(facings.at(-1)).toBe(4); // now facing south
-    const changes = facings.filter((f, i) => i > 0 && f !== facings[i - 1]).length;
-    expect(changes).toBeLessThanOrEqual(2);
+  it('turns at a corner on the first step round it (no strafing)', () => {
+    const path: [number, number][] = [[1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1]];
+    expect(run(path, 2)).toEqual([2, 2, 2, 4, 4, 4]);
+    // And the other way, round a left-hand corner
+    expect(run([[-1, 0], [-1, 0], [0, -1], [0, -1]], 6)).toEqual([6, 6, 0, 0]);
+  });
+
+  it('faces a long diagonal after one step of it', () => {
+    expect(run([[1, 0], [1, -1], [1, -1], [1, -1]], 2)).toEqual([2, 2, 1, 1]);
+    expect(run([[-1, 0], [-1, -1], [-1, -1]], 6)).toEqual([6, 6, 7]);
+  });
+
+  it('faces the diagonal of a staircase of straight steps', () => {
+    expect(run([[1, 0], [0, -1], [1, 0], [0, -1], [1, 0]], 2).slice(2)).toEqual([1, 1, 1]);
   });
 
   it('turns around at once when doubling back', () => {

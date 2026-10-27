@@ -785,19 +785,20 @@ export class App implements InputHandler {
       return this.command({ action: 'fire_at_nearest' });
     }
     // Autofight: close in on the nearest visible monster, one step at a time,
-    // around walls and other monsters
+    // around walls and other monsters.  Unseen grids are worth trying (a
+    // monster seen across a dark room): a wall found there re-routes the next step
     const near = s.monsters.filter((m) => m.inView)
       .sort((a, b) => Math.max(Math.abs(a.x - p.x), Math.abs(a.y - p.y)) - Math.max(Math.abs(b.x - p.x), Math.abs(b.y - p.y)))[0];
     if (near) {
       const dir = firstStepToward(p, near, (x, y) => {
         const c = s.featureClassAt(x, y);
-        return (c.passable || c.shape === 'door_closed') && !s.monsterAt(x, y);
+        return (c.passable || c.shape === 'door_closed' || c.shape === 'unknown') && !s.monsterAt(x, y);
       });
       if (dir) {
         this.renderer?.cam.face(dir);
         return this.command({ action: 'walk', dir });
       }
-      this.state.note(`No known way to ${near.name}.`);
+      this.state.note('There is no way to reach it.');
       return;
     }
     this.state.note('No foe in sight.');
