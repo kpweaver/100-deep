@@ -28,8 +28,12 @@ export class WorkerConnection implements Transport {
   status: ConnectionStatus = 'closed';
   debug = false;
 
-  /** Directory with angband.mjs/.wasm/.data, relative to the page */
-  constructor(private engineDir = 'engine/') {}
+  /**
+   * Directory with angband.mjs/.wasm/.data, relative to the page.  The web
+   * build names it after the engine's contents, so a browser never pairs a
+   * cached old engine with a new page.
+   */
+  constructor(private engineDir = import.meta.env.VITE_ENGINE_DIR ?? 'engine/') {}
 
   connect(): void {
     if (this.worker) return;

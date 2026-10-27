@@ -23,10 +23,11 @@ it has not yet been tried in Safari or Firefox.
 - **Saves** live in the browser's IndexedDB (Emscripten IDBFS, `/data`). The
   engine saves quietly once it has been idle for a second after play (at
   most every 5 s), plus Angband's own level-change autosave, so closing the
-  tab loses at most a few seconds. Save and quit saves explicitly.
+  tab loses at most a few seconds. Ctrl+S saves explicitly.
 - Game data from `engine/lib` (`gamedata`, `customize`, `help`, `screens`, tile prefs) is
-  packed into `engine/angband.data`. The client loads the Gervais tile
-  image separately.
+  packed into `angband.data`. The engine files live in `engine/<hash>/`,
+  named after their contents, so a browser never runs a cached old engine
+  with a new page. The client loads the Gervais tile image separately.
 
 Size: about 2.4 MB zipped (1.8 MB WebAssembly, 1.3 MB game data, 0.6 MB client,
 and the tile sheet).

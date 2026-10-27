@@ -79,5 +79,7 @@ void panels_write_character(jw *w, int page);
 void store_register_events(void);
 bool store_is_open(void);
 void store_write_state(jw *w);
+/* Where the player is shown: outside the door while a shop is open */
+struct loc store_shown_grid(void);
 
 #endif

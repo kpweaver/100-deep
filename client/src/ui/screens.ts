@@ -598,7 +598,7 @@ export class StoreLayer extends Layer {
       this.setMode(this.mode === 'buy' ? 'sell' : 'buy');
       return true;
     }
-    if (ev.ui === 'menu') {
+    if (ev.ui === 'menu' || ev.ui === 'back') {
       this.leave();
       return true;
     }

@@ -128,12 +128,17 @@ static void run_store_command(void)
 }
 
 /*
- * Step back out of the entrance onto the grid the player came from, so they
- * stand in the street beside the shop rather than in its doorway.  If that
- * grid isn't known (a long run ends at the door) or is now blocked, use
- * another open grid next to the door, straight ahead of it first.
+ * Shops are used from the street: the player walks into the door and the
+ * shop opens with them still standing outside it.  The core's store
+ * commands need the player on the entrance, so they stand there while the
+ * shop is open, but snapshots show them outside (store_shown_grid) and they
+ * step back out on leaving.  That is the grid they came from, or if it
+ * isn't known (a long run ends at the door) or is blocked, another open
+ * grid next to the door, straight ahead of it first.
  */
-static void step_out_of_store(struct loc from)
+static struct loc store_exit;
+
+static struct loc find_store_exit(struct loc from)
 {
 	struct loc grid = player->grid;
 	int i, pass;
@@ -147,19 +152,24 @@ static void step_out_of_store(struct loc from)
 			if (!square_in_bounds_fully(cave, to) || !square_ispassable(cave, to) ||
 					square_isshop(cave, to) || square(cave, to)->mon)
 				continue;
-			monster_swap(grid, to);
-			player->upkeep->update |= (PU_UPDATE_VIEW | PU_MONSTERS);
-			return;
+			return to;
 		}
 	}
+	/* Nowhere to stand: stay in the doorway */
+	return grid;
+}
+
+struct loc store_shown_grid(void)
+{
+	return open_store ? store_exit : player->grid;
 }
 
 static void ev_use_store(game_event_type type, game_event_data *data, void *user)
 {
 	struct store *store = store_at(cave, player->grid);
-	struct loc from = snapshot_player_grid;
 	if (!store) return;
 
+	store_exit = find_store_exit(snapshot_player_grid);
 	open_store = store;
 	if (store->feat != FEAT_HOME && store->owner)
 		msg("%s welcomes you.", store->owner->name);
@@ -228,7 +238,10 @@ static void ev_use_store(game_event_type type, game_event_data *data, void *user
 	}
 
 	open_store = NULL;
-	step_out_of_store(from);
+	if (!loc_eq(store_exit, player->grid)) {
+		monster_swap(player->grid, store_exit);
+		player->upkeep->update |= (PU_UPDATE_VIEW | PU_MONSTERS);
+	}
 
 	/* Leaving takes a turn, as in ui-store.c */
 	player->upkeep->energy_use = z_info->move_energy;

@@ -860,8 +860,8 @@ static void write_player(jw *w)
 	jw_kstr(w, "race", player->race->name);
 	jw_kstr(w, "class", player->class->name);
 	jw_kstr(w, "title", player->class->title[(player->lev - 1) / 5]);
-	jw_kint(w, "x", player->grid.x);
-	jw_kint(w, "y", player->grid.y);
+	jw_kint(w, "x", store_shown_grid().x);
+	jw_kint(w, "y", store_shown_grid().y);
 	jw_kint(w, "depth", player->depth);
 	jw_kint(w, "maxDepth", player->max_depth);
 	jw_kbool(w, "daytime", is_daytime());
@@ -908,7 +908,7 @@ static void write_player(jw *w)
 
 	/* What is underfoot */
 	{
-		struct feature *feat = square_feat(player->cave, player->grid);
+		struct feature *feat = square_feat(player->cave, store_shown_grid());
 		jw_kstr(w, "terrain", feat && feat->name ? feat->name : "");
 	}
 
@@ -958,7 +958,7 @@ void snapshot_send(bool full_map)
 			sent_level_serial = level_serial;
 		}
 		jw_kint(&w, "levelId", level_serial);
-		snapshot_player_grid = player->grid;
+		snapshot_player_grid = store_shown_grid();
 		write_player(&w);
 		write_map(&w, full_map, &piles, &n_piles);
 		jw_key(&w, "objects");

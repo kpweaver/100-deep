@@ -10,7 +10,8 @@
  *   npm run build:web
  */
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,7 +20,7 @@ const wasmBuild = join(root, 'build/wasm');
 const out = join(root, 'client/dist-web');
 const zip = join(root, 'build/100-deep-web.zip');
 const lib = join(root, 'engine/lib');
-const run = (cmd: string, args: string[], cwd = root) => execFileSync(cmd, args, { cwd, stdio: 'inherit' });
+const run = (cmd: string, args: string[], cwd = root, env = process.env) => execFileSync(cmd, args, { cwd, env, stdio: 'inherit' });
 
 try {
   execFileSync('emcc', ['--version'], { stdio: 'ignore' });
@@ -35,13 +36,21 @@ if (!existsSync(join(root, 'engine/upstream/src/game-world.c'))) {
 run('emcmake', ['cmake', '-S', 'engine', '-B', wasmBuild, '-DCMAKE_BUILD_TYPE=Release']);
 run('cmake', ['--build', wasmBuild, '--target', 'angband-web', '-j', '8']);
 
+// The engine's directory is named after its contents, so browsers never mix
+// a cached old engine with a new page (the file names never change)
+const engineFiles = ['angband.mjs', 'angband.wasm', 'angband.data'];
+const hash = createHash('sha256');
+for (const f of engineFiles) hash.update(readFileSync(join(wasmBuild, f)));
+const engineDir = `engine/${hash.digest('hex').slice(0, 12)}/`;
+
 // 2. Client with relative paths (itch.io serves games from a sub-path)
 rmSync(out, { recursive: true, force: true });
-run('npx', ['vite', 'build', '--mode', 'web', '--base', './', '--outDir', 'dist-web', '--emptyOutDir'], join(root, 'client'));
+run('npx', ['vite', 'build', '--mode', 'web', '--base', './', '--outDir', 'dist-web', '--emptyOutDir'], join(root, 'client'),
+  { ...process.env, VITE_ENGINE_DIR: engineDir });
 
 // 3. Engine, tiles (Gervais only, CC BY 3.0) and licences next to the page
-mkdirSync(join(out, 'engine'), { recursive: true });
-for (const f of ['angband.mjs', 'angband.wasm', 'angband.data']) copyFileSync(join(wasmBuild, f), join(out, 'engine', f));
+mkdirSync(join(out, engineDir), { recursive: true });
+for (const f of engineFiles) copyFileSync(join(wasmBuild, f), join(out, engineDir, f));
 mkdirSync(join(out, 'tiles/gervais'), { recursive: true });
 copyFileSync(join(lib, 'tiles/gervais/32x32.png'), join(out, 'tiles/gervais/32x32.png'));
 mkdirSync(join(out, 'licenses'), { recursive: true });

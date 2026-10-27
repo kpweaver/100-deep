@@ -328,8 +328,6 @@ export class App implements InputHandler {
       this.hud.showBanner(p.depth === 0 ? 'The Town' : `${p.depth * 50} feet (level ${p.depth})`);
       this.heading.reset();
       this.exploring = false;
-    } else if (this.state.store) {
-      // Shopping happens from the street: the view stays outside the door
     } else if (c.moved && r && p) {
       this.hud.weapon.bob();
       if (this.lastAction && AUTO_FACE_ACTIONS.has(this.lastAction)) this.followPath(p.x - c.moved.fromX, p.y - c.moved.fromY);

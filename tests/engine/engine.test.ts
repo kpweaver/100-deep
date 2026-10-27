@@ -289,7 +289,7 @@ test('state stays consistent under rapid repeated input', async () => {
   await s.stop();
 });
 
-test('leaving a shop puts the player back on the grid outside its door', async () => {
+test('shops open from the street: walking into the door never moves the player', async () => {
   process.env.THANG_CHEATS = '1';
   const s = new Session();
   await s.start();
@@ -316,9 +316,14 @@ test('leaving a shop puts the player back on the grid outside its door', async (
   const dir = (Object.keys(DIR_OFFSETS).map(Number) as Direction[])
     .find((d) => DIR_OFFSETS[d][0] === door[0] - outside[0] && DIR_OFFSETS[d][1] === door[1] - outside[1])!;
   const inside = (await s.command({ action: 'walk', dir })) as StateMessage;
-  assert.ok(inside.store, 'walked into the shop');
+  assert.ok(inside.store, 'walking into the door opens the shop');
+  assert.deepEqual([inside.player!.x, inside.player!.y], outside, 'shown in the street while shopping');
   await s.command({ action: 'store_leave' });
   assert.ok(!s.state!.store);
+  assert.deepEqual([s.player.x, s.player.y], outside);
+  // And again, from the same spot
+  assert.ok(((await s.command({ action: 'walk', dir })) as StateMessage).store);
+  await s.command({ action: 'store_leave' });
   assert.deepEqual([s.player.x, s.player.y], outside);
   await s.stop();
 });
