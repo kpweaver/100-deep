@@ -15,6 +15,8 @@ import { HeadingFollower } from '../src/camera/heading.ts';
 import { glyphStyleFromId, promptsFor } from '../src/input/actions.ts';
 import { bindKey, bindPad, defaultBindings, keyLabel, keysFor, loadBindings, padLabel, padTable } from '../src/input/bindings.ts';
 import { TileAtlas } from '../src/sprites/atlas.ts';
+import { sliceAt } from '../src/ui/wheel.ts';
+import { parseLabel } from '../src/ui/glyphs.ts';
 
 const feat = (idx: number, name: string, flags: string[]): FeatureInfo => ({ idx, name, flags, tiles: [] });
 
@@ -271,11 +273,12 @@ describe('controller button labels', () => {
     const ps = promptsFor('gamepad', 'playstation');
     expect(ps.confirm).toBe('✕');
     expect(ps.back).toBe('○');
-    expect(ps.rest).toBe('Hold L1');
+    expect(ps.rest).toBe('Hold △');
     expect(ps.tabs).toBe('L1/R1');
-    // Orbrun-style layout: X uses, RB aims, L3 examines, Select lists every command
-    expect(ps.useMenu).toBe('□');
-    expect(ps.aim).toBe('R1');
+    // Action wheels: LT aims (hold: combat wheel), RB fires, L3 examines, Select lists every command
+    expect(ps.aim).toBe('L2');
+    expect(ps.combatWheel).toBe('Hold L2');
+    expect(ps.fire).toBe('R1');
     expect(ps.look).toBe('L3');
     expect(ps.commands).toBe('Share');
     const nin = promptsFor('gamepad', 'nintendo');
@@ -309,11 +312,14 @@ describe('bindings', () => {
     expect(keysFor(b, 'cmd:pickup')).toEqual(['p', 'g']);
     bindKey(b, 'spells', 'Ctrl+k');
     expect(keysFor(b, 'spells')).toEqual(['Ctrl+k']);
-    // Controller: explore onto RT swaps with autofight
+    // Controller: explore onto RT swaps with melee
     expect(bindPad(b, 'explore', { button: 7 })).toBe('attack');
-    expect(b.pad.attack).toEqual({ button: 6 });
+    expect(b.pad.attack).toEqual({ button: 2 });
     const t = padTable(b);
-    expect(t.get(4)).toEqual({ tap: 'wait', hold: 'rest' });
+    expect(t.get(3)).toEqual({ tap: 'wait', hold: 'rest' });
+    expect(t.get(6)).toEqual({ tap: 'aim', hold: 'combatWheel' });
+    expect(t.get(4)).toEqual({ tap: 'inventory', hold: 'gearWheel' });
+    expect(t.get(0)).toEqual({ tap: 'interact', hold: 'contextMenu' });
   });
 
   it('labels keys and buttons, and survives bad saved data', () => {
@@ -322,6 +328,32 @@ describe('bindings', () => {
     expect(padLabel({ button: 4, hold: true }, 'playstation')).toBe('Hold L1');
     expect(loadBindings(null).keys.q).toBe('cmd:quaff');
     expect(loadBindings({ version: 9 }).preset).toBe('angband');
+  });
+
+  it('moves saved controls onto the wheel layout, keeping rebound keys', () => {
+    // Saved before the wheels: Orbrun-style buttons, h as the engine's fire-at-nearest
+    const old = { version: 1, preset: 'angband', keys: { ...defaultBindings().keys, h: 'cmd:fire_at_nearest', k: 'cmd:quaff' }, pad: { attack: { button: 7 }, explore: { button: 6 }, wait: { button: 4 } } };
+    const b = loadBindings(old);
+    expect(b.padLayout).toBe(2);
+    expect(b.pad.fire).toEqual({ button: 5 });
+    expect(b.pad.explore).toEqual({ button: 2 });
+    expect(b.keys.h).toBe('fire');
+    expect(b.keys.k).toBe('cmd:quaff');
+    // Rebound buttons on the new layout are kept
+    const mine = defaultBindings();
+    bindPad(mine, 'fire', { button: 4 });
+    expect(loadBindings(JSON.parse(JSON.stringify(mine))).pad.fire).toEqual({ button: 4 });
+  });
+});
+
+describe('action wheel', () => {
+  it('picks the slice a stick points at, clockwise from the top', () => {
+    expect(sliceAt(0, -1)).toBe(0);
+    expect(sliceAt(0.7, -0.7)).toBe(1);
+    expect(sliceAt(1, 0.1)).toBe(2);
+    expect(sliceAt(0, 1)).toBe(4);
+    expect(sliceAt(-1, 0)).toBe(6);
+    expect(sliceAt(-0.7, -0.7)).toBe(7);
   });
 });
 
@@ -357,5 +389,20 @@ describe('firstStepToward', () => {
   it('gives up when there is no known way', () => {
     const g = grid(['P#M']);
     expect(firstStepToward(g.from, g.to, g.walkable)).toBeNull();
+  });
+});
+
+describe('controller glyphs', () => {
+  it('turns button labels into glyph pieces, and leaves keys alone', () => {
+    expect(parseLabel('Hold LT', 'xbox')).toEqual(['Hold', ['trigger', 'LT', undefined]]);
+    expect(parseLabel('A', 'xbox')).toEqual([['face', 'A', 'green']]);
+    expect(parseLabel('LB/RB', 'xbox')).toEqual([['bumper', 'LB', undefined], '/', ['bumper', 'RB', undefined]]);
+    expect(parseLabel('D-pad ↑/↓', 'xbox')).toEqual([['dpad', ''], '↑', '/', '↓']);
+    expect(parseLabel('L↑', 'xbox')).toEqual([['stick', 'L'], '↑']);
+    expect(parseLabel('✕', 'playstation')).toEqual([['face', '✕', 'ps-blue']]);
+    expect(parseLabel('ZR', 'nintendo')).toEqual([['trigger', 'ZR', undefined]]);
+    expect(parseLabel('Enter', 'xbox')).toBeNull();
+    expect(parseLabel('Shift+Enter', 'xbox')).toBeNull();
+    expect(parseLabel('Hold', 'xbox')).toBeNull();
   });
 });

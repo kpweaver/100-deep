@@ -49,7 +49,7 @@ const REPEATABLE = new Set<string>([
   'up', 'down', 'left', 'right', 'pageUp', 'pageDown',
 ]);
 
-interface HeldState { binding: KeyBinding; time: number; next: number; button?: number; held?: boolean; ran?: boolean; tap?: GameAction; hold?: GameAction; captured?: boolean }
+interface HeldState { binding: KeyBinding; time: number; next: number; button?: number; held?: boolean; ran?: boolean; tap?: GameAction; hold?: GameAction; captured?: boolean; handler?: InputHandler }
 
 export class InputManager {
   private stack: InputHandler[] = [];
@@ -210,14 +210,15 @@ export class InputManager {
       if (!held) {
         this.setDevice('gamepad');
         const t = button !== undefined && !PAD_FIXED_GAME[button] ? this.pad.get(button) : undefined;
-        this.padHeld.set(id, { binding, time: 0, next: REPEAT_DELAY, button, tap: t?.hold ? t.tap : undefined, hold: t?.hold, captured: !!this.capture });
+        this.padHeld.set(id, { binding, time: 0, next: REPEAT_DELAY, button, tap: t?.hold ? t.tap : undefined, hold: t?.hold, captured: !!this.capture, handler: this.top });
         if (!this.capture) this.dispatch({ ...binding, device: 'gamepad', repeat: false });
       } else {
         held.time += dt;
         if (this.capture) continue;
         if (held.hold && !held.held && held.time >= HOLD_TIME) {
           held.held = true;
-          this.dispatch({ game: held.hold, device: 'gamepad', repeat: false });
+          // Not if the press opened or closed a menu (A confirming one)
+          if (this.top === held.handler) this.dispatch({ game: held.hold, device: 'gamepad', repeat: false });
         }
         const name = binding.game ?? binding.ui ?? '';
         // Holding forward runs (once); the run then continues in the engine
@@ -240,7 +241,7 @@ export class InputManager {
         continue;
       }
       // A short press of a tap/hold button does its tap action on release
-      if (held.hold && !held.held && held.tap) this.dispatch({ game: held.tap, device: 'gamepad', repeat: false });
+      if (held.hold && !held.held && held.tap && this.top === held.handler) this.dispatch({ game: held.tap, device: 'gamepad', repeat: false });
     }
   }
 

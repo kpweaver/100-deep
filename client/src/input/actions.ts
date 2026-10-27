@@ -8,7 +8,11 @@ export type GameAction =
   | 'moveForward' | 'moveBack' | 'strafeLeft' | 'strafeRight'
   | 'turnLeft' | 'turnRight'
   | 'interact'      // contextual: stairs, pick up, open door ahead
-  | 'attack'        // autofight: melee adjacent, fire if possible, else step toward the nearest foe
+  | 'attack'        // melee: strike an adjacent foe, else step toward the nearest
+  | 'fire'          // fire the launcher at the nearest foe
+  | 'contextMenu'   // everything you can do here or with what is ahead
+  | 'combatWheel' | 'gearWheel'
+  | 'travelDown'    // travel to the nearest down staircase
   | 'explore'
   | 'wait'
   | 'rest'
@@ -59,7 +63,7 @@ export type PromptKey = GameAction | UiAction | 'tabs' | 'zoom' | 'dpad' | 'scro
 /** Labels for button prompts, per device (gamepad labels are Xbox-style) */
 export const PROMPTS: Record<Device, Partial<Record<PromptKey, string>>> = {
   keyboard: {
-    interact: 'Space', attack: 'Tab', explore: 'x', wait: ',', rest: 'R',
+    interact: 'Space', attack: 'Tab', fire: 'h', explore: 'x', wait: ',', rest: 'R',
     inventory: 'i', spells: 'm', map: 'M',
     useMenu: 'U', commands: 'Enter', aim: '*', look: 'l',
     character: 'C', menu: 'Esc', confirm: 'Enter', back: 'Esc',
@@ -68,9 +72,9 @@ export const PROMPTS: Record<Device, Partial<Record<PromptKey, string>>> = {
     tabs: 'Tab', zoom: '+/-', dpad: 'Arrows', scroll: '↑/↓', page: '←/→',
   },
   gamepad: {
-    interact: 'A', attack: 'RT', explore: 'LT', wait: 'LB', rest: 'Hold LB',
-    targetNext: 'RB', inventory: 'Y', spells: 'X', map: 'R3',
-    useMenu: 'X', commands: 'Select', aim: 'RB', look: 'L3',
+    interact: 'A', contextMenu: 'Hold A', attack: 'RT', fire: 'RB', explore: 'X', travelDown: 'Hold X',
+    wait: 'Y', rest: 'Hold Y', aim: 'LT', combatWheel: 'Hold LT', inventory: 'LB', gearWheel: 'Hold LB',
+    map: 'R3', commands: 'Select', look: 'L3',
     character: 'Start', menu: 'Start', confirm: 'A', back: 'B',
     secondary: 'X', tertiary: 'Y', moveForward: 'L↑', turnLeft: 'R←', turnRight: 'R→',
     goUp: 'A', goDown: 'A',

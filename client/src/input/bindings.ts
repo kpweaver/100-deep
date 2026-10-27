@@ -20,6 +20,8 @@ export type KeyPreset = 'angband' | 'wasd';
 
 export interface Bindings {
   version: 1;
+  /** Controller layout the saved buttons were made for (absent: the old Orbrun-style one) */
+  padLayout?: 2;
   preset: KeyPreset;
   keys: Record<KeyId, GameAction>;
   pad: Partial<Record<GameAction, PadBind>>;
@@ -41,16 +43,19 @@ export const BINDABLE: [group: string, action: GameAction, label: string][] = [
   ['Move', 'turnRight', 'Turn right'],
   ['Move', 'runForward', 'Run forward'],
   ['Move', 'explore', 'Auto-explore'],
+  ['Move', 'travelDown', 'Travel to the nearest down staircase'],
   ['Move', 'goUp', 'Go up a staircase'],
   ['Move', 'goDown', 'Go down a staircase'],
   ['Move', 'wait', 'Hold still a turn'],
   ['Move', 'rest', 'Rest as needed'],
   ['Move', 'cmd:jump', 'Walk into a trap'],
   ['Act', 'interact', 'Interact (stairs, doors, pick up, attack ahead)'],
-  ['Act', 'attack', 'Fire at nearest (melee when adjacent, else close in)'],
+  ['Act', 'contextMenu', 'Context menu (everything you can do here)'],
+  ['Act', 'attack', 'Melee (strike adjacent, else close in)'],
+  ['Act', 'fire', 'Fire at the nearest monster'],
+  ['Act', 'combatWheel', 'Combat wheel (cast, quaff, read, devices…)'],
   ['Act', 'aim', 'Aim / target, then fire'],
   ['Act', 'cmd:target_closest', 'Target the closest monster'],
-  ['Act', 'cmd:fire_at_nearest', 'Fire at the nearest monster'],
   ['Act', 'cmd:fire', 'Fire a missile'],
   ['Act', 'cmd:throw', 'Throw an item'],
   ['Act', 'spells', 'Cast a spell'],
@@ -61,6 +66,7 @@ export const BINDABLE: [group: string, action: GameAction, label: string][] = [
   ['Act', 'cmd:disarm', 'Disarm'],
   ['Act', 'cmd:alter', 'Alter terrain'],
   ['Act', 'cmd:steal', 'Steal'],
+  ['Items', 'gearWheel', 'Gear wheel (wear, eat, drop, inscribe…)'],
   ['Items', 'useMenu', 'Use menu (spells, devices, potions…)'],
   ['Items', 'inventory', 'Inventory'],
   ['Items', 'equipment', 'Equipment'],
@@ -110,7 +116,7 @@ const ANGBAND_KEYS: Record<KeyId, GameAction> = {
   w: 'cmd:wield', t: 'cmd:takeoff', d: 'cmd:drop', '{': 'cmd:inscribe', '}': 'cmd:uninscribe',
   K: 'cmd:toggle_unignore',
   o: 'cmd:open', c: 'cmd:close', T: 'cmd:tunnel', D: 'cmd:disarm', '+': 'cmd:alter', s: 'cmd:steal',
-  l: 'look', x: 'explore', '*': 'aim', "'": 'cmd:target_closest', h: 'cmd:fire_at_nearest', Tab: 'attack',
+  l: 'look', x: 'explore', '*': 'aim', "'": 'cmd:target_closest', h: 'fire', Tab: 'attack',
   C: 'character', M: 'map', '[': 'monsterList', ']': 'itemList', '/': 'recall', '\\': 'toggleSidebar',
   'Ctrl+p': 'messages', 'Ctrl+f': 'cmd:feeling', 'Ctrl+s': 'save', 'Ctrl+x': 'saveQuit', '?': 'help',
 };
@@ -126,16 +132,25 @@ const WASD_KEYS: Record<KeyId, GameAction> = (() => {
   return k;
 })();
 
-/** Orbrun-style controller layout */
+/**
+ * Action wheels: the constant actions on their own buttons (RT melee, RB
+ * fire, X explore, Y wait), the fight's items and spells on the LT wheel,
+ * gear on the LB wheel, and the rest in A's context menu and Select's
+ * command list.  Held buttons do the second, rarer action.
+ */
 const PAD_DEFAULTS: Partial<Record<GameAction, PadBind>> = {
   interact: { button: BTN.A },
-  useMenu: { button: BTN.X },
-  inventory: { button: BTN.Y },
-  wait: { button: BTN.LB },
-  rest: { button: BTN.LB, hold: true },
-  aim: { button: BTN.RB },
-  explore: { button: BTN.LT },
+  contextMenu: { button: BTN.A, hold: true },
+  explore: { button: BTN.X },
+  travelDown: { button: BTN.X, hold: true },
+  wait: { button: BTN.Y },
+  rest: { button: BTN.Y, hold: true },
+  aim: { button: BTN.LT },
+  combatWheel: { button: BTN.LT, hold: true },
+  inventory: { button: BTN.LB },
+  gearWheel: { button: BTN.LB, hold: true },
   attack: { button: BTN.RT },
+  fire: { button: BTN.RB },
   commands: { button: BTN.SELECT },
   look: { button: BTN.L3 },
   map: { button: BTN.R3 },
@@ -150,7 +165,7 @@ export function presetKeys(preset: KeyPreset): Record<KeyId, GameAction> {
 }
 
 export function defaultBindings(preset: KeyPreset = 'angband'): Bindings {
-  return { version: 1, preset, keys: presetKeys(preset), pad: structuredClone(PAD_DEFAULTS) };
+  return { version: 1, padLayout: 2, preset, keys: presetKeys(preset), pad: structuredClone(PAD_DEFAULTS) };
 }
 
 /** Saved bindings, or the defaults if missing or from another version */
@@ -160,7 +175,11 @@ export function loadBindings(raw: unknown): Bindings {
   const keys = { ...b.keys };
   // p was a second cast key before it became pick up
   if (keys.p === 'spells' && keys.m === 'spells') keys.p = 'cmd:pickup';
-  return { version: 1, preset: b.preset === 'wasd' ? 'wasd' : 'angband', keys, pad: { ...b.pad } };
+  // h fired at the nearest monster as an engine command; Fire is its own action now
+  for (const k of Object.keys(keys)) if (keys[k] === 'cmd:fire_at_nearest') keys[k] = 'fire';
+  // Buttons saved for the old layout give way to the wheels
+  const pad = b.padLayout === 2 ? { ...b.pad } : structuredClone(PAD_DEFAULTS);
+  return { version: 1, padLayout: 2, preset: b.preset === 'wasd' ? 'wasd' : 'angband', keys, pad };
 }
 
 /** The binding id for a key event (case and symbols follow the keyboard layout) */

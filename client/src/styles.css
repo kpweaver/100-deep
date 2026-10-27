@@ -281,3 +281,46 @@ kbd { display: inline-block; min-width: 1.6em; text-align: center; margin-right:
 .osk-key.selected { border-color: var(--gold); color: var(--gold); background: rgba(80,60,20,0.6); }
 .osk-key.on { color: #7fe07a; }
 .osk-help { text-align: center; color: #b8a888; font-size: 16px; margin-top: 6px; }
+
+/* Action wheels (hold LT / LB): a ring of wedges, Steam Deck radial style */
+.layer.wheel-layer { background: radial-gradient(circle, rgba(0,0,0,0.25), rgba(0,0,0,0.6)); }
+.wheel-ring { position: relative; width: min(620px, 94vw, 86vh); aspect-ratio: 1; }
+.wheel-art { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 10px 30px #000); }
+.wheel-seg { fill: url(#wheel-seg); stroke: rgba(227,184,96,0.18); stroke-width: 0.6; cursor: pointer; transition: fill 90ms, stroke 90ms; }
+.wheel-seg.dim { fill: rgba(16,14,11,0.82); stroke: rgba(255,255,255,0.05); }
+.wheel-seg.sel { fill: url(#wheel-sel); stroke: var(--gold); stroke-width: 1; filter: drop-shadow(0 0 6px rgba(227,184,96,0.55)); }
+.wheel-hub-rim { fill: rgba(10,9,7,0.94); stroke: rgba(227,184,96,0.35); stroke-width: 1; }
+.wheel-pointer { fill: var(--gold); opacity: 0; transition: transform 90ms ease-out, opacity 90ms; }
+.wheel-pointer.on { opacity: 1; }
+.wheel-label { position: absolute; transform: translate(-50%, -50%); width: 24%; display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 24px; line-height: 1.05; color: var(--ink); pointer-events: none; text-shadow: 0 1px 0 #000; transition: transform 90ms, color 90ms; }
+.wheel-label small { color: var(--ink-dim); font-size: 16px; }
+.wheel-label.dim { color: #5e574a; }
+.wheel-label.dim small { color: #5e574a; }
+.wheel-label.sel { color: #fff3d6; transform: translate(-50%, -50%) scale(1.08); }
+.wheel-label.sel small { color: var(--gold); }
+.wheel-hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40%; text-align: center; pointer-events: none; }
+.wheel-title { color: var(--gold); font-size: 16px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.8; }
+.wheel-pick { margin-top: 6px; font-size: 24px; color: #fff3d6; min-height: 16px; }
+.wheel-keys { margin-top: 10px; font-size: 16px; color: var(--ink-dim); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.wheel-keys > span { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Controller button glyphs (ui/glyphs.ts restyles <kbd> prompts while a controller is in use) */
+kbd.pad { border: none; background: none; padding: 0; min-width: 0; display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; color: var(--ink); }
+kbd.pad .g-hold { font-size: 16px; color: var(--ink-dim); margin-right: 1px; }
+kbd.pad .g-sep { font-size: 16px; color: var(--ink-dim); }
+.g { display: inline-grid; place-items: center; box-sizing: border-box; height: 22px; font-family: var(--font); font-size: 16px; line-height: 1; color: #f2f2f2; background: #2e2e33; border: 1px solid #55555c; box-shadow: 0 2px 0 #000; text-shadow: 0 1px 0 rgba(0,0,0,0.6); }
+.g-face { width: 24px; height: 24px; border-radius: 50%; border: none; font-weight: bold; }
+.g-green { background: radial-gradient(circle at 35% 30%, #6fd46a, #2f8f2a 70%); }
+.g-red { background: radial-gradient(circle at 35% 30%, #f06a5c, #b02a1f 70%); }
+.g-blue { background: radial-gradient(circle at 35% 30%, #5aa2f0, #1f5fb0 70%); }
+.g-yellow { background: radial-gradient(circle at 35% 30%, #ffd75a, #c79a10 70%); color: #2a2000; text-shadow: none; }
+.g-ps-blue, .g-ps-red, .g-ps-pink, .g-ps-green { background: radial-gradient(circle at 35% 30%, #3c3c44, #1c1c20 70%); border: 1px solid #55555c; }
+.g-ps-blue { color: #7cb4f5; } .g-ps-red { color: #f0706a; } .g-ps-pink { color: #e88ad6; } .g-ps-green { color: #5fd6b0; }
+.g-mono { background: radial-gradient(circle at 35% 30%, #4a4a52, #24242a 70%); border: 1px solid #66666e; }
+.g-bumper { min-width: 34px; padding: 0 6px; height: 20px; border-radius: 9px 9px 4px 4px; font-size: 16px; }
+.g-trigger { min-width: 26px; padding: 0 4px; height: 26px; border-radius: 12px 12px 5px 5px; align-content: end; padding-bottom: 2px; }
+.g-stick { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #77777e; background: radial-gradient(circle, #45454c 0 45%, #26262b 50%); }
+.g-menu { min-width: 22px; height: 16px; padding: 0 5px; border-radius: 8px; font-size: 16px; }
+.g-dpad { width: 22px; height: 22px; border: none; box-shadow: none; background:
+  linear-gradient(#55555c, #55555c) center / 8px 100% no-repeat,
+  linear-gradient(#55555c, #55555c) center / 100% 8px no-repeat; filter: drop-shadow(0 2px 0 #000); }

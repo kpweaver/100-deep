@@ -16,6 +16,8 @@ import {
 import { Connection, type Transport } from './protocol/connection.ts';
 import { WorkerConnection, useWasmEngine } from './wasm/worker-connection.ts';
 import { openCommandMenu, openUseMenu } from './ui/command-menus.ts';
+import { combatWheel, gearWheel } from './ui/wheel.ts';
+import { installPadGlyphs } from './ui/glyphs.ts';
 import { AimLayer, LookLayer, type TargetingHooks } from './ui/targeting.ts';
 import { HeadingFollower } from './camera/heading.ts';
 import { GameState, type StateChange } from './state/game-state.ts';
@@ -23,7 +25,7 @@ import { firstStepToward } from './state/pathing.ts';
 import { TileAtlas } from './sprites/atlas.ts';
 import { SceneRenderer } from './renderer/scene.ts';
 import { InputManager } from './input/input-manager.ts';
-import type { InputEvent, InputHandler } from './input/actions.ts';
+import type { GameAction, InputEvent, InputHandler } from './input/actions.ts';
 import { Hud, type ContextHint } from './ui/hud.ts';
 import { UiManager } from './ui/layer.ts';
 import { DEFAULT_SETTINGS, SETTINGS_VERSION, type Settings, type UiContext } from './ui/context.ts';
@@ -131,7 +133,11 @@ export class App implements InputHandler {
 
     this.input.setBindings(loadBindings(loadJson('thang.bindings', null)));
     this.input.push(this);
-    this.input.onDeviceChange = () => this.updateHints();
+    const restyle = installPadGlyphs(document.body, () => (this.input.lastDevice === 'gamepad' ? this.input.style : null));
+    this.input.onDeviceChange = () => {
+      this.updateHints();
+      restyle();
+    };
     this.input.onGamepadConnected = (name) => this.state.note(`Controller connected: ${name}`);
     window.addEventListener('pointerdown', () => this.sfx.unlock());
     window.addEventListener('keydown', () => this.sfx.unlock(), { once: true });
@@ -595,6 +601,16 @@ export class App implements InputHandler {
       }
       case 'interact': this.interact(); break;
       case 'attack': this.attack(); break;
+      case 'fire': this.fire(); break;
+      case 'contextMenu': this.contextMenu(); break;
+      case 'combatWheel': this.ui.open(combatWheel(this.ctx, this.heldButton(g))); break;
+      case 'gearWheel':
+        this.ui.open(gearWheel(this.ctx, {
+          inventory: () => this.handleInput({ game: 'inventory', device: ev.device, repeat: false }),
+          equipment: () => this.handleInput({ game: 'equipment', device: ev.device, repeat: false }),
+        }, this.heldButton(g)));
+        break;
+      case 'travelDown': this.command({ action: 'navigate_down' }); break;
       case 'explore':
         if (!ev.repeat) {
           this.exploring = this.settings.autoExploreRepeat;
@@ -654,6 +670,12 @@ export class App implements InputHandler {
   }
 
   private faceTargetSoon = false;
+
+  /** The controller button holding a wheel open, when a controller opened it */
+  private heldButton(g: GameAction): number | undefined {
+    const b = this.input.getBindings().pad[g];
+    return this.input.lastDevice === 'gamepad' && b?.hold ? b.button : undefined;
+  }
 
   private targetingHooks(): TargetingHooks {
     return {
@@ -764,7 +786,7 @@ export class App implements InputHandler {
     this.state.note('Nothing to interact with here.');
   }
 
-  /** Autofight: melee an adjacent foe, else fire at the nearest, else step toward it */
+  /** Melee: strike an adjacent foe, else step toward the nearest (Fire is its own button) */
   private attack(): void {
     const s = this.state;
     const p = s.player;
@@ -780,9 +802,6 @@ export class App implements InputHandler {
           return this.command({ action: 'walk', dir: Number(dir) as Direction });
         }
       }
-    }
-    if (this.hasAmmo() && s.monsters.some((m) => m.inView)) {
-      return this.command({ action: 'fire_at_nearest' });
     }
     // Autofight: close in on the nearest visible monster, one step at a time,
     // around walls and other monsters.  Unseen grids are worth trying (a
@@ -802,6 +821,95 @@ export class App implements InputHandler {
       return;
     }
     this.state.note('No foe in sight.');
+  }
+
+  /** Fire the launcher at the nearest visible monster */
+  private fire(): void {
+    if (!this.state.equipment.find((e) => e.slot === 'shooting')?.item) return this.state.note('You have no missile launcher equipped.');
+    if (!this.hasAmmo()) return this.state.note('You have no ammunition to fire.');
+    if (!this.state.monsters.some((m) => m.inView)) return this.state.note('No foe in sight.');
+    this.command({ action: 'fire_at_nearest' });
+  }
+
+  /**
+   * Hold A: everything you can do here or with what is ahead, and only what
+   * would work.  Tapping A does the first of these (interact).
+   */
+  private contextMenu(): void {
+    const s = this.state;
+    const p = s.player;
+    if (!p) return;
+    type Run = () => void;
+    const items: { label: string; detail?: string; data: Run }[] = [];
+    const c = (m: Omit<CommandMessage, 'type'>): Run => () => this.command(m);
+    const here = s.featureClassAt(p.x, p.y).shape;
+    if (here === 'stair_down') items.push({ label: 'Go down the staircase', data: c({ action: 'go_down' }) });
+    if (here === 'stair_up') items.push({ label: 'Go up the staircase', data: c({ action: 'go_up' }) });
+    if (here === 'shop') items.push({ label: 'Enter the shop', data: c({ action: 'hold' }) });
+    if (s.floor.length) {
+      items.push({ label: s.floor.length > 1 ? `Pick up (${s.floor.length} items)` : `Pick up ${s.floor[0].name}`, data: c({ action: 'pickup' }) });
+    }
+    const a = this.ahead();
+    if (a) {
+      const mon = s.monsterAt(a.x, a.y);
+      const cls = s.featureClassAt(a.x, a.y);
+      const trap = s.map.traps.has(s.map.index(a.x, a.y));
+      if (mon) {
+        items.push({ label: `Attack ${mon.name}`, data: c({ action: 'walk', dir: a.dir }) });
+        if (p.class === 'Rogue') items.push({ label: `Steal from ${mon.name}`, data: c({ action: 'steal', dir: a.dir }) });
+        items.push({ label: `Recall ${mon.name}`, data: () => this.openPanels('recall') });
+      } else {
+        if (cls.shape === 'door_closed') {
+          items.push({ label: 'Open the door', data: c({ action: 'open', dir: a.dir }) });
+          items.push({ label: 'Tunnel through the door', detail: 'for a stuck or locked one', data: c({ action: 'tunnel', dir: a.dir }) });
+        }
+        if (cls.shape === 'door_open') items.push({ label: 'Close the door', data: c({ action: 'close', dir: a.dir }) });
+        if (cls.shape === 'rubble' || cls.shape === 'passable_rubble') items.push({ label: 'Clear the rubble', data: c({ action: 'tunnel', dir: a.dir }) });
+        if (cls.shape === 'wall' && cls.material !== 'permanent') {
+          items.push({ label: cls.treasure ? 'Dig out the treasure' : 'Tunnel into the wall', data: c({ action: 'tunnel', dir: a.dir }) });
+        }
+        if (trap) {
+          items.push({ label: 'Disarm the trap', data: c({ action: 'disarm', dir: a.dir }) });
+          items.push({ label: 'Walk onto the trap', detail: 'without disarming it', data: c({ action: 'jump', dir: a.dir }) });
+        }
+        if (cls.shape === 'shop' || cls.shape === 'stair_down' || cls.shape === 'stair_up') items.push({ label: `Walk to the ${cls.name}`, data: () => this.walk(0) });
+      }
+      if (cls.shape !== 'unknown') items.push({ label: 'Look ahead', data: () => this.ui.open(new LookLayer(this.ctx, this.targetingHooks())) });
+    }
+    if (s.monsters.some((m) => m.inView)) {
+      if (this.hasAmmo()) items.push({ label: 'Fire at the nearest monster', data: () => this.fire() });
+      items.push({ label: 'Target the closest monster', data: c({ action: 'target_closest' }) });
+    } else {
+      items.push({ label: 'Rest as needed', data: c({ action: 'rest', mode: 'as_needed' }) });
+      items.push({ label: 'Travel to the nearest down staircase', data: c({ action: 'navigate_down' }) });
+      items.push({ label: 'Travel to the nearest up staircase', data: c({ action: 'navigate_up' }) });
+    }
+    if (s.target) items.push({ label: 'Clear the target', data: c({ action: 'target_clear' }) });
+    items.push({ label: 'All commands…', data: () => this.openCommands() });
+    const layer: MenuLayer<Run> = new MenuLayer(this.ctx, {
+      title: 'Actions',
+      subtitle: this.contextSubtitle(),
+      items,
+      letters: true,
+      className: 'small',
+      onSelect: (i) => {
+        layer.close();
+        i.data();
+      },
+    });
+    this.ui.open(layer);
+  }
+
+  /** What the context menu is about: underfoot, then ahead */
+  private contextSubtitle(): string | undefined {
+    const s = this.state;
+    const p = s.player!;
+    const a = this.ahead();
+    const mon = a ? s.monsterAt(a.x, a.y) : undefined;
+    const ahead = mon?.name ?? (a ? s.featureClassAt(a.x, a.y).name : '');
+    const here = s.floor[0]?.name ?? s.featureClassAt(p.x, p.y).name;
+    const parts = [here && here !== 'open floor' ? `Here: ${here}` : '', ahead ? `Ahead: ${ahead}` : ''].filter(Boolean);
+    return parts.join(' · ') || undefined;
   }
 
   /** The game is won: offer to retire now, as the stock game's 'Q' allows */
@@ -910,11 +1018,21 @@ export class App implements InputHandler {
     // Keyboard players pick up with Angband's own key rather than Space
     const pickup = primary?.startsWith('Pick up') && this.input.lastDevice === 'keyboard' ? pr['cmd:pickup'] : undefined;
     if (primary) hints.push({ button: pickup ?? pr.interact ?? 'A', label: primary });
-    if (s.monsters.some((m) => m.inView)) hints.push({ button: pr.attack ?? 'F', label: 'Fire' }, { button: pr.aim ?? 'T', label: 'Aim' });
-    else hints.push({ button: pr.explore ?? 'X', label: this.exploring ? 'Exploring…' : 'Explore' });
-    hints.push({ button: pr.inventory ?? 'I', label: 'Gear' });
-    hints.push({ button: pr.useMenu ?? 'U', label: p.canCast ? 'Cast & use' : 'Use' });
-    hints.push({ button: pr.commands ?? 'V', label: 'Commands' });
+    const pad = this.input.lastDevice === 'gamepad';
+    if (s.monsters.some((m) => m.inView)) {
+      if (!aheadMon) hints.push({ button: pr.attack ?? 'Tab', label: 'Melee' });
+      if (this.hasAmmo()) hints.push({ button: pr.fire ?? 'h', label: 'Fire' });
+      hints.push({ button: pr.aim ?? '*', label: 'Aim' });
+    } else hints.push({ button: pr.explore ?? 'x', label: this.exploring ? 'Exploring…' : 'Explore' });
+    if (pad) {
+      hints.push({ button: pr.combatWheel ?? 'Hold LT', label: p.canCast ? 'Cast & use' : 'Use' });
+      hints.push({ button: pr.gearWheel ?? 'Hold LB', label: 'Gear' });
+      if (pr.contextMenu) hints.push({ button: pr.contextMenu, label: 'Actions' });
+    } else {
+      hints.push({ button: pr.inventory ?? 'i', label: 'Gear' });
+      hints.push({ button: pr.useMenu ?? 'U', label: p.canCast ? 'Cast & use' : 'Use' });
+      hints.push({ button: pr.commands ?? 'Enter', label: 'Commands' });
+    }
     this.hud.setHints(hints);
   }
 

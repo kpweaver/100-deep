@@ -88,10 +88,13 @@ costs a game turn.
 
 The keyboard uses Angband's own keys (the original keyset), with arrows
 to walk and turn in first person. A WASD preset is one switch away. The
-controller layout follows Orbrun's: one contextual button, a few menus, and
-an action bar that always says what each button does. Everything is
-rebindable under **Controls** (`?`, or Start ▸ Controls), where hold-a-button
-bindings work too.
+controller is laid out by how often you reach for things: the constant
+actions (melee, fire, explore, wait) each have a button, the spells, potions,
+scrolls and devices you use in a fight sit on a wheel under LT, your gear on
+a wheel under LB, and holding A lists everything you can do with what is
+underfoot or ahead. Hold a wheel's button, push either stick towards a slice
+and let go. Everything is rebindable under **Controls** (`?`, or Start ▸
+Controls), where hold-a-button bindings work too.
 
 | Action | Keyboard (Angband) | Controller |
 |---|---|---|
@@ -101,23 +104,26 @@ bindings work too.
 | Walk in a map direction | Numpad 1–9 | — |
 | Run | Shift+↑ | Hold forward |
 | Interact (stairs, doors, shops, rubble, attack ahead) | Space | A |
+| **Context menu**: everything you can do here or with what is ahead | — | Hold A |
+| **Melee**: strike an adjacent monster, else close in on the nearest | Tab | RT |
+| **Fire** at the nearest monster | h | RB |
+| **Aim / target**: then fire, throw, or just set the target | * (' targets closest) | LT |
+| **Combat wheel**: cast, quaff, read, throw, wands, staves, rods, activate | — (U opens the Use menu) | Hold LT |
+| **Gear wheel**: inventory, equipment, pick up, wear, eat, refuel, inscribe, drop | — | Hold LB |
+| Auto-explore / travel to the nearest down staircase | x / Select ▸ Move | X / hold X |
+| Hold still / rest as needed | , or Num 5 / R | Y / hold Y |
 | Back / cancel | Esc | B |
 | **Command menu**: every command, by category | Enter | Select |
-| **Use menu**: spells, devices, potions, scrolls, missiles | U | X |
-| Inventory / equipment / quiver | i (I) / e / \| | Y |
-| Hold still / rest as needed | , or Num 5 / R | LB / hold LB |
-| Auto-explore | x | LT |
-| Fire at nearest: melee when adjacent, else close in | Tab | RT |
+| Inventory / equipment / quiver | i (I) / e / \| | LB / LB wheel |
 | **Look**: step through what you see, or move a free cursor over any grid | l | L3 |
-| **Aim / target**: then fire, throw, or just set the target | * (' targets closest, h fires at nearest) | RB |
-| Cast a spell / study | m (also b) / S | X ▸ Cast |
-| Quaff, read, eat | q, r, E | X ▸ … |
-| Aim a wand, use a staff, zap a rod, activate | a, u, z, A | X ▸ … |
-| Fire, throw, refuel | f, v, F | X ▸ / Select ▸ |
-| Pick up | p (also g) | A |
-| Wield, take off, drop | w, t, d | Y ▸ item |
-| Inscribe / uninscribe / show ignored | { / } / K | Select ▸ Items |
-| Open, close, tunnel, disarm, alter, steal, walk into a trap | o, c, T, D, +, s, W | A (contextual), Select ▸ Doors & terrain |
+| Cast a spell / study | m (also b) / S | LT wheel / Select ▸ Combat |
+| Quaff, read, eat | q, r, E | LT wheel, LB wheel |
+| Aim a wand, use a staff, zap a rod, activate | a, u, z, A | LT wheel |
+| Fire a missile, throw, refuel | f, v, F | Select ▸ Combat, LT wheel, LB wheel |
+| Pick up | p (also g) | A, LB wheel |
+| Wield, take off, drop | w, t, d | LB wheel, or LB ▸ item |
+| Inscribe / uninscribe / show ignored | { / } / K | LB wheel / Select ▸ Items |
+| Open, close, tunnel, disarm, alter, steal, walk into a trap | o, c, T, D, +, s, W | A, hold A, Select ▸ Doors & terrain |
 | Stairs up / down | < / > | A on stairs |
 | Level map (cursor, travel) | M | R3 |
 | Character sheet | C | Select ▸ Look & knowledge |
