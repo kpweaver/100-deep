@@ -860,6 +860,7 @@ static void write_player(jw *w)
 	jw_kstr(w, "race", player->race->name);
 	jw_kstr(w, "class", player->class->name);
 	jw_kstr(w, "title", player->class->title[(player->lev - 1) / 5]);
+	if (player_is_shapechanged(player)) jw_kstr(w, "shape", player->shape->name);
 	jw_kint(w, "x", store_shown_grid().x);
 	jw_kint(w, "y", store_shown_grid().y);
 	jw_kint(w, "depth", player->depth);

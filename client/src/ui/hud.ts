@@ -89,7 +89,9 @@ export class Hud {
       h('div', { class: 'cs-row' }, h('span', { class: 'cs-label' }, label), h('span', { class: `cs-value ${cls}` }, value));
     clear(this.info);
     add(this.info,
-      h('div', { class: 'cs-who' }, `${p.race} ${p.class}`, h('span', { class: 'cs-title' }, p.title)),
+      h('div', { class: 'cs-who' }, `${p.race} ${p.class}`, p.shape
+        ? h('span', { class: 'cs-title cs-shape' }, `${p.shape[0].toUpperCase()}${p.shape.slice(1)} form`)
+        : h('span', { class: 'cs-title' }, p.title)),
       h('div', { class: 'cs-grid' },
         // "LEVEL" in capitals when at max level, "Level" in yellow when drained (as Angband)
         row(p.level >= p.maxLevel ? 'LEVEL' : 'Level', String(p.level), p.level >= p.maxLevel ? '' : 'drained'),

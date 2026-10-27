@@ -103,6 +103,8 @@ export interface PlayerState {
   race: string;
   class: string;
   title: string;
+  /** Shapechange form ("fox", "bear"...) while shapechanged; absent in normal form */
+  shape?: string;
   x: number;
   y: number;
   depth: number;
@@ -454,7 +456,16 @@ export type ClientMessage =
   | { type: 'debug'; action: 'room'; value?: number }
   | { type: 'debug'; action: 'teleport'; x: number; y: number }
   | { type: 'debug'; action: 'summon'; name: string }
-  | { type: 'debug'; action: 'map' | 'light' | 'cure' | 'dawn' };
+  | { type: 'debug'; action: 'map' | 'light' | 'cure' | 'dawn' | 'advance' }
+  /** Create an object kind by name (exact names win), optionally of one tval; it lands beside the player */
+  | { type: 'debug'; action: 'item'; name: string; tval?: string }
+  /** Create an artifact by (partial) name */
+  | { type: 'debug'; action: 'artifact'; name: string }
+  /** `value` good (or great) objects at the player's feet */
+  | { type: 'debug'; action: 'acquire'; value?: number; great?: boolean }
+  /** Know every object kind up to level `value` */
+  | { type: 'debug'; action: 'learn'; value: number }
+  | { type: 'debug'; action: 'gold'; value: number };
 
 /* ------------------------------------------------------------------ */
 /* Direction helpers (Angband keypad layout)                           */

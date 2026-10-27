@@ -179,10 +179,39 @@ static void load_visuals(void)
 /* ------------------------------------------------------------------------
  * Engine lifecycle
  * ------------------------------------------------------------------------ */
+/*
+ * Upstream 4.2.6 live-locks when a player commanding a monster is
+ * paralysed: process_player() queues CMD_SLEEP, process_command() turns it
+ * into a monster command, which rejects it without using energy, so the
+ * player's turn never ends.  Just before that sleep runs (the refresh after
+ * it is queued) we hide the command timer so the player sleeps normally,
+ * and put it back at the start of their next turn.
+ */
+static int hidden_command_turns;
+
+static void ev_refresh(game_event_type type, game_event_data *data, void *user)
+{
+	struct command *next = cmdq_peek();
+
+	if (hidden_command_turns) {
+		if (get_commanded_monster())
+			player->timed[TMD_COMMAND] = hidden_command_turns;
+		hidden_command_turns = 0;
+	}
+
+	if (player->timed[TMD_COMMAND] && next && next->code == CMD_SLEEP &&
+			(player->timed[TMD_PARALYZED] ||
+			player_timed_grade_eq(player, TMD_STUN, "Knocked Out"))) {
+		hidden_command_turns = player->timed[TMD_COMMAND];
+		player->timed[TMD_COMMAND] = 0;
+	}
+}
+
 static void register_handlers(void)
 {
 	snapshot_register_events();
 	event_add_handler(EVENT_NEW_LEVEL_DISPLAY, ev_autosave, NULL);
+	event_add_handler(EVENT_REFRESH, ev_refresh, NULL);
 }
 
 static void engine_init(void)
@@ -266,11 +295,19 @@ static void handle_new_game(const jv *msg)
 	struct player_class *c = find_class(jv_get_str(msg, "class", "Warrior"));
 	const char *name = jv_get_str(msg, "name", "Adventurer");
 	const char *stats = jv_get_str(msg, "stats", "points");
+	int ridx, cidx;
 
 	if (!r || !c) {
 		proto_send_error("bad_birth", "Unknown race or class");
 		return;
 	}
+
+	/* engine_reinit() frees and reloads the race and class lists, so keep
+	 * the indices (stable across reloads), never the pointers */
+	ridx = r->ridx;
+	cidx = c->cidx;
+	r = NULL;
+	c = NULL;
 	if (!name[0] || strlen(name) >= PLAYER_NAME_LEN) {
 		proto_send_error("bad_birth", "Invalid name");
 		return;
@@ -284,9 +321,9 @@ static void handle_new_game(const jv *msg)
 	cmdq_push(CMD_BIRTH_INIT);
 	cmdq_push(CMD_BIRTH_RESET);
 	cmdq_push(CMD_CHOOSE_RACE);
-	cmd_set_arg_choice(cmdq_peek(), "choice", r->ridx);
+	cmd_set_arg_choice(cmdq_peek(), "choice", ridx);
 	cmdq_push(CMD_CHOOSE_CLASS);
-	cmd_set_arg_choice(cmdq_peek(), "choice", c->cidx);
+	cmd_set_arg_choice(cmdq_peek(), "choice", cidx);
 	if (streq(stats, "roll")) cmdq_push(CMD_ROLL_STATS);
 	cmdq_execute(CTX_BIRTH);
 	/* Birth options, as set in the birth screen's options menu */

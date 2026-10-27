@@ -85,6 +85,8 @@ export class App implements InputHandler {
   private pending: { cmd: CommandMessage; at: number } | null = null;
   private queued: CommandMessage | null = null;
   private exploring = false;
+  /** Game turn after the last auto-explore step, to notice when it stalls */
+  private exploreTurn: number | undefined;
   private dungeonDirty = false;
   private lastHp: number | null = null;
   private title: TitleLayer | null = null;
@@ -340,6 +342,7 @@ export class App implements InputHandler {
     if (c.player && p) {
       r?.setTorch(p.lightRadius ?? p.light, !!p.unlight);
       this.hud.weapon.setLight(p.lightRadius ?? p.light, !!p.unlight);
+      this.hud.weapon.setShape(p.shape);
       if (this.lastHp !== null && p.hp < this.lastHp && this.state.phase === 'game') {
         r?.cam.shake();
         this.hud.hurt();
@@ -586,6 +589,7 @@ export class App implements InputHandler {
       case 'explore':
         if (!ev.repeat) {
           this.exploring = this.settings.autoExploreRepeat;
+          this.exploreTurn = undefined;
           this.command({ action: 'explore' });
         }
         break;
@@ -800,7 +804,12 @@ export class App implements InputHandler {
     }
     if (!this.exploring) return;
     const sawMonster = this.state.monsters.some((mm) => mm.inView);
-    if (m.phase !== 'game' || m.messages.length || sawMonster || this.state.prompt) {
+    // The engine refuses silently when the way on is blocked (a closed door
+    // it won't open, a known trap): no time passing means no progress
+    const stalled = m.turn !== undefined && m.turn === this.exploreTurn;
+    this.exploreTurn = m.turn;
+    if (m.phase !== 'game' || m.messages.length || sawMonster || this.state.prompt || stalled) {
+      if (stalled) this.state.note('Nothing more to explore this way.');
       this.exploring = false;
       this.updateHints();
       return;

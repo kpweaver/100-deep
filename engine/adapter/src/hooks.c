@@ -27,12 +27,16 @@
 #include "obj-knowledge.h"
 #include "obj-pile.h"
 #include "obj-util.h"
+#include "player-util.h"
 #include "player-calcs.h"
 #include "player-spell.h"
 #include "target.h"
 #include "ui-game.h"
 #include "ui-keymap.h"
 #include "ui-object.h"
+#include "ui-term.h"
+
+#include <wchar.h>
 
 static int prompt_serial;
 static jw pending_prompt;	/* JSON of the prompt awaiting an answer */
@@ -653,9 +657,151 @@ static void hook_view_abilities(struct player_ability *ability_list, int num_abi
 {
 }
 
+/* ------------------------------------------------------------------------
+ * The one text-UI prompt the core calls directly
+ *
+ * player_get_resume_normal_shape() asks "Change back and <verb>? [yrn]"
+ * with get_char(), which draws on the main Term and waits in inkey().  We
+ * give the engine an offscreen main Term so that cannot crash, and when it
+ * waits for a key we read the prompt it drew on row 0, ask the client, and
+ * queue the chosen key.  Any other unexpected wait is answered with Escape
+ * so the engine can never block on input nobody will send.
+ * ------------------------------------------------------------------------ */
+static term main_term;
+
+static void push_key(keycode_t k)
+{
+	Term_keypress(k, 0);
+}
+
+static void answer_text_prompt(void)
+{
+	char text[256];
+	size_t len = 0;
+	char *open, *close;
+	int x;
+	jw w;
+	jv *ans;
+	long v;
+	bool shapechange;
+
+	for (x = 0; x < main_term.wid && len < sizeof(text) - 8; x++) {
+		wchar_t c = main_term.scr->c[0][x];
+		char mb[8];
+		int n = wctomb(mb, c ? c : L' ');
+		if (n <= 0) continue;
+		memcpy(text + len, mb, (size_t)n);
+		len += (size_t)n;
+	}
+	text[len] = '\0';
+	while (len && text[len - 1] == ' ') text[--len] = '\0';
+
+	/* get_char() draws "<prompt>[<options>] " */
+	open = strrchr(text, '[');
+	close = open ? strchr(open, ']') : NULL;
+	if (!open || !close || close == open + 1) {
+		push_key(ESCAPE);
+		return;
+	}
+	*open = '\0';
+	*close = '\0';
+
+	shapechange = player_is_shapechanged(player) && streq(open + 1, "yrn");
+	prompt_begin(&w, "choice", shapechange ?
+		format("You are in %s form.", player->shape->name) : text);
+	jw_key(&w, "choices");
+	jw_arr_begin(&w);
+	if (shapechange) {
+		char verb[80] = "act";
+		const char *and = strstr(text, "back and ");
+		if (and) {
+			my_strcpy(verb, and + 9, sizeof(verb));
+			if (strchr(verb, '(')) *strchr(verb, '(') = '\0';
+			while (strlen(verb) && verb[strlen(verb) - 1] == ' ')
+				verb[strlen(verb) - 1] = '\0';
+		}
+		jw_obj_begin(&w);
+		jw_kint(&w, "value", 'y');
+		jw_kstr(&w, "name", format("Change back and %s", verb));
+		jw_obj_end(&w);
+		jw_obj_begin(&w);
+		jw_kint(&w, "value", 'r');
+		jw_kstr(&w, "name", "Just change back");
+		jw_obj_end(&w);
+		jw_obj_begin(&w);
+		jw_kint(&w, "value", 'n');
+		jw_kstr(&w, "name", format("Stay in %s form", player->shape->name));
+		jw_obj_end(&w);
+	} else {
+		const char *o;
+		for (o = open + 1; *o; o++) {
+			jw_obj_begin(&w);
+			jw_kint(&w, "value", (unsigned char)*o);
+			jw_kstr(&w, "name", format("%c", *o));
+			jw_obj_end(&w);
+		}
+	}
+	jw_arr_end(&w);
+
+	ans = await_answer(&w);
+	if (!ans) {
+		push_key(ESCAPE);
+		return;
+	}
+	v = jv_get_int(ans, "value", 0);
+	jv_free(ans);
+	if (v > 0 && v < 128 && strchr(open + 1, (int)v))
+		push_key((keycode_t)v);
+	else
+		push_key(ESCAPE);
+}
+
+static errr main_term_xtra(int n, int v)
+{
+	/* Only a blocking wait needs an answer; polls just find no key */
+	if (n == TERM_XTRA_EVENT && v) answer_text_prompt();
+	return 0;
+}
+
+static errr main_term_noop_xy(int x, int y)
+{
+	return 0;
+}
+
+static errr main_term_wipe(int x, int y, int n)
+{
+	return 0;
+}
+
+static errr main_term_text(int x, int y, int n, int a, const wchar_t *s)
+{
+	return 0;
+}
+
+static errr main_term_pict(int x, int y, int n, const int *ap,
+		const wchar_t *cp, const int *tap, const wchar_t *tcp)
+{
+	return 0;
+}
+
+static void main_term_install(void)
+{
+	term_init(&main_term, 80, 24, 16);
+	main_term.never_bored = true;
+	main_term.xtra_hook = main_term_xtra;
+	main_term.curs_hook = main_term_noop_xy;
+	main_term.bigcurs_hook = main_term_noop_xy;
+	main_term.wipe_hook = main_term_wipe;
+	main_term.text_hook = main_term_text;
+	main_term.pict_hook = main_term_pict;
+	angband_term[0] = &main_term;
+	Term_activate(&main_term);
+}
+
 void hooks_install(void)
 {
 	jw_init(&pending_prompt);
+	main_term_install();
 	get_string_hook = hook_get_string;
 	get_quantity_hook = hook_get_quantity;
 	get_check_hook = hook_get_check;

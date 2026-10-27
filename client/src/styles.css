@@ -134,6 +134,7 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 .hud-info { margin-top: 4px; padding: 4px 8px; background: rgba(0,0,0,0.82); font-size: 16px; line-height: 18px; text-shadow: 1px 1px 0 #000; }
 .cs-who { color: #8fb8ff; }
 .cs-title { color: #8fb8ff; margin-left: 8px; opacity: 0.8; }
+.cs-shape { color: var(--gold); opacity: 1; }
 .cs-grid, .cs-stats { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
 .cs-stats { margin-top: 2px; grid-auto-flow: column; grid-template-rows: repeat(3, auto); }
 .cs-row { display: flex; justify-content: space-between; }

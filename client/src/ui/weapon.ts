@@ -171,6 +171,8 @@ export class WeaponView {
   private sprite = h('div', { class: 'fp-weapon-sprite' });
   private weapon: Tile | null = null;
   private launcher: Tile | null = null;
+  /** Shapechanged (fox, bear...): no hands to hold anything */
+  private shaped = false;
   private shooting = 0;
   private shown: Tile | null = null;
   private size = 0;
@@ -193,6 +195,13 @@ export class WeaponView {
     this.render();
   }
 
+  /** Shapechanged players wield nothing (the engine fights with the form's own blows) */
+  setShape(shape: string | undefined): void {
+    if (this.shaped === !!shape) return;
+    this.shaped = !!shape;
+    this.render();
+  }
+
   /** Brightness follows the player's own light (dim without one) */
   setLight(radius: number, unlight: boolean): void {
     const b = radius > 0 ? Math.min(1, 0.75 + radius * 0.1) : unlight ? 0.55 : 0.32;
@@ -209,6 +218,7 @@ export class WeaponView {
 
   /** Casting: the off hand rises glowing, the weapon hand dips */
   cast(playerClass: string): void {
+    if (this.shaped) return;
     // About 60% of the weapon's scale, in whole multiples of the 32px tile
     const size = 32 * Math.max(3, Math.round(((this.size || 32 * 8) / 32) * HAND_SCALE));
     const row = Math.max(0, HAND_ROWS.indexOf(this.gloves));
@@ -236,7 +246,7 @@ export class WeaponView {
 
   /** Firing: raise the launcher (if any) and recoil */
   shoot(): void {
-    if (!this.launcher) return;
+    if (!this.launcher || this.shaped) return;
     clearTimeout(this.shooting);
     this.shooting = window.setTimeout(() => {
       this.shooting = 0;
@@ -312,7 +322,7 @@ export class WeaponView {
 
   private render(resized = false) {
     const atlas = this.atlas();
-    const tile = this.shooting ? this.launcher : this.weapon;
+    const tile = this.shaped ? null : this.shooting ? this.launcher : this.weapon;
     if (!atlas?.loaded) {
       // Draw once the tile sheet has loaded (setEquipment is called again)
       this.shown = null;

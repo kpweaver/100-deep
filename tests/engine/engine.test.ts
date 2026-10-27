@@ -411,10 +411,139 @@ test('character death follows the native flow and a new game can start', async (
   const err = await s.next('error');
   assert.equal(err.type === 'error' && err.code, 'character_dead');
   // But a new character can start in the same process
-  const ng = await s.newGame('Human', 'Warrior', 'Again');
+  // (with the race and class asked for: the lists are reloaded in between)
+  const ng = await s.newGame('Dwarf', 'Priest', 'Again');
   assert.equal(ng.phase, 'game');
   assert.equal(ng.player!.name, 'Again');
+  assert.equal(ng.player!.race, 'Dwarf');
+  assert.equal(ng.player!.class, 'Priest');
   assert.equal(ng.player!.depth, 0);
+  await s.stop();
+});
+
+test('starting over mid-game makes the race and class asked for', async () => {
+  const s = new Session();
+  await s.start();
+  await s.newGame('Human', 'Warrior', 'First');
+  for (const [race, cls] of [['Dwarf', 'Priest'], ['Highborn', 'Necromancer'], ['Kobold', 'Druid']]) {
+    const st = await s.newGame(race, cls, 'Again');
+    assert.equal(st.player!.race, race);
+    assert.equal(st.player!.class, cls);
+  }
+  await s.stop();
+});
+
+test('shapechanged players are asked to change back instead of crashing the engine', async () => {
+  process.env.THANG_CHEATS = '1';
+  const s = new Session();
+  await s.start();
+  delete process.env.THANG_CHEATS;
+  await s.newGame('Human', 'Druid', 'Reynard');
+  await s.request({ type: 'debug', action: 'exp', value: 20000 });
+  await s.request({ type: 'debug', action: 'learn', value: 100 });
+  // Created potions land beside the player: step on and pick up
+  await s.request({ type: 'debug', action: 'item', name: 'Cure Light Wounds', tval: 'potion' });
+  await new Promise((r) => setTimeout(r, 300));
+  const pile = s.state!.objects!.find((o) => /Cure Light/.test(o.name))!;
+  const toPile = Number(Object.entries(DIR_OFFSETS).find(([, [dx, dy]]) =>
+    s.player.x + dx === pile.x && s.player.y + dy === pile.y)?.[0] ?? 5) as Direction;
+  if (toPile !== 5) await s.command({ action: 'walk', dir: toPile });
+  await s.command({ action: 'pickup' });
+  const book = s.state!.inventory!.find((i) => /Lesser Charms/.test(i.name))!;
+  await s.request({ type: 'command', action: 'study', book: book.handle, spell: 1 });
+  const becomeFox = async () => {
+    for (let tries = 0; tries < 8 && !s.state!.player!.shape; tries++) {
+      await s.request({ type: 'debug', action: 'cure' });
+      const r = await s.command({ action: 'cast', book: book.handle, spell: 1 });
+      if (r.type === 'prompt') {
+        s.send({ type: 'cancel', id: r.id });
+        await s.next('state');
+      }
+    }
+    assert.equal(s.state!.player!.shape, 'fox');
+  };
+  const potions = () => s.state!.inventory!.filter((i) => /Cure Light/.test(i.name)).reduce((n, i) => n + i.number, 0);
+  const quaffAsking = async () => {
+    const potion = s.state!.inventory!.find((i) => /Cure Light/.test(i.name))!;
+    const p = await s.commandExpectPrompt({ action: 'quaff', item: potion.handle });
+    assert.equal(p.kind, 'choice');
+    assert.equal(p.prompt, 'You are in fox form.');
+    if (p.kind !== 'choice') throw new Error('not a choice');
+    assert.deepEqual(p.choices.map((c) => c.name), ['Change back and quaff', 'Just change back', 'Stay in fox form']);
+    return p;
+  };
+  const answer = async (id: number, key: string) => {
+    s.send({ type: 'answer', id, value: key.charCodeAt(0) });
+    return (await s.next('state')) as StateMessage;
+  };
+
+  await becomeFox();
+  const n = potions();
+  // Staying in form (or cancelling) does nothing
+  await answer((await quaffAsking()).id, 'n');
+  assert.equal(s.state!.player!.shape, 'fox');
+  s.send({ type: 'cancel', id: (await quaffAsking()).id });
+  await s.next('state');
+  assert.equal(s.state!.player!.shape, 'fox');
+  assert.equal(potions(), n);
+  // Just changing back keeps the potion
+  await answer((await quaffAsking()).id, 'r');
+  assert.equal(s.state!.player!.shape, undefined);
+  assert.equal(potions(), n);
+  // Changing back and quaffing does both
+  await becomeFox();
+  await answer((await quaffAsking()).id, 'y');
+  assert.equal(s.state!.player!.shape, undefined);
+  assert.equal(potions(), n - 1);
+  // The engine is still alive and answering
+  assert.equal((await s.command({ action: 'hold' })).type, 'state');
+  await s.stop();
+});
+
+test('being paralysed while commanding a monster does not hang the engine', async () => {
+  // Upstream 4.2.6 spins forever here (the sleep turn becomes a monster command)
+  process.env.THANG_CHEATS = '1';
+  const s = new Session({ seed: 4242 });
+  await s.start();
+  delete process.env.THANG_CHEATS;
+  await s.newGame('Human', 'Necromancer', 'Puppeteer');
+  await s.request({ type: 'debug', action: 'advance' });
+  await s.request({ type: 'debug', action: 'jump', value: 10 });
+  await s.request({ type: 'debug', action: 'room' });
+  await s.request({ type: 'debug', action: 'item', name: 'Corruption of Spirit', tval: 'shadow book' });
+  await new Promise((r) => setTimeout(r, 300));
+  const pile = s.state!.objects!.find((o) => /Corruption/.test(o.name))!;
+  const toPile = Number(Object.entries(DIR_OFFSETS).find(([, [dx, dy]]) =>
+    s.player.x + dx === pile.x && s.player.y + dy === pile.y)?.[0] ?? 5) as Direction;
+  if (toPile !== 5) await s.command({ action: 'walk', dir: toPile });
+  await s.command({ action: 'pickup' });
+  const book = s.state!.inventory!.find((i) => /Corruption/.test(i.name))!;
+  // Spell numbers count through all the class's books: Command is the 26th
+  await s.request({ type: 'command', action: 'study', book: book.handle, spell: 25 });
+  for (let i = 0; i < 4; i++) await s.request({ type: 'debug', action: 'summon', name: 'ghoul' });
+  const texts = (from: number) => s.history.slice(from).flatMap((m) => (m.type === 'state' ? (m.messages ?? []).map((x) => x.text) : []));
+  let commanded = -1;
+  for (let tries = 0; tries < 10 && commanded < 0; tries++) {
+    await s.request({ type: 'debug', action: 'cure' });
+    await s.command({ action: 'target_closest' });
+    const before = s.history.length;
+    const r = await s.command({ action: 'cast', book: book.handle, spell: 25, useTarget: true });
+    if (r.type === 'prompt') {
+      s.send({ type: 'cancel', id: r.id });
+      await s.next('state');
+    }
+    if (texts(before).some((t) => /falls under your spell/.test(t))) commanded = before;
+  }
+  assert.ok(commanded >= 0, 'a ghoul is under command');
+  // Stand the puppet still until a free ghoul paralyses us; every turn must come back
+  for (let i = 0; i < 300 && s.state!.phase === 'game' && !texts(commanded).some((t) => /You are paralysed/.test(t)); i++) {
+    assert.equal((await s.command({ action: 'hold' })).type, 'state');
+  }
+  assert.ok(texts(commanded).some((t) => /You are paralysed/.test(t)), 'paralysed while commanding');
+  // The paralysed turns pass and the game goes on (or ends) instead of spinning
+  for (let i = 0; i < 5 && s.state!.phase === 'game'; i++) {
+    assert.equal((await s.command({ action: 'hold' })).type, 'state');
+  }
   await s.stop();
 });
 
