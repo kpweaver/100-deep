@@ -40,15 +40,15 @@ canvas.view.retro { image-rendering: pixelated; image-rendering: crisp-edges; }
 .fp-weapon.anim-thrust { animation: fp-thrust 0.3s ease-out; }
 .fp-weapon.anim-flail { animation: fp-flail 0.42s ease-in-out; }
 .fp-weapon.anim-whip { animation: fp-whip 0.3s cubic-bezier(.2,.9,.3,1); }
-.fp-weapon.anim-bow { animation: fp-bow 0.45s ease-out; }
+.fp-weapon.anim-bow { animation: fp-bow 0.6s ease-out; }
 /* Crossbows are held at an angle for the whole shot (ui/weapon.ts SHOT_MS) */
-.fp-weapon.anim-crossbow { animation: fp-crossbow 0.8s ease-out; }
-.fp-weapon.anim-sling { animation: fp-sling 0.5s ease-in-out; }
+.fp-weapon.anim-crossbow { animation: fp-crossbow 1.05s ease-out; }
+.fp-weapon.anim-sling { animation: fp-sling 0.68s ease-in-out; }
 .fp-weapon.anim-bob { animation: fp-bob 0.25s ease-in-out; }
-.fp-weapon.anim-lower { animation: fp-lower 0.7s ease-in-out; }
+.fp-weapon.anim-lower { animation: fp-lower 0.95s ease-in-out; }
 /* The off hand: hidden below the view until a cast raises it */
 .fp-hand { position: absolute; image-rendering: pixelated; transform: translateY(110%); transform-origin: 50% 100%; pointer-events: none; }
-.fp-hand.anim-cast { animation: fp-cast 0.7s ease-out; }
+.fp-hand.anim-cast { animation: fp-cast 0.95s ease-out; }
 /* Rises from below, pivoting at the wrist; the lift (at most 20% of the
    hand) stays under its 36% anchor depth (HAND_SINK in ui/weapon.ts), so
    the tile's cut-off wrist never shows */

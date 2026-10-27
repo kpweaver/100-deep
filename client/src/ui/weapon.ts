@@ -16,7 +16,7 @@ import type { TileAtlas } from '../sprites/atlas.ts';
 import { h } from './dom.ts';
 
 /** How long a shot keeps the launcher in hand before the weapon returns (ms) */
-const SHOT_MS = 800;
+const SHOT_MS = 1050;
 /** Swings per dig command, and the time between them (ms) */
 const DIG_SWINGS = 3;
 const DIG_EVERY_MS = 320;

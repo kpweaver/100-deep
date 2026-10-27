@@ -14,7 +14,9 @@ interface Flash {
   material: THREE.Material & { opacity: number };
 }
 
-const STEP_TIME = 0.035;
+/** Seconds per grid as a projection travels; explosions spread a ring per RING_TIME */
+const STEP_TIME = 0.05;
+const RING_TIME = 0.07;
 
 export class EffectsLayer {
   readonly group = new THREE.Group();
@@ -65,7 +67,7 @@ export class EffectsLayer {
     let delay = 0;
     for (const e of effects) {
       if (e.kind === 'bolt' || e.kind === 'beam') {
-        this.glow(e.x, 0.45, e.y, this.color(e.color), e.kind === 'beam' ? 0.6 : 0.45, delay, e.kind === 'beam' ? 0.4 : 0.12);
+        this.glow(e.x, 0.45, e.y, this.color(e.color), e.kind === 'beam' ? 0.6 : 0.45, delay, e.kind === 'beam' ? 0.55 : 0.17);
         delay += STEP_TIME;
       } else if (e.kind === 'missile') {
         if (e.tile) {
@@ -76,18 +78,18 @@ export class EffectsLayer {
             s.position.set(e.x, 0.45, e.y);
             s.scale.setScalar(0.35);
             this.group.add(s);
-            this.flashes.push({ obj: s, start: this.time + delay, life: 0.1, material });
+            this.flashes.push({ obj: s, start: this.time + delay, life: 0.14, material });
           }
         } else {
-          this.glow(e.x, 0.45, e.y, new THREE.Color(1, 1, 1), 0.2, delay, 0.1);
+          this.glow(e.x, 0.45, e.y, new THREE.Color(1, 1, 1), 0.2, delay, 0.14);
         }
         delay += STEP_TIME;
       } else if (e.kind === 'explosion') {
         const col = this.color(e.color);
         for (const [gx, gy, dist] of e.grids) {
-          this.glow(gx, 0.4, gy, col, 1.1, delay + dist * 0.05, 0.35);
+          this.glow(gx, 0.4, gy, col, 1.1, delay + dist * RING_TIME, 0.5);
         }
-        delay += 0.05 * (1 + Math.max(0, ...e.grids.map((g) => g[2])));
+        delay += RING_TIME * (1 + Math.max(0, ...e.grids.map((g) => g[2])));
       }
     }
     return delay;
