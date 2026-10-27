@@ -135,6 +135,7 @@ export function openCommandMenu(ctx: UiContext, x: CommandMenuExtras): void {
     ]],
     ['System', ctx.canQuit ? 'save, options, quit' : 'save, options', [
       { label: 'Save game', data: x.save },
+      ...(p?.winner ? [{ label: 'Retire', detail: 'end the game as a winner', data: c({ action: 'retire' }) }] : []),
       { label: ctx.canQuit ? 'Options, controls and quit…' : 'Options and controls…', data: x.system },
     ]],
   ];

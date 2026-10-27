@@ -53,4 +53,6 @@ export interface UiContext {
   quit(): void;
   /** False in the browser build, where quitting just means closing the tab */
   canQuit: boolean;
+  /** Set by the birth screen while it waits for a stats preview */
+  onBirthStats?: (stats: { name: string; value: string }[]) => void;
 }

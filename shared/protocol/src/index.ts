@@ -41,8 +41,15 @@ export interface HelloMessage {
   engine: string;
   savefile: string;
   saveExists: boolean;
+  /** The savefile's own summary: "Name, L12 Human Warrior, at DL5" or "Name, dead (killed by...)" */
+  saveDescription?: string;
+  /** The saved character is dead (it cannot be continued) */
+  saveDead?: boolean;
   races: string[];
   classes: string[];
+  /** The stock birth menus' help text for each race and class, in the same order */
+  raceHelp?: string[];
+  classHelp?: string[];
   options: OptionInfo[];
   tileset: {
     id: number;
@@ -105,6 +112,8 @@ export interface PlayerState {
   title: string;
   /** Shapechange form ("fox", "bear"...) while shapechanged; absent in normal form */
   shape?: string;
+  /** Has won the game (killed Morgoth's stand-in); may now retire */
+  winner?: boolean;
   x: number;
   y: number;
   depth: number;
@@ -212,6 +221,8 @@ export interface StoreItem {
   weight: number;
   price?: number;
   canUse: boolean;
+  /** A spell book (examine browses its spells) */
+  book?: boolean;
   tile: Tile | null;
 }
 
@@ -327,6 +338,12 @@ export interface ScreenMessage extends Panel {
   page: number;
 }
 
+/** A birth_roll's result: the starting stats (race and class included) */
+export interface BirthStatsMessage {
+  type: 'birth_stats';
+  stats: { name: string; value: string }[];
+}
+
 export interface SavedMessage {
   type: 'saved';
   ok: boolean;
@@ -363,6 +380,7 @@ export type EngineMessage =
   | InfoMessage
   | ScreenMessage
   | SavedMessage
+  | BirthStatsMessage
   | PongMessage
   | BridgeMessage;
 
@@ -383,7 +401,7 @@ export type GameAction =
   | 'rest'
   | 'target_closest' | 'target_next' | 'target_prev' | 'target_clear'
   | 'target_monster' | 'target_location' | 'fire_at_nearest' | 'ignore' | 'toggle_unignore'
-  | 'feeling' | 'pathfind'
+  | 'feeling' | 'pathfind' | 'retire'
   | 'store_buy' | 'store_sell' | 'store_leave';
 
 export interface CommandMessage {
@@ -424,6 +442,8 @@ export interface NewGameMessage {
   class: string;
   name: string;
   stats?: 'points' | 'roll';
+  /** Accept the stats of the last birth_roll for this race and class */
+  keepRoll?: boolean;
   birthOptions?: Record<string, boolean>;
   options?: Record<string, boolean>;
 }
@@ -432,6 +452,8 @@ export type ClientMessage =
   | { type: 'hello' }
   | { type: 'ping'; id: number }
   | NewGameMessage
+  /** Preview a race/class's starting stats (again for a reroll) before new_game */
+  | { type: 'birth_roll'; race: string; class: string; stats: 'points' | 'roll' }
   | { type: 'load_game' }
   | CommandMessage
   | AnswerMessage

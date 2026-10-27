@@ -105,7 +105,10 @@ static jv *await_answer(jw *w)
 			break;
 		}
 
-		if (streq(type, "save")) {
+		if (streq(type, "query") || streq(type, "options")) {
+			/* Examining an offered item, or settings pushed on reconnect */
+			handle_message_anywhere(msg);
+		} else if (streq(type, "save")) {
 			proto_send_error("prompt_pending", "Cannot save while a prompt is pending");
 		} else {
 			proto_send_error("prompt_pending",
@@ -249,6 +252,12 @@ static bool hook_get_aim_dir(int *dir)
 {
 	jw w;
 	jv *ans;
+
+	/* Auto-target if requested (as textui_get_aim_dir) */
+	if (OPT(player, use_old_target) && target_okay()) {
+		*dir = DIR_TARGET;
+		return true;
+	}
 
 	prompt_begin(&w, "aim", "Direction or target?");
 	jw_kbool(&w, "hasTarget", target_okay());

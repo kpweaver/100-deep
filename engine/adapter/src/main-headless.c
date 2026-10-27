@@ -48,6 +48,7 @@
 #include "player-timed.h"
 #include "player-util.h"
 #include "savefile.h"
+#include "ui-display.h"
 #include "ui-game.h"
 #include "ui-mon-lore.h"
 #include "ui-prefs.h"
@@ -81,6 +82,57 @@ static void quit_hook_fn(const char *str)
 /* ------------------------------------------------------------------------
  * Hello / resync
  * ------------------------------------------------------------------------ */
+/*
+ * A race's or class's help text, as ui-birth.c's race_help()/class_help()
+ * and skill_help() show it (class figures are the class's own, without a
+ * race's).
+ */
+static void birth_help(char *buf, size_t len, const int adj[], const int skills[],
+		int mhp, int exp, int infra, const bitflag *flags, const bitflag *pflags,
+		const struct element_info *el, const struct player_class *c)
+{
+	struct player_ability *ability;
+	size_t n = 0;
+	int j;
+
+#define ADD(...) (n += (size_t)strnfmt(buf + n, len - n, __VA_ARGS__))
+	buf[0] = '\0';
+	/* Two stats to a line, as the stock panel */
+	for (j = 0; j < STAT_MAX; j += 2) {
+		ADD("%s %+d", stat_names_reduced[j], adj[j]);
+		if (j + 1 < STAT_MAX) ADD("   %s %+d", stat_names_reduced[j + 1], adj[j + 1]);
+		ADD("\n");
+	}
+	ADD("Hit die %d   XP %d%%\n", mhp, exp);
+	ADD("Melee %+d   Shoot %+d\n", skills[SKILL_TO_HIT_MELEE], skills[SKILL_TO_HIT_BOW]);
+	ADD("Throw %+d\n", skills[SKILL_TO_HIT_THROW]);
+	ADD("Disarm %+d/%+d\n", skills[SKILL_DISARM_PHYS], skills[SKILL_DISARM_MAGIC]);
+	ADD("Devices %+d\n", skills[SKILL_DEVICE]);
+	ADD("Save %+d   Stealth %+d\n", skills[SKILL_SAVE], skills[SKILL_STEALTH]);
+	if (infra >= 0) ADD("Infravision %d ft\n", infra * 10);
+	ADD("Digging %+d   Search %+d", skills[SKILL_DIGGING], skills[SKILL_SEARCH]);
+
+	if (c && c->magic.total_spells) {
+		int count;
+		struct magic_realm *realm = class_magic_realms(c, &count), *next;
+		ADD("\nLearns ");
+		for (j = 0; realm; j++, realm = next) {
+			next = realm->next;
+			ADD("%s%s", j ? (next ? ", " : " and ") : "", realm->name);
+			mem_free(realm);
+		}
+		ADD(" magic");
+	}
+	for (ability = player_abilities; ability; ability = ability->next) {
+		if (streq(ability->type, "object") && !of_has(flags, ability->index)) continue;
+		if (streq(ability->type, "player") && !pf_has(pflags, ability->index)) continue;
+		if (streq(ability->type, "element") &&
+				(!el || el[ability->index].res_level != ability->value)) continue;
+		ADD("\n%s", ability->name);
+	}
+#undef ADD
+}
+
 static void send_hello(void)
 {
 	jw w;
@@ -95,6 +147,14 @@ static void send_hello(void)
 	jw_kstr(&w, "engine", buildid);
 	jw_kstr(&w, "savefile", savefile);
 	jw_kbool(&w, "saveExists", file_exists(savefile));
+	if (file_exists(savefile)) {
+		/* The stock load menu's summary, written by wr_description() */
+		const char *desc = savefile_get_description(savefile);
+		if (desc && desc[0]) {
+			jw_kstr(&w, "saveDescription", desc);
+			jw_kbool(&w, "saveDead", strstr(desc, ", dead (") != NULL);
+		}
+	}
 
 	/* Birth choices straight from the game data */
 	jw_key(&w, "races");
@@ -104,6 +164,25 @@ static void send_hello(void)
 	jw_key(&w, "classes");
 	jw_arr_begin(&w);
 	for (c = classes; c; c = c->next) jw_str(&w, c->name);
+	jw_arr_end(&w);
+	/* The stock birth menus' help panels, in the same order */
+	jw_key(&w, "raceHelp");
+	jw_arr_begin(&w);
+	for (r = races; r; r = r->next) {
+		char buf[1024];
+		birth_help(buf, sizeof(buf), r->r_adj, r->r_skills, r->r_mhp, r->r_exp,
+			r->infra, r->flags, r->pflags, r->el_info, NULL);
+		jw_str(&w, buf);
+	}
+	jw_arr_end(&w);
+	jw_key(&w, "classHelp");
+	jw_arr_begin(&w);
+	for (c = classes; c; c = c->next) {
+		char buf[1024];
+		birth_help(buf, sizeof(buf), c->c_adj, c->c_skills, c->c_mhp, c->c_exp,
+			-1, c->flags, c->pflags, NULL, c);
+		jw_str(&w, buf);
+	}
 	jw_arr_end(&w);
 
 	/* Interface and birth options (cheat options are never exposed) */
@@ -222,8 +301,13 @@ static void engine_init(void)
 }
 
 /* Restart the core for a fresh game (the play_again path of play_game()) */
+/* A birth_roll has set up this race/class and its stats, not yet accepted */
+static bool birth_rolled;
+static int rolled_ridx, rolled_cidx;
+
 static void engine_reinit(void)
 {
+	birth_rolled = false;
 	play_again = true;
 	if (cave) wipe_mon_list(cave, player);
 	cleanup_angband();
@@ -313,19 +397,25 @@ static void handle_new_game(const jv *msg)
 		return;
 	}
 
-	if (character_generated || session_phase != PHASE_MENU) engine_reinit();
+	if (jv_get_bool(msg, "keepRoll", false) && birth_rolled &&
+			ridx == rolled_ridx && cidx == rolled_cidx) {
+		/* Accept the stats birth_roll showed */
+	} else {
+		if (character_generated || session_phase != PHASE_MENU) engine_reinit();
 
-	/* Native birth sequence (as player_make_simple / ui-birth.c) */
-	player->is_dead = true;
-	character_generated = false;
-	cmdq_push(CMD_BIRTH_INIT);
-	cmdq_push(CMD_BIRTH_RESET);
-	cmdq_push(CMD_CHOOSE_RACE);
-	cmd_set_arg_choice(cmdq_peek(), "choice", ridx);
-	cmdq_push(CMD_CHOOSE_CLASS);
-	cmd_set_arg_choice(cmdq_peek(), "choice", cidx);
-	if (streq(stats, "roll")) cmdq_push(CMD_ROLL_STATS);
-	cmdq_execute(CTX_BIRTH);
+		/* Native birth sequence (as player_make_simple / ui-birth.c) */
+		player->is_dead = true;
+		character_generated = false;
+		cmdq_push(CMD_BIRTH_INIT);
+		cmdq_push(CMD_BIRTH_RESET);
+		cmdq_push(CMD_CHOOSE_RACE);
+		cmd_set_arg_choice(cmdq_peek(), "choice", ridx);
+		cmdq_push(CMD_CHOOSE_CLASS);
+		cmd_set_arg_choice(cmdq_peek(), "choice", cidx);
+		if (streq(stats, "roll")) cmdq_push(CMD_ROLL_STATS);
+		cmdq_execute(CTX_BIRTH);
+	}
+	birth_rolled = false;
 	/* Birth options, as set in the birth screen's options menu */
 	apply_options(jv_get(msg, "birthOptions"), OP_BIRTH);
 	apply_options(jv_get(msg, "options"), OP_INTERFACE);
@@ -343,6 +433,59 @@ static void handle_new_game(const jv *msg)
 	save_now();
 	send_hello();
 	snapshot_send(true);
+}
+
+/*
+ * Show what a race/class would start with before committing: the stock
+ * birth screen's character sheet after "Roll" (or the point-based
+ * default), rerolled as often as asked.  new_game with keepRoll accepts it.
+ */
+static void handle_birth_roll(const jv *msg)
+{
+	struct player_race *r = find_race(jv_get_str(msg, "race", "Human"));
+	struct player_class *c = find_class(jv_get_str(msg, "class", "Warrior"));
+	const char *stats = jv_get_str(msg, "stats", "roll");
+	int i;
+	jw w;
+
+	if (!r || !c) {
+		proto_send_error("bad_birth", "Unknown race or class");
+		return;
+	}
+	rolled_ridx = r->ridx;
+	rolled_cidx = c->cidx;
+	if (character_generated || (session_phase != PHASE_MENU && !birth_rolled))
+		engine_reinit();
+
+	player->is_dead = true;
+	character_generated = false;
+	cmdq_push(CMD_BIRTH_INIT);
+	cmdq_push(CMD_BIRTH_RESET);
+	cmdq_push(CMD_CHOOSE_RACE);
+	cmd_set_arg_choice(cmdq_peek(), "choice", rolled_ridx);
+	cmdq_push(CMD_CHOOSE_CLASS);
+	cmd_set_arg_choice(cmdq_peek(), "choice", rolled_cidx);
+	if (streq(stats, "roll")) cmdq_push(CMD_ROLL_STATS);
+	cmdq_execute(CTX_BIRTH);
+	birth_rolled = true;
+
+	jw_init(&w);
+	jw_obj_begin(&w);
+	jw_kstr(&w, "type", "birth_stats");
+	jw_key(&w, "stats");
+	jw_arr_begin(&w);
+	for (i = 0; i < STAT_MAX; i++) {
+		char val[32];
+		cnv_stat(player->state.stat_top[i], val, sizeof(val));
+		jw_obj_begin(&w);
+		jw_kstr(&w, "name", stat_names_reduced[i]);
+		jw_kstr(&w, "value", val);
+		jw_obj_end(&w);
+	}
+	jw_arr_end(&w);
+	jw_obj_end(&w);
+	proto_send(&w);
+	jw_free(&w);
 }
 
 static void handle_load_game(void)
@@ -617,6 +760,32 @@ static void send_textblock(const char *what, const char *title, textblock *tb)
 	mem_free(text);
 }
 
+static void handle_query(const jv *msg);
+
+/*
+ * Messages that never advance the game, so they are answered the same way
+ * from the main loop, inside a store and while a prompt is pending.
+ */
+void handle_message_anywhere(const jv *msg)
+{
+	const char *type = jv_get_str(msg, "type", "");
+
+	if (streq(type, "options")) {
+		if (!character_generated) {
+			proto_send_error("no_game", "No character loaded");
+		} else {
+			apply_options(jv_get(msg, "set"), OP_INTERFACE);
+			/* A state now would read as the prompt being over */
+			if (!hooks_prompt_pending()) {
+				send_hello();
+				snapshot_send(false);
+			}
+		}
+	} else if (streq(type, "query")) {
+		handle_query(msg);
+	}
+}
+
 static void handle_query(const jv *msg)
 {
 	const char *what = jv_get_str(msg, "what", "");
@@ -628,21 +797,29 @@ static void handle_query(const jv *msg)
 
 	rng_save();
 	if (streq(what, "item")) {
-		struct object *obj = handle_to_object(jv_get_str(msg, "item", NULL));
+		const char *handle = jv_get_str(msg, "item", NULL);
+		struct object *obj = handle_to_object(handle);
+		bool in_store = false;
+		if (!obj && (obj = store_stock_item(handle))) in_store = true;
 		if (!obj) {
 			proto_send_error("bad_item", "No such item");
 		} else {
 			char name[160];
 			textblock *tb = object_info(obj, OINFO_NONE);
-			/* Examining tracks the object, as in the textui (object recall) */
-			track_object(player->upkeep, obj);
-			object_desc(name, sizeof(name), obj, ODESC_PREFIX | ODESC_FULL, player);
+			/* Examining tracks the object, as in the textui (object recall);
+			 * store stock is described with store prices, as store_examine() */
+			if (!in_store) track_object(player->upkeep, obj);
+			object_desc(name, sizeof(name), obj, ODESC_PREFIX | ODESC_FULL |
+				(in_store ? ODESC_STORE : 0), player);
 			send_textblock("item", name, tb);
 			textblock_free(tb);
 		}
 	} else if (streq(what, "book")) {
-		/* Browse: list a book's spells without spending game time */
-		struct object *obj = handle_to_object(jv_get_str(msg, "item", NULL));
+		/* Browse: list a book's spells without spending game time (also a
+		 * book for sale, as the store's examine does) */
+		const char *handle = jv_get_str(msg, "item", NULL);
+		struct object *obj = handle_to_object(handle);
+		if (!obj) obj = store_stock_item(handle);
 		const struct class_book *book = obj ? player_object_to_book(player, obj) : NULL;
 		if (!book) {
 			proto_send_error("bad_item", "You cannot read that");
@@ -791,6 +968,8 @@ int main(int argc, char *argv[])
 
 		if (streq(type, "new_game")) {
 			handle_new_game(msg);
+		} else if (streq(type, "birth_roll")) {
+			handle_birth_roll(msg);
 		} else if (streq(type, "load_game")) {
 			handle_load_game();
 		} else if (streq(type, "command")) {
@@ -814,16 +993,8 @@ int main(int argc, char *argv[])
 			jw_obj_end(&w);
 			proto_send(&w);
 			jw_free(&w);
-		} else if (streq(type, "options")) {
-			if (!character_generated) {
-				proto_send_error("no_game", "No character loaded");
-			} else {
-				apply_options(jv_get(msg, "set"), OP_INTERFACE);
-				send_hello();
-				snapshot_send(false);
-			}
-		} else if (streq(type, "query")) {
-			handle_query(msg);
+		} else if (streq(type, "options") || streq(type, "query")) {
+			handle_message_anywhere(msg);
 		} else if (streq(type, "debug")) {
 			handle_debug(msg);
 		} else if (streq(type, "quit")) {

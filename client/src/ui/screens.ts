@@ -4,7 +4,7 @@
  */
 import { ControlsLayer } from './controls.ts';
 import { describeGrid } from './targeting.ts';
-import type { CommandMessage, ItemAction, ItemInfo, StoreItem } from '@thang/protocol';
+import type { CommandMessage, HelloMessage, ItemAction, ItemInfo, StoreItem } from '@thang/protocol';
 import type { InputEvent } from '../input/actions.ts';
 import type { UiContext } from './context.ts';
 import { add, clear, h, paletteColor } from './dom.ts';
@@ -48,7 +48,9 @@ export class TitleLayer extends Layer {
   refresh(): void {
     const hello = this.ctx.state.hello;
     const items: MenuItem<string>[] = [];
-    if (hello?.saveExists) items.push({ label: 'Continue', detail: hello.savefile.split('/').pop(), data: 'load' });
+    if (hello?.saveExists && !hello.saveDead) {
+      items.push({ label: 'Continue', detail: hello.saveDescription ?? hello.savefile.split('/').pop(), data: 'load' });
+    }
     items.push({ label: 'New character', data: 'new' });
     items.push({ label: 'Controls', data: 'help' });
     if (this.ctx.canQuit) items.push({ label: 'Quit', data: 'quit' });
@@ -75,13 +77,36 @@ const NAMES = ['Aldric', 'Brenna', 'Cedric', 'Dara', 'Edric', 'Fiona', 'Garrick'
 export function startBirth(ctx: UiContext, onDone: () => void): void {
   const hello = ctx.state.hello;
   if (!hello) return;
+  // There is one save slot: never replace a living character unasked
+  if (hello.saveExists && !hello.saveDead && ctx.state.phase !== 'dead') {
+    ctx.ui.open(new MenuLayer<boolean>(ctx, {
+      title: 'Replace your saved character?',
+      subtitle: hello.saveDescription,
+      items: [
+        { label: 'Keep my character', data: false },
+        { label: 'Start a new character (the old one is lost)', data: true },
+      ],
+      onSelect: (i, layer) => {
+        layer.close();
+        if (i.data) birth(ctx, hello, onDone);
+      },
+    }));
+    return;
+  }
+  birth(ctx, hello, onDone);
+}
+
+function birth(ctx: UiContext, hello: HelloMessage, onDone: () => void): void {
   const races = [...hello.races].reverse();
   const classes = [...hello.classes].reverse();
+  const raceHelp = new Map(hello.races.map((r, i) => [r, hello.raceHelp?.[i] ?? '']));
+  const classHelp = new Map(hello.classes.map((c, i) => [c, hello.classHelp?.[i] ?? '']));
   const choice = { race: 'Human', class: 'Warrior', name: '', stats: 'points' as 'points' | 'roll' };
 
   const raceLayer = new MenuLayer<string>(ctx, {
     title: 'Choose your race',
     items: races.map((r) => ({ label: r, data: r })),
+    describe: (i) => (i ? raceHelp.get(i.data) ?? '' : ''),
     onSelect: (i) => {
       choice.race = i.data;
       ctx.ui.open(classLayer());
@@ -92,6 +117,7 @@ export function startBirth(ctx: UiContext, onDone: () => void): void {
     title: 'Choose your class',
     subtitle: choice.race,
     items: classes.map((c) => ({ label: c, data: c })),
+    describe: (i) => (i ? classHelp.get(i.data) ?? '' : ''),
     onSelect: (i) => {
       choice.class = i.data;
       ctx.ui.open(new TextInputLayer(ctx, 'Name your character', NAMES[Math.floor(Math.random() * NAMES.length)], 31,
@@ -113,14 +139,43 @@ export function startBirth(ctx: UiContext, onDone: () => void): void {
     ],
     onSelect: (i) => {
       choice.stats = i.data;
-      ctx.ui.closeAll((l) => l instanceof MenuLayer || l instanceof TextInputLayer);
-      ctx.send({
-        type: 'new_game', race: choice.race, class: choice.class, name: choice.name,
-        stats: choice.stats, options: ctx.engineOptions,
-      });
-      onDone();
+      ctx.ui.open(previewLayer());
     },
   });
+
+  // The starting stats, rerolled as often as wanted, before committing
+  const previewLayer = () => {
+    const roll = () => ctx.send({ type: 'birth_roll', race: choice.race, class: choice.class, stats: choice.stats });
+    let stats = 'Rolling…';
+    const items: MenuItem<'accept' | 'reroll' | 'back'>[] = [
+      { label: 'Begin the adventure', data: 'accept' },
+      ...(choice.stats === 'roll' ? [{ label: 'Roll again', data: 'reroll' as const }] : []),
+      { label: 'Back', data: 'back' },
+    ];
+    const layer: MenuLayer<'accept' | 'reroll' | 'back'> = new MenuLayer(ctx, {
+      title: `${choice.name} the ${choice.race} ${choice.class}`,
+      subtitle: choice.stats === 'roll' ? 'Rolled ability scores' : 'Point-based ability scores',
+      items,
+      describe: () => stats,
+      onSelect: (i) => {
+        if (i.data === 'reroll') return roll();
+        if (i.data === 'back') return layer.close();
+        ctx.onBirthStats = undefined;
+        ctx.ui.closeAll((l) => l instanceof MenuLayer || l instanceof TextInputLayer);
+        ctx.send({
+          type: 'new_game', race: choice.race, class: choice.class, name: choice.name,
+          stats: choice.stats, keepRoll: true, options: ctx.engineOptions,
+        });
+        onDone();
+      },
+    });
+    ctx.onBirthStats = (s) => {
+      stats = s.map((x) => `${x.name.padEnd(5)} ${x.value}`).join('\n');
+      layer.setItems(items);
+    };
+    roll();
+    return layer;
+  };
 
   ctx.ui.open(raceLayer);
 }
@@ -488,6 +543,7 @@ export class StoreLayer extends Layer {
   private header = h('div', { class: 'panel-title' });
   private menu: ListMenu<StoreItem | ItemInfo>;
   private detail = h('div', { class: 'menu-detail' });
+  private confirmHint = h('span', {});
 
   constructor(private ctx: UiContext) {
     super('store-layer');
@@ -496,9 +552,7 @@ export class StoreLayer extends Layer {
       atlas: ctx.atlas(),
       onSelect: (i) => this.choose(i.data),
       onCancel: () => this.leave(),
-      onSecondary: (i) => {
-        if (this.mode === 'sell') ctx.send({ type: 'query', what: 'item', item: i.data.handle });
-      },
+      onSecondary: (i) => this.more(i.data),
     });
     const p = ctx.input.prompts();
     this.el.append(h('div', { class: 'panel wide' },
@@ -506,7 +560,8 @@ export class StoreLayer extends Layer {
       this.tabs,
       h('div', { class: 'panel-body' }, this.menu.el, this.detail),
       h('div', { class: 'panel-footer' },
-        h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Buy / sell'),
+        this.confirmHint,
+        h('span', {}, h('kbd', {}, p.secondary ?? 'X'), 'More'),
         h('span', {}, h('kbd', {}, p.tabs ?? 'Tab'), 'Switch'),
         h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Leave'))));
     this.refresh();
@@ -524,6 +579,8 @@ export class StoreLayer extends Layer {
     for (const [m, label] of [['buy', buyLabel], ['sell', sellLabel]] as const) {
       this.tabs.append(h('span', { class: `tab${m === this.mode ? ' active' : ''}`, onclick: () => this.setMode(m) }, label));
     }
+    clear(this.confirmHint);
+    this.confirmHint.append(h('kbd', {}, this.ctx.input.prompts().confirm ?? 'Enter'), this.mode === 'buy' ? buyLabel : sellLabel);
     if (this.mode === 'buy') {
       this.menu.setItems(st.stock.map((it) => ({
         label: it.name,
@@ -533,12 +590,15 @@ export class StoreLayer extends Layer {
         data: it,
       })));
     } else {
+      // Pack, then worn gear and the quiver (as the stock store's sell menu)
       const prices = new Map(st.sellable.map((s) => [s.handle, s.price]));
-      this.menu.setItems(this.ctx.state.inventory
+      const worn = this.ctx.state.equipment.flatMap((e) => (e.item ? [e.item] : []));
+      this.menu.setItems([...this.ctx.state.inventory, ...worn, ...this.ctx.state.quiver]
         .filter((it) => prices.has(it.handle))
         .map((it) => ({
           label: it.name,
           tile: it.tile,
+          detail: it.handle.startsWith('equip:') ? 'worn' : it.handle.startsWith('quiver:') ? 'quiver' : undefined,
           right: prices.get(it.handle) !== undefined && !st.noSelling ? `${prices.get(it.handle)} AU` : '',
           data: it,
         })));
@@ -589,6 +649,37 @@ export class StoreLayer extends Layer {
     this.ctx.ui.open(new QtyLayer());
   }
 
+  /** Examine (books: browse), or wear and take off without leaving the shop */
+  private more(it: StoreItem | ItemInfo) {
+    const query = (what: 'item' | 'book') => this.ctx.send({ type: 'query', what, item: it.handle });
+    if (!('actions' in it)) {
+      query(it.book ? 'book' : 'item');
+      return;
+    }
+    const options: MenuItem<() => void>[] = [
+      { label: 'Examine', data: () => query('item') },
+    ];
+    if (it.actions.includes('browse')) options.push({ label: 'Browse', data: () => query('book') });
+    if (it.actions.includes('wield')) {
+      options.push({ label: 'Wear / wield', data: () => this.ctx.send({ type: 'command', action: 'wield', item: it.handle }) });
+    }
+    if (it.actions.includes('takeoff')) {
+      options.push({ label: 'Take off', data: () => this.ctx.send({ type: 'command', action: 'takeoff', item: it.handle }) });
+    }
+    if (options.length === 1) {
+      query('item');
+      return;
+    }
+    this.ctx.ui.open(new MenuLayer<() => void>(this.ctx, {
+      title: it.name,
+      items: options,
+      onSelect: (o, layer) => {
+        layer.close();
+        o.data();
+      },
+    }));
+  }
+
   private leave() {
     this.ctx.send({ type: 'command', action: 'store_leave' });
   }
@@ -630,11 +721,12 @@ export class DeathLayer extends Layer {
         else openMessageLog(ctx);
       },
     });
+    const retired = p?.diedFrom === 'Retiring';
     this.el.append(h('div', { class: 'tombstone' },
-      h('div', { class: 'rip' }, 'R.I.P.'),
+      h('div', { class: 'rip' }, retired ? (p?.winner ? 'Victorious' : 'Retired') : 'R.I.P.'),
       h('div', { class: 'char-name' }, p?.name ?? ''),
       h('div', {}, p ? `the level ${p.level} ${p.race} ${p.class}` : ''),
-      h('div', {}, p?.diedFrom ? `Killed by ${p.diedFrom}` : ''),
+      h('div', {}, retired ? 'Retired from adventuring' : p?.diedFrom ? `Killed by ${p.diedFrom}` : ''),
       h('div', {}, p ? `at ${p.depth * 50} feet, turn ${ctx.state.turn}` : ''),
       this.menu.el));
   }

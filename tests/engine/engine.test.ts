@@ -6,7 +6,7 @@ import { afterEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { DIR_OFFSETS, type Direction, type StateMessage } from '@thang/protocol';
+import { DIR_OFFSETS, type Direction, type HelloMessage, type StateMessage } from '@thang/protocol';
 import { REPO_ROOT } from '../../bridge/src/engine.ts';
 import { Session, isPassable, isWall, stopAll } from './harness.ts';
 
@@ -114,6 +114,24 @@ test('descending stairs generates a new level with only local knowledge', async 
     assert.notEqual(s.feature(f)?.name, 'secret door', 'secret doors are never revealed');
   }
   await s.stop();
+});
+
+test('arriving on a level the player sees their surroundings at once', async () => {
+  // Necromancers carry no light, so nothing else triggers a view update
+  for (const [race, cls] of [['Human', 'Necromancer'], ['Human', 'Warrior']]) {
+    const s = new Session({ seed: 777 });
+    await s.start();
+    await s.newGame(race, cls);
+    // (connected stairs: every arrival is on another down staircase)
+    for (let trip = 0; trip < 8; trip++) {
+      const m = (await s.command({ action: 'go_down' })) as StateMessage;
+      assert.equal(m.player!.depth, trip + 1);
+      assert.ok(m.map!.cells.length > 1, `${cls} trip ${trip}: arrived knowing ${m.map!.cells.length} grid(s)`);
+      assert.doesNotMatch(m.player!.terrain, /unknown/i, `${cls} trip ${trip}: the grid underfoot is known`);
+      if (m.player!.terrain !== 'down staircase') break;
+    }
+    await s.stop();
+  }
 });
 
 test('only known terrain, visible monsters and known objects reach the client', async () => {
@@ -544,6 +562,97 @@ test('being paralysed while commanding a monster does not hang the engine', asyn
   for (let i = 0; i < 5 && s.state!.phase === 'game'; i++) {
     assert.equal((await s.command({ action: 'hold' })).type, 'state');
   }
+  await s.stop();
+});
+
+test('birth: help text for every race and class, and a stats preview that can be kept', async () => {
+  const s = new Session({ seed: 99 });
+  await s.start();
+  const h = s.hello!;
+  assert.equal(h.raceHelp!.length, h.races.length);
+  assert.equal(h.classHelp!.length, h.classes.length);
+  assert.match(h.raceHelp![h.races.indexOf('Dwarf')], /Infravision 50 ft/);
+  assert.match(h.classHelp![h.classes.indexOf('Mage')], /Learns arcane magic/);
+  const roll = async () => {
+    s.send({ type: 'birth_roll', race: 'Dwarf', class: 'Priest', stats: 'roll' });
+    const m = await s.next('birth_stats');
+    assert.equal(m.type, 'birth_stats');
+    return m.type === 'birth_stats' ? m.stats.map((x) => x.value).join(' ') : '';
+  };
+  const rolls = [await roll(), await roll(), await roll()];
+  assert.ok(new Set(rolls).size > 1, `rerolls differ: ${rolls.join(' | ')}`);
+  // Keeping the roll starts the game with exactly those stats
+  s.send({ type: 'new_game', race: 'Dwarf', class: 'Priest', name: 'Kept', keepRoll: true });
+  await s.next('hello');
+  const st = (await s.next('state')) as StateMessage;
+  assert.equal(st.player!.race, 'Dwarf');
+  assert.equal(st.player!.class, 'Priest');
+  assert.deepEqual(st.player!.stats!.map((x) => x.value).join(' '), rolls[2]);
+  await s.stop();
+});
+
+test('the title knows whether the saved character is alive', async () => {
+  const s = new Session({ save: 'summary' });
+  await s.start();
+  await s.newGame('Gnome', 'Mage', 'Summarised');
+  s.send({ type: 'close_game' });
+  const h = (await s.next('hello')) as HelloMessage;
+  assert.equal(h.saveExists, true);
+  assert.equal(h.saveDead, false);
+  assert.match(h.saveDescription!, /^Summarised, L1 Gnome Mage, at DL0$/);
+  await s.stop();
+});
+
+test('ignoring a carried item drops it at once', async () => {
+  const s = new Session();
+  await s.start();
+  await s.newGame('Human', 'Warrior');
+  const food = s.state!.inventory!.find((i) => i.tval === 'food')!;
+  await s.command({ action: 'ignore', item: food.handle });
+  assert.ok(!s.state!.inventory!.some((i) => i.name === food.name), 'gone from the pack');
+  assert.ok(s.history.some((m) => m.type === 'state' && m.messages.some((x) => /You (drop|have no more)/.test(x.text))));
+  await s.stop();
+});
+
+test('in a shop: stock can be examined and worn gear sold', async () => {
+  process.env.THANG_CHEATS = '1';
+  const s = new Session();
+  await s.start();
+  delete process.env.THANG_CHEATS;
+  await s.newGame('Human', 'Warrior', 'Seller');
+  // The General Store buys light sources: walk in from the street beside it
+  let door: [number, number] | null = null;
+  let outside: [number, number] | null = null;
+  for (const [key, [f]] of s.map) {
+    if (s.feature(f).name !== 'General Store') continue;
+    const [x, y] = key.split(',').map(Number);
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const n = s.featureAt(x + dx, y + dy);
+      if (n && isPassable(n) && !n.flags.includes('shop') && !s.monsterAt(x + dx, y + dy)) {
+        door = [x, y];
+        outside = [x + dx, y + dy];
+        break;
+      }
+    }
+    if (door) break;
+  }
+  assert.ok(door && outside, 'the General Store door with street beside it');
+  await s.request({ type: 'debug', action: 'teleport', x: outside[0], y: outside[1] });
+  const dir = (Object.keys(DIR_OFFSETS).map(Number) as Direction[])
+    .find((d) => DIR_OFFSETS[d][0] === door[0] - outside[0] && DIR_OFFSETS[d][1] === door[1] - outside[1])!;
+  const inside = (await s.command({ action: 'walk', dir })) as StateMessage;
+  assert.ok(inside.store, 'opened the store');
+  const st = inside.store!;
+  // Examining stock (and settings arriving) answer normally instead of an error
+  s.send({ type: 'query', what: 'item', item: st.stock[0].handle });
+  const info = await s.next('info', 'error');
+  assert.equal(info.type, 'info', JSON.stringify(info));
+  // The worn torch is offered for sale alongside the pack
+  const torch = s.state!.equipment!.find((e) => e.slot === 'light')?.item;
+  assert.ok(torch, 'carrying a lit torch');
+  assert.ok(st.sellable.some((x) => x.handle === torch!.handle), 'worn torch is sellable');
+  await s.command({ action: 'store_sell', item: torch!.handle, quantity: 1 });
+  assert.ok(!s.state!.equipment!.find((e) => e.slot === 'light')?.item, 'sold straight off the belt');
   await s.stop();
 });
 

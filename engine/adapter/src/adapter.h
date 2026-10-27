@@ -81,5 +81,7 @@ bool store_is_open(void);
 void store_write_state(jw *w);
 /* Where the player is shown: outside the door while a shop is open */
 struct loc store_shown_grid(void);
+struct object *store_stock_item(const char *handle);
+void handle_message_anywhere(const jv *msg);
 
 #endif

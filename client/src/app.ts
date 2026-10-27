@@ -19,6 +19,7 @@ import { openCommandMenu, openUseMenu } from './ui/command-menus.ts';
 import { AimLayer, LookLayer, type TargetingHooks } from './ui/targeting.ts';
 import { HeadingFollower } from './camera/heading.ts';
 import { GameState, type StateChange } from './state/game-state.ts';
+import { firstStepToward } from './state/pathing.ts';
 import { TileAtlas } from './sprites/atlas.ts';
 import { SceneRenderer } from './renderer/scene.ts';
 import { InputManager } from './input/input-manager.ts';
@@ -27,7 +28,7 @@ import { Hud, type ContextHint } from './ui/hud.ts';
 import { UiManager } from './ui/layer.ts';
 import { DEFAULT_SETTINGS, SETTINGS_VERSION, type Settings, type UiContext } from './ui/context.ts';
 import { PromptLayer } from './ui/prompt-layer.ts';
-import { TextLayer } from './ui/menu-layer.ts';
+import { MenuLayer, TextLayer } from './ui/menu-layer.ts';
 import { PanelLayer } from './ui/panel-view.ts';
 import {
   DeathLayer, InventoryLayer, MapLayer, StoreLayer, TitleLayer,
@@ -85,6 +86,8 @@ export class App implements InputHandler {
   private pending: { cmd: CommandMessage; at: number } | null = null;
   private queued: CommandMessage | null = null;
   private exploring = false;
+  /** Whether the player had already won (null until the first state) */
+  private wasWinner: boolean | null = null;
   /** Game turn after the last auto-explore step, to notice when it stalls */
   private exploreTurn: number | undefined;
   private dungeonDirty = false;
@@ -194,6 +197,9 @@ export class App implements InputHandler {
         break;
       case 'saved':
         this.state.note(m.ok ? 'Game saved.' : 'Save failed!');
+        break;
+      case 'birth_stats':
+        this.ctx.onBirthStats?.(m.stats);
         break;
       case 'bridge':
         if (m.event === 'engine_exit') {
@@ -317,6 +323,7 @@ export class App implements InputHandler {
       this.exploring = false;
       this.queued = null;
       this.lastHp = null;
+      this.wasWinner = null;
       this.syncView();
     }
     // Sunrise and nightfall in the town
@@ -343,6 +350,8 @@ export class App implements InputHandler {
       r?.setTorch(p.lightRadius ?? p.light, !!p.unlight);
       this.hud.weapon.setLight(p.lightRadius ?? p.light, !!p.unlight);
       this.hud.weapon.setShape(p.shape);
+      if (p.winner && this.wasWinner === false && this.state.phase === 'game') this.celebrate();
+      this.wasWinner = !!p.winner;
       if (this.lastHp !== null && p.hp < this.lastHp && this.state.phase === 'game') {
         r?.cam.shake();
         this.hud.hurt();
@@ -772,22 +781,50 @@ export class App implements InputHandler {
         }
       }
     }
-    const hasLauncher = s.equipment.some((e) => e.slot === 'shooting' && e.item);
-    if (hasLauncher && s.quiver.length && s.monsters.some((m) => m.inView)) {
+    if (this.hasAmmo() && s.monsters.some((m) => m.inView)) {
       return this.command({ action: 'fire_at_nearest' });
     }
-    // Autofight: close in on the nearest visible monster, one step at a time
+    // Autofight: close in on the nearest visible monster, one step at a time,
+    // around walls and other monsters
     const near = s.monsters.filter((m) => m.inView)
       .sort((a, b) => Math.max(Math.abs(a.x - p.x), Math.abs(a.y - p.y)) - Math.max(Math.abs(b.x - p.x), Math.abs(b.y - p.y)))[0];
     if (near) {
-      const dx = Math.sign(near.x - p.x), dy = Math.sign(near.y - p.y);
-      const dir = Object.entries(DIR_OFFSETS).find(([, [ox, oy]]) => ox === dx && oy === dy)?.[0];
+      const dir = firstStepToward(p, near, (x, y) => {
+        const c = s.featureClassAt(x, y);
+        return (c.passable || c.shape === 'door_closed') && !s.monsterAt(x, y);
+      });
       if (dir) {
-        this.renderer?.cam.face(Number(dir) as Direction);
-        return this.command({ action: 'walk', dir: Number(dir) as Direction });
+        this.renderer?.cam.face(dir);
+        return this.command({ action: 'walk', dir });
       }
+      this.state.note(`No known way to ${near.name}.`);
+      return;
     }
     this.state.note('No foe in sight.');
+  }
+
+  /** The game is won: offer to retire now, as the stock game's 'Q' allows */
+  private celebrate(): void {
+    this.ui.open(new MenuLayer<boolean>(this.ctx, {
+      title: 'Victory!',
+      subtitle: 'The master of the pit is dead. You may retire now, or play on as long as you like.',
+      items: [
+        { label: 'Keep playing', data: false },
+        { label: 'Retire', detail: 'end this character\'s story as a winner', data: true },
+      ],
+      onSelect: (i, layer) => {
+        layer.close();
+        if (i.data) this.command({ action: 'retire' });
+      },
+    }));
+  }
+
+  /** A launcher and ammunition it can fire (not just throwing weapons in the quiver) */
+  private hasAmmo(): boolean {
+    const launcher = this.state.equipment.find((e) => e.slot === 'shooting')?.item;
+    if (!launcher) return false;
+    const ammo = /sling/i.test(launcher.name) ? 'shot' : /crossbow/i.test(launcher.name) ? 'bolt' : 'arrow';
+    return this.state.quiver.some((q) => q.tval === ammo);
   }
 
   private continueExplore(m: StateMessage): void {

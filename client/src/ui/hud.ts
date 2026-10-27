@@ -91,7 +91,8 @@ export class Hud {
     add(this.info,
       h('div', { class: 'cs-who' }, `${p.race} ${p.class}`, p.shape
         ? h('span', { class: 'cs-title cs-shape' }, `${p.shape[0].toUpperCase()}${p.shape.slice(1)} form`)
-        : h('span', { class: 'cs-title' }, p.title)),
+        // The stock sidebar's title for a winner
+        : h('span', { class: `cs-title${p.winner ? ' cs-shape' : ''}` }, p.winner ? '***WINNER***' : p.title)),
       h('div', { class: 'cs-grid' },
         // "LEVEL" in capitals when at max level, "Level" in yellow when drained (as Angband)
         row(p.level >= p.maxLevel ? 'LEVEL' : 'Level', String(p.level), p.level >= p.maxLevel ? '' : 'drained'),

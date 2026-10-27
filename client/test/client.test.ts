@@ -9,6 +9,7 @@ import { FACING_TO_DIR, dirFromOffset } from '@thang/protocol';
 import { KnownMap } from '../src/state/known-map.ts';
 import { classifyFeature } from '../src/state/features.ts';
 import { GameState } from '../src/state/game-state.ts';
+import { firstStepToward } from '../src/state/pathing.ts';
 import { GridCamera } from '../src/camera/grid-camera.ts';
 import { HeadingFollower } from '../src/camera/heading.ts';
 import { glyphStyleFromId, promptsFor } from '../src/input/actions.ts';
@@ -313,5 +314,40 @@ describe('bindings', () => {
     expect(padLabel({ button: 4, hold: true }, 'playstation')).toBe('Hold L1');
     expect(loadBindings(null).keys.q).toBe('cmd:quaff');
     expect(loadBindings({ version: 9 }).preset).toBe('angband');
+  });
+});
+
+describe('firstStepToward', () => {
+  // # wall, . floor; P player, M monster
+  const grid = (rows: string[]) => {
+    let from = { x: 0, y: 0 }, to = { x: 0, y: 0 };
+    rows.forEach((r, y) => [...r].forEach((c, x) => {
+      if (c === 'P') from = { x, y };
+      if (c === 'M') to = { x, y };
+    }));
+    const walkable = (x: number, y: number) => rows[y]?.[x] !== undefined && rows[y][x] !== '#';
+    return { from, to, walkable };
+  };
+
+  it('steps straight when nothing is in the way', () => {
+    const g = grid(['P...M']);
+    expect(firstStepToward(g.from, g.to, g.walkable)).toBe(6);
+  });
+
+  it('goes round a wall instead of into it', () => {
+    const g = grid([
+      '#######',
+      '#P#...#',
+      '#.#.#M#',
+      '#...#.#',
+      '#######',
+    ]);
+    // The diagonal toward the monster is a wall: the only way is down
+    expect(firstStepToward(g.from, g.to, g.walkable)).toBe(2);
+  });
+
+  it('gives up when there is no known way', () => {
+    const g = grid(['P#M']);
+    expect(firstStepToward(g.from, g.to, g.walkable)).toBeNull();
   });
 });

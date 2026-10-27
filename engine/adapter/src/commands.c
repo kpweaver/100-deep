@@ -202,9 +202,17 @@ bool commands_dispatch(const jv *msg)
 		else
 			obj->known->notice |= OBJ_NOTICE_IGNORE;
 		player->upkeep->notice |= PN_IGNORE;
+		/* ignore_drop() queues the drop of carried ignored items: run it
+		 * now, as the textui does when its menu closes */
 		notice_stuff(player);
 		handle_stuff(player);
-		return false;
+		return player->upkeep->dropping;
+	}
+	if (streq(name, "retire")) {
+		/* The stock 'Q' for a winner: end the game on your own terms */
+		if (!player->total_winner) return fail("Only a winner can retire", NULL);
+		cmdq_push(CMD_RETIRE);
+		return true;
 	}
 	if (streq(name, "toggle_unignore")) {
 		player->unignoring = !player->unignoring;

@@ -43,7 +43,7 @@ static int stock_list(struct store *store, struct object ***out)
 void store_write_state(jw *w)
 {
 	struct store *store = open_store;
-	struct object **list;
+	struct object **list, *gear_obj;
 	int n, i;
 	bool home;
 
@@ -77,6 +77,7 @@ void store_write_state(jw *w)
 		jw_kint(w, "weight", obj->weight);
 		if (!home) jw_kint(w, "price", price_item(store, obj, false, 1));
 		jw_kbool(w, "canUse", !tval_is_book_k(obj->kind) || obj_can_browse(obj));
+		if (tval_is_book_k(obj->kind)) jw_kbool(w, "book", true);
 		jw_key(w, "tile");
 		if (snapshot_tile_of_kind(obj->kind, &row, &col)) {
 			jw_arr_begin(w);
@@ -91,17 +92,18 @@ void store_write_state(jw *w)
 	jw_arr_end(w);
 	mem_free(list);
 
-	/* Sale prices for the player's items this store would accept */
+	/* Sale prices for the player's items this store would accept: pack,
+	 * equipment and quiver, as ui-store.c offers (USE_EQUIP | USE_QUIVER) */
 	jw_key(w, "sellable");
 	jw_arr_begin(w);
-	for (i = 0; i < z_info->pack_size; i++) {
-		struct object *obj = player->upkeep->inven[i];
-		if (!obj) continue;
-		if (!home && !store_will_buy_tester(obj)) continue;
+	for (gear_obj = player->gear; gear_obj; gear_obj = gear_obj->next) {
+		char handle[32];
+		if (!home && !store_will_buy_tester(gear_obj)) continue;
+		object_to_handle(gear_obj, handle, sizeof(handle));
+		if (!handle[0]) continue;
 		jw_obj_begin(w);
-		jw_key(w, "handle");
-		jw_str(w, format("inven:%d", i));
-		if (!home) jw_kint(w, "price", price_item(store, obj, true, 1));
+		jw_kstr(w, "handle", handle);
+		if (!home) jw_kint(w, "price", price_item(store, gear_obj, true, 1));
 		jw_obj_end(w);
 	}
 	jw_arr_end(w);
@@ -117,6 +119,12 @@ static struct object *store_item(struct store *store, const char *handle)
 	if (idx >= 0 && idx < n) obj = list[idx];
 	mem_free(list);
 	return obj;
+}
+
+/* A "store:N" handle in the open store's stock (for examining) */
+struct object *store_stock_item(const char *handle)
+{
+	return open_store ? store_item(open_store, handle) : NULL;
 }
 
 /* Run one native command in store context, as ui-store.c does */
@@ -183,6 +191,13 @@ static void ev_use_store(game_event_type type, game_event_data *data, void *user
 
 		if (streq(type_s, "save")) {
 			proto_send_error("in_store", "Leave the store before saving");
+			jv_free(msg_in);
+			continue;
+		}
+		/* Read-only queries (examine, browse) and interface options work
+		 * as anywhere else */
+		if (streq(type_s, "query") || streq(type_s, "options")) {
+			handle_message_anywhere(msg_in);
 			jv_free(msg_in);
 			continue;
 		}

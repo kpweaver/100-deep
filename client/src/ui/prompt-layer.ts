@@ -28,6 +28,8 @@ export class PromptLayer extends Layer {
   private dirCursor: [number, number] | null = null;
   private dirCells: HTMLElement[][] = [];
   private quantity = 1;
+  /** A digit has been typed (the next one appends instead of replacing) */
+  private typed = false;
   private qtyEl: HTMLElement | null = null;
   private answered = false;
 
@@ -215,8 +217,20 @@ export class PromptLayer extends Layer {
       this.renderDir();
       return true;
     }
+    if (p.kind === 'aim' && ev.key) {
+      // The stock keys: a keypad direction, ' or t (or 5) for the target, * for the nearest
+      if (/^[1-46-9]$/.test(ev.key)) { this.answer({ value: Number(ev.key) }); return true; }
+      if (/^['t5]$/.test(ev.key) && p.hasTarget) { this.answer({ useTarget: true }); return true; }
+      if (/^['t5*]$/.test(ev.key) && p.targets.length) { this.answer({ monster: p.targets[0].id }); return true; }
+    }
     if (p.kind === 'quantity') {
       const max = p.max;
+      if (ev.key === 'Backspace') {
+        this.quantity = Math.max(1, Math.floor(this.quantity / 10));
+        this.typed = this.quantity > 1;
+        this.renderQty();
+        return true;
+      }
       if (ev.ui === 'left') this.quantity = Math.max(1, this.quantity - 1);
       else if (ev.ui === 'right') this.quantity = Math.min(max, this.quantity + 1);
       else if (ev.ui === 'up') this.quantity = Math.min(max, this.quantity + 10);
@@ -225,7 +239,10 @@ export class PromptLayer extends Layer {
       else if (ev.ui === 'confirm') this.answer({ value: this.quantity });
       else if (ev.ui === 'back') this.answer(null);
       else if (ev.key && /^[0-9]$/.test(ev.key)) {
-        this.quantity = Math.min(max, Math.max(1, Number(`${this.quantity}${ev.key}`.slice(-4))));
+        // The first digit replaces the default; later ones append
+        const typed = this.typed ? `${this.quantity}${ev.key}` : ev.key;
+        this.quantity = Math.min(max, Math.max(1, Number(typed.slice(-4))));
+        this.typed = true;
       }
       this.renderQty();
       return true;

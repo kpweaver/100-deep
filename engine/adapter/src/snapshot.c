@@ -147,6 +147,15 @@ static void ev_bell(game_event_type type, game_event_data *data, void *user)
 static void ev_new_level(game_event_type type, game_event_data *data, void *user)
 {
 	level_serial++;
+
+	/* As the stock new_level_display_update(): the core leaves the view
+	 * (and torch radius) for the frontend to recompute on arrival, and
+	 * without it the player can arrive seeing nothing until they move */
+	player->upkeep->update |= (PU_BONUS | PU_HP | PU_SPELLS | PU_TORCH |
+		PU_UPDATE_VIEW | PU_DISTANCE);
+	player->upkeep->redraw |= (PR_BASIC | PR_EXTRA | PR_MAP | PR_INVEN |
+		PR_EQUIP | PR_MONSTER | PR_MONLIST | PR_ITEMLIST);
+	handle_stuff(player);
 }
 
 static void ev_bolt(game_event_type type, game_event_data *data, void *user)
@@ -861,6 +870,7 @@ static void write_player(jw *w)
 	jw_kstr(w, "class", player->class->name);
 	jw_kstr(w, "title", player->class->title[(player->lev - 1) / 5]);
 	if (player_is_shapechanged(player)) jw_kstr(w, "shape", player->shape->name);
+	if (player->total_winner) jw_kbool(w, "winner", true);
 	jw_kint(w, "x", store_shown_grid().x);
 	jw_kint(w, "y", store_shown_grid().y);
 	jw_kint(w, "depth", player->depth);

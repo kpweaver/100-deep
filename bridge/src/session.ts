@@ -12,7 +12,7 @@ import { Engine } from './engine.ts';
 /** Client message types the engine understands ('quit' stays server-side) */
 const CLIENT_TYPES = new Set([
   'hello', 'ping', 'new_game', 'load_game', 'command', 'answer', 'cancel',
-  'save', 'close_game', 'options', 'query',
+  'save', 'close_game', 'options', 'query', 'birth_roll',
 ]);
 
 export interface SessionOptions {
