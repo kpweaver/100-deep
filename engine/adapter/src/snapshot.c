@@ -423,7 +423,7 @@ static void write_known_pile(jw *w, const struct pile_rec *p)
 				if (a == 0 || c == 0) continue;
 				break;
 			}
-			my_strcpy(name, "something strange", sizeof(name));
+			my_strcpy(name, "Something strange", sizeof(name));
 		} else if (p->g.multiple_objects) {
 			a = object_kind_attr(pile_kind);
 			c = object_kind_char(pile_kind);
@@ -608,7 +608,7 @@ static void write_monsters(jw *w)
 		} else {
 			a = monster_x_attr[mon->race->ridx];
 			c = monster_x_char[mon->race->ridx];
-			monster_desc(name, sizeof(name), mon, MDESC_IND_VIS | MDESC_CAPITAL);
+			monster_label(name, sizeof(name), mon);
 			look_mon_desc(status, sizeof(status), i);
 		}
 
@@ -637,6 +637,27 @@ static void write_monsters(jw *w)
 /* ------------------------------------------------------------------------
  * Player and gear
  * ------------------------------------------------------------------------ */
+/*
+ * A monster's name as a label ("Large white snake", "Grip, Farmer
+ * Hayward's Dog"): the native description, which is written to sit in a
+ * sentence ("a large white snake"), without its article and capitalised.
+ */
+void monster_label(char *buf, size_t len, const struct monster *mon)
+{
+	static const char *articles[] = { "a ", "an ", "the ", "some " };
+	size_t i;
+
+	monster_desc(buf, len, mon, MDESC_IND_VIS);
+	for (i = 0; i < N_ELEMENTS(articles); i++) {
+		size_t n = strlen(articles[i]);
+		if (strncmp(buf, articles[i], n) == 0 && buf[n]) {
+			memmove(buf, buf + n, strlen(buf + n) + 1);
+			break;
+		}
+	}
+	my_strcap(buf);
+}
+
 void object_to_handle(const struct object *obj, char *buf, size_t len)
 {
 	int i;

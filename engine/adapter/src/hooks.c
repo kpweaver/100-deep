@@ -235,7 +235,7 @@ static void write_target_candidates(jw *w)
 		struct monster *mon = square_monster(cave, targets->pts[i]);
 		char name[120];
 		if (!mon) continue;
-		monster_desc(name, sizeof(name), mon, MDESC_IND_VIS | MDESC_CAPITAL);
+		monster_label(name, sizeof(name), mon);
 		jw_obj_begin(w);
 		jw_kint(w, "id", mon->midx);
 		jw_kint(w, "x", mon->grid.x);

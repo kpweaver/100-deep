@@ -682,6 +682,25 @@ test('returning to the title saves, and the game can be continued', async () => 
   await s.stop();
 });
 
+test('monster names read as labels, and sentences keep their article', async () => {
+  process.env.THANG_CHEATS = '1';
+  const s = new Session({ seed: 7 });
+  await s.start();
+  delete process.env.THANG_CHEATS;
+  await s.newGame('Human', 'Warrior', 'Namer');
+  await s.request({ type: 'debug', action: 'summon', name: 'scruffy little dog' });
+  await s.request({ type: 'debug', action: 'summon', name: 'Grip, Farmer Hayward\'s Dog' });
+  await new Promise((r) => setTimeout(r, 300));
+  const names = (s.state!.monsters ?? []).filter((m) => m.inView).map((m) => m.name);
+  assert.ok(names.includes('Scruffy little dog'), names.join(', '));
+  assert.ok(names.includes('Grip, Farmer Hayward\'s Dog'), names.join(', '));
+  assert.ok(names.every((n) => !/^(A|An|The) /.test(n)), names.join(', '));
+  const r = (await s.command({ action: 'target_next' })) as StateMessage;
+  const targeting = r.messages.find((m) => /^Targeting/.test(m.text))?.text ?? '';
+  assert.match(targeting, /^Targeting (the scruffy little dog|Grip, Farmer Hayward's Dog)\.$/);
+  await s.stop();
+});
+
 test('stock subwindows (lists, recall, character sheet) come from Angband', async () => {
   process.env.THANG_CHEATS = '1';
   const s = new Session({ seed: 7 });

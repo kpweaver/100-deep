@@ -62,6 +62,7 @@ void hooks_install(void);
 void hooks_resend_pending(void);
 bool hooks_prompt_pending(void);
 /* Item handles: "inven:3", "equip:0", "quiver:1", "floor:0" */
+void monster_label(char *buf, size_t len, const struct monster *mon);
 struct object *handle_to_object(const char *handle);
 void object_to_handle(const struct object *obj, char *buf, size_t len);
 

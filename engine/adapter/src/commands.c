@@ -130,7 +130,8 @@ static bool target_cycle(int step)
 		target_set_monster(mon);
 		health_track(player->upkeep, mon);
 		monster_race_track(player->upkeep, mon->race);
-		monster_desc(name, sizeof(name), mon, MDESC_IND_VIS | MDESC_CAPITAL);
+		/* Mid-sentence: "Targeting the large white snake." */
+		monster_desc(name, sizeof(name), mon, MDESC_TARG);
 		msg("Targeting %s.", name);
 		return true;
 	}
