@@ -280,7 +280,10 @@ export class App implements InputHandler {
       this.send({ type: 'load_game' });
       return;
     }
-    if (m.phase === 'game' && !this.optionsPushed) {
+    // A new character (from the death screen too) starts with the engine's
+    // default options, so push ours again for each game
+    if (m.phase !== 'game') this.optionsPushed = false;
+    else if (!this.optionsPushed) {
       this.optionsPushed = true;
       this.send({ type: 'options', set: { ...this.engineOptions } });
     }
