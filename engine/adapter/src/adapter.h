@@ -43,6 +43,8 @@ extern void (*proto_eof_hook)(void);
 void snapshot_init(void);
 void snapshot_reset_map(void);
 void snapshot_send(bool full_map);
+/* Where the player stood in the last snapshot sent */
+extern struct loc snapshot_player_grid;
 void snapshot_write_static(jw *w);	/* feature table + tileset for hello */
 void snapshot_write_object_json(jw *w, struct object *obj, const char *handle);
 bool snapshot_tile_of_kind(const struct object_kind *kind, int *row, int *col);

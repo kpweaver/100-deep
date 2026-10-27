@@ -934,6 +934,8 @@ static void write_player(jw *w)
 /* ------------------------------------------------------------------------
  * The full state message
  * ------------------------------------------------------------------------ */
+struct loc snapshot_player_grid;
+
 void snapshot_send(bool full_map)
 {
 	jw w;
@@ -956,6 +958,7 @@ void snapshot_send(bool full_map)
 			sent_level_serial = level_serial;
 		}
 		jw_kint(&w, "levelId", level_serial);
+		snapshot_player_grid = player->grid;
 		write_player(&w);
 		write_map(&w, full_map, &piles, &n_piles);
 		jw_key(&w, "objects");

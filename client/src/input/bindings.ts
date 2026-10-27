@@ -47,7 +47,7 @@ export const BINDABLE: [group: string, action: GameAction, label: string][] = [
   ['Move', 'rest', 'Rest as needed'],
   ['Move', 'cmd:jump', 'Walk into a trap'],
   ['Act', 'interact', 'Interact (stairs, doors, pick up, attack ahead)'],
-  ['Act', 'attack', 'Autofight (melee, fire, or close in)'],
+  ['Act', 'attack', 'Fire at nearest (melee when adjacent, else close in)'],
   ['Act', 'aim', 'Aim / target, then fire'],
   ['Act', 'cmd:target_closest', 'Target the closest monster'],
   ['Act', 'cmd:fire_at_nearest', 'Fire at the nearest monster'],
@@ -102,9 +102,9 @@ const ANGBAND_KEYS: Record<KeyId, GameAction> = {
   Numpad1: 'walkDir1', Numpad2: 'walkDir2', Numpad3: 'walkDir3', Numpad4: 'walkDir4', Numpad5: 'wait',
   Numpad6: 'walkDir6', Numpad7: 'walkDir7', Numpad8: 'walkDir8', Numpad9: 'walkDir9',
   Space: 'interact', Enter: 'commands', NumpadEnter: 'commands', Escape: 'menu',
-  ',': 'wait', R: 'rest', g: 'cmd:pickup', '<': 'goUp', '>': 'goDown', W: 'cmd:jump',
+  ',': 'wait', R: 'rest', p: 'cmd:pickup', g: 'cmd:pickup', '<': 'goUp', '>': 'goDown', W: 'cmd:jump',
   i: 'inventory', I: 'inventory', e: 'equipment', '|': 'quiver',
-  m: 'spells', p: 'spells', b: 'spells', S: 'study',
+  m: 'spells', b: 'spells', S: 'study',
   q: 'cmd:quaff', r: 'cmd:read', E: 'cmd:eat', a: 'cmd:aim_wand', u: 'cmd:use_staff', z: 'cmd:zap_rod',
   A: 'cmd:activate', U: 'useMenu', f: 'cmd:fire', v: 'cmd:throw', F: 'cmd:refill',
   w: 'cmd:wield', t: 'cmd:takeoff', d: 'cmd:drop', '{': 'cmd:inscribe', '}': 'cmd:uninscribe',
@@ -157,7 +157,10 @@ export function defaultBindings(preset: KeyPreset = 'angband'): Bindings {
 export function loadBindings(raw: unknown): Bindings {
   const b = raw as Partial<Bindings> | null;
   if (!b || b.version !== 1 || typeof b.keys !== 'object' || typeof b.pad !== 'object') return defaultBindings();
-  return { version: 1, preset: b.preset === 'wasd' ? 'wasd' : 'angband', keys: { ...b.keys }, pad: { ...b.pad } };
+  const keys = { ...b.keys };
+  // p was a second cast key before it became pick up
+  if (keys.p === 'spells' && keys.m === 'spells') keys.p = 'cmd:pickup';
+  return { version: 1, preset: b.preset === 'wasd' ? 'wasd' : 'angband', keys, pad: { ...b.pad } };
 }
 
 /** The binding id for a key event (case and symbols follow the keyboard layout) */

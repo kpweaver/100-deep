@@ -51,4 +51,6 @@ export interface UiContext {
   saveBindings(b: Bindings): void;
   /** Save and quit (desktop: exit; local: stop the server; hosted: just save) */
   quit(): void;
+  /** False in the browser build, where quitting just means closing the tab */
+  canQuit: boolean;
 }

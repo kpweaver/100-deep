@@ -117,6 +117,7 @@ export class App implements InputHandler {
       engineOptions: this.engineOptions,
       facing: () => this.renderer?.cam.facing ?? 0,
       quit: () => this.quit(),
+      canQuit: !useWasmEngine(),
       saveBindings: (b) => {
         this.input.setBindings(b);
         saveJson('thang.bindings', b);
@@ -327,6 +328,8 @@ export class App implements InputHandler {
       this.hud.showBanner(p.depth === 0 ? 'The Town' : `${p.depth * 50} feet (level ${p.depth})`);
       this.heading.reset();
       this.exploring = false;
+    } else if (this.state.store) {
+      // Shopping happens from the street: the view stays outside the door
     } else if (c.moved && r && p) {
       this.hud.weapon.bob();
       if (this.lastAction && AUTO_FACE_ACTIONS.has(this.lastAction)) this.followPath(p.x - c.moved.fromX, p.y - c.moved.fromY);
@@ -624,7 +627,11 @@ export class App implements InputHandler {
         break;
       case 'messages': openMessageLog(this.ctx); break;
       case 'save': this.send({ type: 'save' }); break;
-      case 'saveQuit': this.quit(); break;
+      case 'saveQuit':
+        // In the browser there is nothing to quit to: save and return to the title
+        if (this.ctx.canQuit) this.quit();
+        else this.send({ type: 'close_game' });
+        break;
       case 'help': this.ui.open(new ControlsLayer(this.ctx)); break;
       case 'cancel':
         if (this.state.target) this.command({ action: 'target_clear' });
@@ -855,8 +862,10 @@ export class App implements InputHandler {
     else if (aheadShape === 'door_closed') primary = 'Open door';
     else if (aheadShape === 'door_open') primary = 'Close door';
     else if (aheadShape === 'rubble' || aheadShape === 'passable_rubble') primary = 'Clear rubble';
-    if (primary) hints.push({ button: pr.interact ?? 'A', label: primary });
-    if (s.monsters.some((m) => m.inView)) hints.push({ button: pr.attack ?? 'F', label: 'Fight' }, { button: pr.aim ?? 'T', label: 'Aim' });
+    // Keyboard players pick up with Angband's own key rather than Space
+    const pickup = primary?.startsWith('Pick up') && this.input.lastDevice === 'keyboard' ? pr['cmd:pickup'] : undefined;
+    if (primary) hints.push({ button: pickup ?? pr.interact ?? 'A', label: primary });
+    if (s.monsters.some((m) => m.inView)) hints.push({ button: pr.attack ?? 'F', label: 'Fire' }, { button: pr.aim ?? 'T', label: 'Aim' });
     else hints.push({ button: pr.explore ?? 'X', label: this.exploring ? 'Exploring…' : 'Explore' });
     hints.push({ button: pr.inventory ?? 'I', label: 'Gear' });
     hints.push({ button: pr.useMenu ?? 'U', label: p.canCast ? 'Cast & use' : 'Use' });

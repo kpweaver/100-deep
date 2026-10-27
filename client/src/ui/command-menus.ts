@@ -133,9 +133,9 @@ export function openCommandMenu(ctx: UiContext, x: CommandMenuExtras): void {
       { label: 'Message history', data: x.messages },
       { label: 'Repeat the level feeling', data: c({ action: 'feeling' }) },
     ]],
-    ['System', 'save, options, quit', [
+    ['System', ctx.canQuit ? 'save, options, quit' : 'save, options', [
       { label: 'Save game', data: x.save },
-      { label: 'Options, controls and quit…', data: x.system },
+      { label: ctx.canQuit ? 'Options, controls and quit…' : 'Options and controls…', data: x.system },
     ]],
   ];
   const layer: MenuLayer<Run> = new MenuLayer(ctx, {

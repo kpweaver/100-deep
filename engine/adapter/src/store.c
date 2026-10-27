@@ -14,6 +14,7 @@
 #include "cave.h"
 #include "cmd-core.h"
 #include "init.h"
+#include "mon-util.h"
 #include "obj-desc.h"
 #include "obj-gear.h"
 #include "obj-knowledge.h"
@@ -126,9 +127,37 @@ static void run_store_command(void)
 	handle_stuff(player);
 }
 
+/*
+ * Step back out of the entrance onto the grid the player came from, so they
+ * stand in the street beside the shop rather than in its doorway.  If that
+ * grid isn't known (a long run ends at the door) or is now blocked, use
+ * another open grid next to the door, straight ahead of it first.
+ */
+static void step_out_of_store(struct loc from)
+{
+	struct loc grid = player->grid;
+	int i, pass;
+
+	for (pass = 0; pass < 3; pass++) {
+		for (i = 0; i < 8; i++) {
+			struct loc to = loc_sum(grid, ddgrid_ddd[i]);
+			if (pass == 0 && !loc_eq(to, from)) continue;
+			/* ddgrid_ddd lists the four orthogonal directions first */
+			if (pass == 1 && i >= 4) break;
+			if (!square_in_bounds_fully(cave, to) || !square_ispassable(cave, to) ||
+					square_isshop(cave, to) || square(cave, to)->mon)
+				continue;
+			monster_swap(grid, to);
+			player->upkeep->update |= (PU_UPDATE_VIEW | PU_MONSTERS);
+			return;
+		}
+	}
+}
+
 static void ev_use_store(game_event_type type, game_event_data *data, void *user)
 {
 	struct store *store = store_at(cave, player->grid);
+	struct loc from = snapshot_player_grid;
 	if (!store) return;
 
 	open_store = store;
@@ -199,6 +228,7 @@ static void ev_use_store(game_event_type type, game_event_data *data, void *user
 	}
 
 	open_store = NULL;
+	step_out_of_store(from);
 
 	/* Leaving takes a turn, as in ui-store.c */
 	player->upkeep->energy_use = z_info->move_energy;

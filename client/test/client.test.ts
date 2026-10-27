@@ -296,7 +296,8 @@ describe('bindings', () => {
     expect(bindKey(b, 'cmd:quaff', 'r')).toBe('cmd:read');
     expect(b.keys.r).toBe('cmd:quaff');
     expect(b.keys.q).toBe('cmd:read');
-    expect(keysFor(b, 'spells')).toEqual(['m', 'p', 'b']);
+    expect(keysFor(b, 'spells')).toEqual(['m', 'b']);
+    expect(keysFor(b, 'cmd:pickup')).toEqual(['p', 'g']);
     bindKey(b, 'spells', 'Ctrl+k');
     expect(keysFor(b, 'spells')).toEqual(['Ctrl+k']);
     // Controller: explore onto RT swaps with autofight

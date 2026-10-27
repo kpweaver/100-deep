@@ -289,6 +289,40 @@ test('state stays consistent under rapid repeated input', async () => {
   await s.stop();
 });
 
+test('leaving a shop puts the player back on the grid outside its door', async () => {
+  process.env.THANG_CHEATS = '1';
+  const s = new Session();
+  await s.start();
+  delete process.env.THANG_CHEATS;
+  await s.newGame('Human', 'Warrior', 'Shopper');
+  // A shop door with open street beside it
+  let door: [number, number] | null = null;
+  let outside: [number, number] | null = null;
+  for (const [key, [f]] of s.map) {
+    if (!s.feature(f).flags.includes('shop')) continue;
+    const [x, y] = key.split(',').map(Number);
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const n = s.featureAt(x + dx, y + dy);
+      if (n && isPassable(n) && !n.flags.includes('shop') && !s.monsterAt(x + dx, y + dy)) {
+        door = [x, y];
+        outside = [x + dx, y + dy];
+        break;
+      }
+    }
+    if (door) break;
+  }
+  assert.ok(door && outside, 'a shop door with street beside it');
+  await s.request({ type: 'debug', action: 'teleport', x: outside[0], y: outside[1] });
+  const dir = (Object.keys(DIR_OFFSETS).map(Number) as Direction[])
+    .find((d) => DIR_OFFSETS[d][0] === door[0] - outside[0] && DIR_OFFSETS[d][1] === door[1] - outside[1])!;
+  const inside = (await s.command({ action: 'walk', dir })) as StateMessage;
+  assert.ok(inside.store, 'walked into the shop');
+  await s.command({ action: 'store_leave' });
+  assert.ok(!s.state!.store);
+  assert.deepEqual([s.player.x, s.player.y], outside);
+  await s.stop();
+});
+
 test('save and reload restore the same game', async () => {
   const a = new Session({ save: 'persist' });
   await a.start();

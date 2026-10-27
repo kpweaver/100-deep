@@ -100,21 +100,22 @@ bindings work too.
 | Turn 45° | ← / → (Q / E) | Right stick, D-pad ←/→ |
 | Walk in a map direction | Numpad 1–9 | — |
 | Run | Shift+↑ | Hold forward |
-| Interact (stairs, pick up, doors, shops, rubble, attack ahead) | Space | A |
+| Interact (stairs, doors, shops, rubble, attack ahead) | Space | A |
 | Back / cancel | Esc | B |
 | **Command menu**: every command, by category | Enter | Select |
 | **Use menu**: spells, devices, potions, scrolls, missiles | U | X |
 | Inventory / equipment / quiver | i (I) / e / \| | Y |
 | Hold still / rest as needed | , or Num 5 / R | LB / hold LB |
 | Auto-explore | x | LT |
-| Autofight: melee adjacent, fire if you can, else close in | Tab | RT |
+| Fire at nearest: melee when adjacent, else close in | Tab | RT |
 | **Look**: step through what you see, or move a free cursor over any grid | l | L3 |
 | **Aim / target**: then fire, throw, or just set the target | * (' targets closest, h fires at nearest) | RB |
-| Cast a spell / study | m (also p, b) / S | X ▸ Cast |
+| Cast a spell / study | m (also b) / S | X ▸ Cast |
 | Quaff, read, eat | q, r, E | X ▸ … |
 | Aim a wand, use a staff, zap a rod, activate | a, u, z, A | X ▸ … |
 | Fire, throw, refuel | f, v, F | X ▸ / Select ▸ |
-| Wield, take off, drop, pick up | w, t, d, g | Y ▸ item |
+| Pick up | p (also g) | A |
+| Wield, take off, drop | w, t, d | Y ▸ item |
 | Inscribe / uninscribe / show ignored | { / } / K | Select ▸ Items |
 | Open, close, tunnel, disarm, alter, steal, walk into a trap | o, c, T, D, +, s, W | A (contextual), Select ▸ Doors & terrain |
 | Stairs up / down | < / > | A on stairs |
@@ -122,7 +123,7 @@ bindings work too.
 | Character sheet | C | Select ▸ Look & knowledge |
 | Visible monsters / items / recall | [ / ] / / | Select ▸ Look & knowledge |
 | Message history, level feeling | Ctrl+P, Ctrl+F | Select ▸ Look & knowledge |
-| Save, save and quit | Ctrl+S, Ctrl+X | Start |
+| Save, save and quit (in the browser: save and return to the title) | Ctrl+S, Ctrl+X | Start |
 | Pause / system menu | Esc | Start |
 | Text prompts (inscriptions, names) | Keyboard | On-screen keyboard (A types, X deletes, Y shift, Start done) |
 | Menus | ↑↓ + Enter, letters a–z pick items, Esc | D-pad/stick + A, B back, LB/RB tabs, LT/RT page |

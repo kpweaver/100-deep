@@ -51,7 +51,7 @@ export class TitleLayer extends Layer {
     if (hello?.saveExists) items.push({ label: 'Continue', detail: hello.savefile.split('/').pop(), data: 'load' });
     items.push({ label: 'New character', data: 'new' });
     items.push({ label: 'Controls', data: 'help' });
-    items.push({ label: 'Quit', data: 'quit' });
+    if (this.ctx.canQuit) items.push({ label: 'Quit', data: 'quit' });
     this.menu.setItems(items);
     this.status.textContent = hello ? `${hello.engine} · protocol v${hello.protocol}` : 'Connecting to engine…';
   }
@@ -376,7 +376,7 @@ export function openSystemMenu(ctx: UiContext, actions: { save: () => void; quit
     { label: 'Controls', data: () => ctx.ui.open(new ControlsLayer(ctx)) },
     { label: 'Message history', data: () => openMessageLog(ctx) },
     { label: 'Save and return to title', data: actions.quitToTitle },
-    { label: 'Save and quit', data: () => ctx.quit() },
+    ...(ctx.canQuit ? [{ label: 'Save and quit', data: () => ctx.quit() }] : []),
   ];
   const layer: MenuLayer<S> = new MenuLayer(ctx, {
     title: 'Paused',
@@ -621,7 +621,7 @@ export class DeathLayer extends Layer {
       items: [
         { label: 'New character', data: 'new' },
         { label: 'Message history', data: 'log' },
-        { label: 'Quit', data: 'quit' },
+        ...(ctx.canQuit ? [{ label: 'Quit', data: 'quit' }] : []),
       ],
       letters: false,
       onSelect: (i) => {

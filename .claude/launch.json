@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/dev.ts"],
       "port": 5173
+    },
+    {
+      "name": "web-build",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["exec", "-w", "client", "--", "vite", "preview", "--outDir", "dist-web", "--port", "4180", "--strictPort"],
+      "port": 4180
     }
   ]
 }
