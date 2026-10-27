@@ -39,6 +39,7 @@
 #include "obj-desc.h"
 #include "obj-info.h"
 #include "obj-knowledge.h"
+#include "obj-tval.h"
 #include "obj-util.h"
 #include "option.h"
 #include "player-birth.h"
@@ -458,6 +459,59 @@ static void handle_debug(const jv *req)
 		}
 		cmdq_push(CMD_WIZ_SUMMON_NAMED);
 		cmd_set_arg_number(cmdq_peek(), "index", race->ridx);
+	} else if (streq(action, "item")) {
+		/* An object kind by name ("Cure Light Wounds"), optionally of one
+		 * tval ("potion"); exact names win over partial matches */
+		const char *name = jv_get_str(req, "name", "");
+		const char *tval_s = jv_get_str(req, "tval", "");
+		int tval = tval_s[0] ? tval_find_idx(tval_s) : -1;
+		int i, found = -1;
+		bool exact = false;
+		for (i = 1; i < z_info->k_max && !exact; i++) {
+			struct object_kind *k = &k_info[i];
+			char kname[80];
+			if (!k->name || (tval >= 0 && k->tval != tval)) continue;
+			obj_desc_name_format(kname, sizeof(kname), 0, k->name, NULL, false);
+			if (!my_stricmp(kname, name)) { found = i; exact = true; }
+			else if (found < 0 && my_stristr(kname, name)) found = i;
+		}
+		if (found < 0) {
+			proto_send_error("bad_value", "No such object kind");
+			return;
+		}
+		cmdq_push(CMD_WIZ_CREATE_OBJ);
+		cmd_set_arg_number(cmdq_peek(), "index", found);
+	} else if (streq(action, "artifact")) {
+		const char *name = jv_get_str(req, "name", "");
+		int i, found = -1;
+		for (i = 1; i < z_info->a_max; i++) {
+			if (a_info[i].name && my_stristr(a_info[i].name, name)) { found = i; break; }
+		}
+		if (found < 0) {
+			proto_send_error("bad_value", "No such artifact");
+			return;
+		}
+		cmdq_push(CMD_WIZ_CREATE_ARTIFACT);
+		cmd_set_arg_number(cmdq_peek(), "index", found);
+	} else if (streq(action, "acquire")) {
+		/* value good (or great, with "great": true) objects at your feet */
+		cmdq_push(CMD_WIZ_ACQUIRE);
+		cmd_set_arg_choice(cmdq_peek(), "choice", jv_get_bool(req, "great", false) ? 1 : 0);
+		cmd_set_arg_number(cmdq_peek(), "quantity", value > 0 ? (int)value : 1);
+	} else if (streq(action, "advance")) {
+		/* Maximum level, stats and spells */
+		cmdq_push(CMD_WIZ_ADVANCE);
+	} else if (streq(action, "learn")) {
+		/* Know every object kind up to level value */
+		cmdq_push(CMD_WIZ_LEARN_OBJECT_KINDS);
+		cmd_set_arg_number(cmdq_peek(), "level", (int)value);
+	} else if (streq(action, "gold")) {
+		player->au = value;
+		player->noscore |= NOSCORE_DEBUG;
+		player->upkeep->redraw |= PR_GOLD;
+		handle_stuff(player);
+		snapshot_send(false);
+		return;
 	} else if (streq(action, "map")) {
 		cmdq_push(CMD_WIZ_MAGIC_MAP);
 	} else if (streq(action, "cure")) {
