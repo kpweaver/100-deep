@@ -324,3 +324,81 @@ kbd.pad .g-sep { font-size: 16px; color: var(--ink-dim); }
 .g-dpad { width: 22px; height: 22px; border: none; box-shadow: none; background:
   linear-gradient(#55555c, #55555c) center / 8px 100% no-repeat,
   linear-gradient(#55555c, #55555c) center / 100% 8px no-repeat; filter: drop-shadow(0 2px 0 #000); }
+
+/* ---------- Touch (phones and tablets) ---------- */
+/* The page never scrolls, zooms or selects text under a finger; lists and text still scroll */
+#app { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+#app input { -webkit-user-select: text; user-select: text; }
+.list-menu, .panel-text, .menu-detail, .panel-layer .pv-body, .suggestions, .hud-sidebar { touch-action: pan-y; }
+.map-wrap { touch-action: pan-x pan-y; }
+.minimap, .hud-top-left { pointer-events: auto; cursor: pointer; }
+
+.touch-ui, .touch-close { display: none; }
+.touch-mode .touch-ui { display: block; }
+.touch-mode .touch-ui.hidden { display: none; }
+.touch-mode .hud-hints { display: none; }
+
+.touch-ui { position: absolute; inset: 0; pointer-events: none;
+  --pad: max(10px, env(safe-area-inset-left)); --pad-r: max(10px, env(safe-area-inset-right)); --pad-b: max(10px, env(safe-area-inset-bottom)); --btn: 54px; }
+.touch-btn { pointer-events: auto; width: var(--btn); height: var(--btn); display: grid; place-items: center; padding: 0; border: 1px solid rgba(227,184,96,0.45); border-radius: 12px; background: rgba(14,12,10,0.62); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1; touch-action: none; box-shadow: 0 2px 0 #000; }
+.touch-btn.down { background: rgba(90,70,30,0.85); border-color: var(--gold); color: #fff3d6; transform: translateY(1px); box-shadow: none; }
+.touch-pad { position: absolute; left: var(--pad); bottom: var(--pad-b); display: grid; grid-template-columns: repeat(3, var(--btn)); gap: 6px; }
+.touch-pad .touch-btn { font-size: 32px; }
+.touch-actions { position: absolute; right: var(--pad-r); bottom: var(--pad-b); display: grid; gap: 6px;
+  grid-template-columns: repeat(5, var(--btn)); grid-template-rows: calc(1.5 * var(--btn)) var(--btn);
+  /* One row along the bottom edge, the most used nearest the thumb; the
+     contextual action floats above its right end only when there is one */
+  grid-template-areas: ". . . prim prim" "gear use s2 s1 s0"; }
+.touch-slot:nth-child(1) { grid-area: s0; } .touch-slot:nth-child(2) { grid-area: s1; } .touch-slot:nth-child(3) { grid-area: s2; }
+.touch-use { grid-area: use; } .touch-gear { grid-area: gear; }
+.touch-slot .touch-btn { font-size: 14px; }
+.touch-primary { grid-area: prim; justify-self: end; width: calc(1.5 * var(--btn)); height: calc(1.5 * var(--btn)); border-radius: 50%; border: 2px solid var(--gold); background: radial-gradient(circle at 40% 35%, rgba(90,70,30,0.8), rgba(20,16,10,0.8)); color: #fff3d6; font-size: 14px; padding: 4px; text-align: center; }
+/* Only there when there is something to do here (stairs, items, a shop, a door or foe ahead) */
+.touch-primary.idle { visibility: hidden; }
+.touch-top { position: absolute; top: max(8px, env(safe-area-inset-top)); right: var(--pad-r); display: flex; gap: 6px; }
+.touch-btn.small { --btn: 44px; width: 44px; height: 44px; font-size: 16px; }
+.touch-btn.glyph > span { font-size: 24px; }
+:fullscreen .touch-full { display: none; }
+
+/* Every menu gets a close button (no Esc or B on a phone); footer prompts are buttons */
+.touch-mode .touch-close { display: grid; place-items: center; position: absolute; z-index: 5; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); width: 44px; height: 44px; padding: 0; border: 1px solid var(--panel-edge); border-radius: 50%; background: var(--panel); color: var(--gold); font-family: var(--font); font-size: 32px; line-height: 1; pointer-events: auto; }
+.touch-close::before, .touch-close::after { content: ''; grid-area: 1 / 1; width: 20px; height: 2px; background: var(--gold); transform: rotate(45deg); }
+.touch-close::after { transform: rotate(-45deg); }
+.touch-mode .panel-footer { flex-wrap: wrap; gap: 8px; }
+.touch-mode .panel-footer > span, .touch-mode .aim-help > span { display: inline-flex; align-items: center; min-height: 40px; padding: 2px 10px; border: 1px solid #3a3020; border-radius: 8px; background: rgba(40,32,18,0.6); color: var(--ink); }
+.touch-mode .aim-help { flex-wrap: wrap; gap: 8px; }
+.touch-mode .menu-row { min-height: 44px; }
+.touch-mode .tab { padding: 8px 14px; }
+.touch-mode .wheel-keys kbd, .touch-mode .panel-footer kbd, .touch-mode .aim-help kbd { display: none; }
+
+/* Landscape phones in touch mode: a compact HUD that leaves room for the view and controls */
+@media (max-height: 520px) {
+  .touch-mode .hud-top-left { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); width: min(230px, 46vw); }
+  .touch-mode .hud-info .cs-grid, .touch-mode .hud-info .cs-equippy, .touch-mode .hud-info .cs-stats, .touch-mode .hud-info .cs-who { display: none; }
+  .touch-mode .hud-info { margin-top: 0; padding: 2px 6px; }
+  .touch-mode .hud-status { max-height: 44px; overflow: hidden; }
+  .touch-mode .bar { height: 18px; margin-bottom: 2px; }
+  .touch-mode .bar-text { line-height: 16px; }
+  .touch-mode .bar.xp { display: none; }
+  .touch-mode .hud-top-right { top: calc(max(8px, env(safe-area-inset-top)) + 52px); right: max(10px, env(safe-area-inset-right)); }
+  .touch-mode .minimap { width: 144px; }
+  .touch-mode .hud-sidebar { display: none; }
+  .touch-mode .hud-log { left: calc(min(230px, 46vw) + max(8px, env(safe-area-inset-left)) + 10px); right: calc(144px + max(10px, env(safe-area-inset-right)) + 10px); top: max(8px, env(safe-area-inset-top)); bottom: auto; width: auto; }
+  .touch-mode .log-line { white-space: normal; }
+  .touch-mode .hud-target { top: auto; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 64px); max-width: calc(100vw - 2 * 200px); }
+  .touch-mode .hud-banner { font-size: 32px; }
+  /* The weapon is held left of the action row, not behind it (translate leaves the swing transforms alone) */
+  .touch-mode .fp-weapon { translate: calc(-5 * 54px - 4 * 6px - 6px) 0; }
+  .touch-mode .panel-title { font-size: 16px; padding: 8px 56px 6px 12px; flex-wrap: wrap; }
+  .touch-mode .panel { max-height: 94vh; }
+  .touch-mode .panel.full { width: 100vw; height: 100vh; }
+  .touch-mode .wheel-ring { width: min(94vw, 94vh); }
+}
+/* Landscape only: a phone held upright is asked to turn sideways (turn-based, so nothing happens meanwhile) */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (max-width: 600px) {
+  .touch-mode .rotate-hint { display: flex; position: absolute; inset: 0; z-index: 20; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; background: radial-gradient(ellipse at center, #281408, #000 75%); color: var(--gold); text-align: center; font-size: 32px; touch-action: none; }
+  .touch-mode .rotate-hint small { color: var(--ink-dim); font-size: 16px; }
+  .rotate-hint .rotate-phone { width: 56px; height: 96px; border: 3px solid var(--gold); border-radius: 10px; animation: rotate-phone 2.4s ease-in-out infinite; }
+}
+@keyframes rotate-phone { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }

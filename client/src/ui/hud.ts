@@ -43,15 +43,19 @@ export class Hud {
   /** The first-person weapon in the right hand (under the HUD panels) */
   readonly weapon: WeaponView;
   private recent: { el: HTMLElement; at: number }[] = [];
+  /** Tapping or clicking the minimap opens the map; the vitals, the character sheet */
+  onMapTap: (() => void) | null = null;
+  onVitalsTap: (() => void) | null = null;
 
   constructor(private state: GameState, private atlas: () => TileAtlas | null) {
     this.minimap = new Minimap(state);
+    this.minimap.canvas.addEventListener('click', () => this.onMapTap?.());
     this.weapon = new WeaponView(atlas);
     this.el = h('div', { class: 'hud' },
       this.weapon.el,
       this.weapon.hand,
       this.vignette,
-      h('div', { class: 'hud-top-left' }, this.hp.el, this.sp.el, this.xp.el, this.info, this.statusEl),
+      h('div', { class: 'hud-top-left', onclick: () => this.onVitalsTap?.() }, this.hp.el, this.sp.el, this.xp.el, this.info, this.statusEl),
       h('div', { class: 'hud-top-right' }, this.minimap.canvas, this.sidebar),
       this.target,
       this.banner,

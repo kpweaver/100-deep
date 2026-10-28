@@ -156,7 +156,8 @@ export class TextInputLayer extends Layer {
   }
 
   onOpen(): void {
-    if (this.ctx.input.lastDevice === 'keyboard') setTimeout(() => this.input.focus(), 0);
+    // Selected, so typing replaces the suggested name instead of adding to it
+    if (this.ctx.input.keyboardLike) setTimeout(() => { this.input.focus(); this.input.select(); }, 0);
     // With a controller and nothing to pick from, type on the on-screen keyboard
     else if (!this.menu) this.showOsk(true);
   }

@@ -39,12 +39,12 @@ export type UiAction =
   | 'pageUp' | 'pageDown' | 'tabNext' | 'tabPrev'
   | 'menu';
 
-export type Device = 'keyboard' | 'gamepad';
+export type Device = 'keyboard' | 'gamepad' | 'touch';
 
 export interface InputEvent {
   game?: GameAction;
   ui?: UiAction;
-  /** Raw key for text entry / letter shortcuts (keyboard only) */
+  /** Raw key for text entry / letter shortcuts (keyboard, or a tapped key prompt) */
   key?: string;
   device: Device;
   repeat: boolean;
@@ -60,8 +60,11 @@ export interface InputHandler {
 /** Extra prompt keys used by screen footers */
 export type PromptKey = GameAction | UiAction | 'tabs' | 'zoom' | 'dpad' | 'scroll' | 'page';
 
-/** Labels for button prompts, per device (gamepad labels are Xbox-style) */
-export const PROMPTS: Record<Device, Partial<Record<PromptKey, string>>> = {
+/**
+ * Labels for button prompts, per device (gamepad labels are Xbox-style).
+ * Touch shows the keyboard's labels: a tapped prompt presses that key.
+ */
+export const PROMPTS: Record<Exclude<Device, 'touch'>, Partial<Record<PromptKey, string>>> = {
   keyboard: {
     interact: 'Space', attack: 'Tab', fire: 'h', explore: 'x', wait: ',', rest: 'R',
     inventory: 'i', spells: 'm', map: 'M',
@@ -100,8 +103,8 @@ export function restyle(label: string, style: GlyphStyle): string {
 }
 
 export function promptsFor(device: Device, style: GlyphStyle): Partial<Record<PromptKey, string>> {
-  const base = PROMPTS[device];
-  if (device === 'keyboard' || style === 'xbox') return base;
+  const base = PROMPTS[device === 'touch' ? 'keyboard' : device];
+  if (device !== 'gamepad' || style === 'xbox') return base;
   const out: Partial<Record<PromptKey, string>> = {};
   for (const [k, label] of Object.entries(base)) out[k as PromptKey] = restyle(label, style);
   return out;

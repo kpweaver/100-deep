@@ -18,6 +18,7 @@ import { WorkerConnection, useWasmEngine } from './wasm/worker-connection.ts';
 import { openCommandMenu, openUseMenu } from './ui/command-menus.ts';
 import { combatWheel, gearWheel } from './ui/wheel.ts';
 import { installPadGlyphs } from './ui/glyphs.ts';
+import { TouchControls, installPromptTaps } from './ui/touch.ts';
 import { AimLayer, LookLayer, type TargetingHooks } from './ui/targeting.ts';
 import { HeadingFollower } from './camera/heading.ts';
 import { GameState, type StateChange } from './state/game-state.ts';
@@ -77,6 +78,7 @@ export class App implements InputHandler {
   readonly input = new InputManager();
   readonly ui: UiManager;
   readonly hud: Hud;
+  readonly touch: TouchControls;
   readonly sfx = new Sfx();
   private renderer: SceneRenderer | null = null;
   private atlas: TileAtlas | null = null;
@@ -111,7 +113,18 @@ export class App implements InputHandler {
     this.ui = new UiManager(uiRoot, this.input);
     this.hud = new Hud(this.state, () => this.atlas);
     this.hud.setVisible(false);
-    root.append(h('canvas', { class: 'view', id: 'view' }), this.hud.el, uiRoot, this.overlay);
+    const canvas = h('canvas', { class: 'view', id: 'view' });
+    // Landscape only on phones: held upright, a hint covers everything (CSS)
+    const rotateHint = h('div', { class: 'rotate-hint' }, h('div', { class: 'rotate-phone' }), 'Turn your phone sideways',
+      h('small', {}, '100 Deep plays in landscape'));
+    root.append(canvas, this.hud.el, uiRoot, this.overlay, rotateHint);
+    // Phones and tablets: on-screen controls over the HUD, hidden under menus
+    this.touch = new TouchControls(this.input, canvas);
+    this.hud.el.append(this.touch.el);
+    this.ui.onChange = () => this.touch.setVisible(!this.ui.top);
+    installPromptTaps(root, this.input);
+    this.hud.onMapTap = () => this.ui.top || this.handleInput({ game: 'map', device: this.input.lastDevice, repeat: false });
+    this.hud.onVitalsTap = () => this.ui.top || this.handleInput({ game: 'character', device: this.input.lastDevice, repeat: false });
 
     this.ctx = {
       state: this.state,
@@ -135,12 +148,16 @@ export class App implements InputHandler {
     this.input.push(this);
     const restyle = installPadGlyphs(document.body, () => (this.input.lastDevice === 'gamepad' ? this.input.style : null));
     this.input.onDeviceChange = () => {
+      root.classList.toggle('touch-mode', this.input.lastDevice === 'touch');
       this.updateHints();
       restyle();
     };
+    root.classList.toggle('touch-mode', this.input.lastDevice === 'touch');
     this.input.onGamepadConnected = (name) => this.state.note(`Controller connected: ${name}`);
     window.addEventListener('pointerdown', () => this.sfx.unlock());
     window.addEventListener('keydown', () => this.sfx.unlock(), { once: true });
+
+    this.installNativeHooks();
 
     this.conn.onMessage((m) => this.onMessage(m));
     this.conn.onStatus((s) => {
@@ -149,6 +166,26 @@ export class App implements InputHandler {
     });
     this.state.subscribe((c) => this.onChange(c));
     this.sfx.volume = this.settings.volume;
+  }
+
+  /**
+   * In the Android and iOS shells (mobile/, Capacitor): the back button
+   * backs out of a menu, opens the game menu in play and leaves the app at
+   * the title screen, and the game saves as the
+   * app goes to the background, where the system may close it at any time.
+   */
+  private installNativeHooks(): void {
+    type AppPlugin = { addListener(event: string, fn: () => void): void; exitApp(): void };
+    const app = (window as { Capacitor?: { Plugins?: { App?: AppPlugin } } }).Capacitor?.Plugins?.App;
+    if (!app) return;
+    app.addListener('backButton', () => {
+      if (this.ui.top && this.ui.top === this.title) app.exitApp();
+      else if (this.ui.top) this.input.press({ ui: 'back', game: 'cancel' });
+      else if (this.state.phase === 'game') this.input.press({ game: 'menu' });
+    });
+    app.addListener('pause', () => {
+      if (this.state.phase === 'game') this.send({ type: 'save' });
+    });
   }
 
   start(): void {
@@ -1018,8 +1055,11 @@ export class App implements InputHandler {
     else if (aheadShape === 'door_closed') primary = 'Open door';
     else if (aheadShape === 'door_open') primary = 'Close door';
     else if (aheadShape === 'rubble' || aheadShape === 'passable_rubble') primary = 'Clear rubble';
+    else if (a && s.map.traps.has(s.map.index(a.x, a.y))) primary = 'Disarm trap';
+    else if (aheadShape === 'shop') primary = 'Enter shop';
+    else if (aheadShape === 'stair_down' || aheadShape === 'stair_up') primary = 'Step onto stairs';
     // Keyboard players pick up with Angband's own key rather than Space
-    const pickup = primary?.startsWith('Pick up') && this.input.lastDevice === 'keyboard' ? pr['cmd:pickup'] : undefined;
+    const pickup = primary?.startsWith('Pick up') && this.input.keyboardLike ? pr['cmd:pickup'] : undefined;
     if (primary) hints.push({ button: pickup ?? pr.interact ?? 'A', label: primary });
     const pad = this.input.lastDevice === 'gamepad';
     if (s.monsters.some((m) => m.inView)) {
@@ -1037,6 +1077,7 @@ export class App implements InputHandler {
       hints.push({ button: pr.commands ?? 'Enter', label: 'Commands' });
     }
     this.hud.setHints(hints);
+    this.touch.update({ primary, fight: s.monsters.some((m) => m.inView), ammo: this.hasAmmo(), exploring: this.exploring });
   }
 
   private applySettings(s: Partial<Settings>): void {

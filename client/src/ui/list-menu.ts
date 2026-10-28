@@ -29,6 +29,7 @@ export interface ListMenuOptions<T> {
 }
 
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
+const LONG_PRESS_MS = 500;
 
 export class ListMenu<T = unknown> {
   readonly el: HTMLElement;
@@ -60,16 +61,35 @@ export class ListMenu<T = unknown> {
       this.opts.onFocus?.(undefined, -1);
       return;
     }
+    let pressTimer: ReturnType<typeof setTimeout> | undefined;
+    let longPressed = false;
     this.rows = items.map((item, i) => {
       const icon = item.tile && atlas ? h('span', { class: 'tile-icon', style: atlas.css(item.tile, 32) }) : null;
       const row = h('div', {
         class: `menu-row${item.disabled ? ' disabled' : ''}`,
         role: 'option',
         onclick: () => {
+          if (longPressed) return;
           this.index = i;
           this.highlight();
           if (!item.disabled) this.opts.onSelect(item, i);
         },
+        // A long press is the secondary action (examine…), for touch
+        onpointerdown: () => {
+          longPressed = false;
+          clearTimeout(pressTimer);
+          if (!this.opts.onSecondary) return;
+          pressTimer = setTimeout(() => {
+            longPressed = true;
+            this.index = i;
+            this.highlight();
+            this.opts.onSecondary?.(item, i);
+          }, LONG_PRESS_MS);
+        },
+        onpointerup: () => clearTimeout(pressTimer),
+        onpointercancel: () => clearTimeout(pressTimer),
+        onpointerleave: () => clearTimeout(pressTimer),
+        oncontextmenu: (e: Event) => { if (this.opts.onSecondary) e.preventDefault(); },
         // Only real pointer movement: a menu appearing under a resting
         // cursor must not steal the selection (Enter would pick that row)
         onmousemove: (e: Event) => {

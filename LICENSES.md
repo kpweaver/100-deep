@@ -62,6 +62,9 @@ pixels are used). They are distributed under the same licence as the code.
   tileset for Angband 4.2. The pref mapping was converted by Mogami from
   AngbandTK's dg32-assign, with additional work by Ivan Jekic. See the header
   of `graf-dvg.prf`.
+- The favicon (`client/public/favicon.png`) and the app icons made from it
+  (`client/public/icons/`, scaled up pixel for pixel on black) are one of
+  these tiles, under the same CC BY 3.0 terms.
 - The client shows this attribution on the title screen. The tiles are
   loaded from the upstream checkout at runtime; this repository does not copy
   or alter them.

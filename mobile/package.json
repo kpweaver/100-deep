@@ -1,0 +1,24 @@
+{
+  "name": "100-deep-mobile",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Android and iOS shells for 100 Deep (Capacitor around the browser build)",
+  "license": "GPL-2.0-only",
+  "type": "module",
+  "scripts": {
+    "web": "npm --prefix .. run build:web",
+    "sync": "cap sync",
+    "android": "npm run web && cap sync android && cap open android",
+    "ios": "npm run web && cap sync ios && cap open ios",
+    "apk": "npm run web && cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.3"
+  }
+}

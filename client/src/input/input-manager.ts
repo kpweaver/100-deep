@@ -1,9 +1,11 @@
 /**
  * Keyboard + Gamepad API input, mapped to semantic actions and routed to
- * the topmost handler (UI layers first, then the game view).
+ * the topmost handler (UI layers first, then the game view).  Touch input
+ * comes from on-screen controls (ui/touch.ts), which press actions or keys
+ * through press() and pressKey().
  */
 import { glyphStyleFromId, promptsFor, type Device, type GameAction, type GlyphStyle, type InputEvent, type InputHandler, type PromptKey, type UiAction } from './actions.ts';
-import { BINDABLE, BTN, defaultBindings, keyIdFromEvent, keyLabel, keysFor, padLabel, padTable, type Bindings, type KeyId, type PadBind } from './bindings.ts';
+import { BINDABLE, BTN, defaultBindings, keyIdFromEvent, keyIdFromLabel, keyLabel, keysFor, padLabel, padTable, type Bindings, type KeyId, type PadBind } from './bindings.ts';
 
 interface KeyBinding { game?: GameAction; ui?: UiAction }
 
@@ -33,16 +35,16 @@ const PAD_UI: Record<number, UiAction> = {
 const PAD_FIXED_GAME: Record<number, GameAction> = { [BTN.B]: 'cancel', [BTN.START]: 'menu' };
 
 /** A button with a hold action fires its tap action on release, if released this soon */
-const HOLD_TIME = 0.45;
+export const HOLD_TIME = 0.45;
 /** Holding forward (stick or d-pad) this long starts a run */
-const RUN_HOLD_TIME = 0.5;
+export const RUN_HOLD_TIME = 0.5;
 
 /** What a rebinding screen receives while capturing */
 export type RawInput = { kind: 'key'; id: KeyId } | { kind: 'pad'; bind: PadBind };
 
 const DEADZONE = 0.45;
-const REPEAT_DELAY = 0.35;
-const REPEAT_RATE = 0.12;
+export const REPEAT_DELAY = 0.35;
+export const REPEAT_RATE = 0.12;
 /** Actions that keep firing while held */
 const REPEATABLE = new Set<string>([
   'moveForward', 'moveBack', 'strafeLeft', 'strafeRight', 'turnLeft', 'turnRight',
@@ -60,7 +62,8 @@ export class InputManager {
   private pad = padTable(this.bindings);
   /** While set, raw keys and buttons go here instead of the game (rebinding) */
   capture: ((raw: RawInput) => void) | null = null;
-  lastDevice: Device = 'keyboard';
+  /** Phones and tablets start in touch mode; ?touch forces it (testing) */
+  lastDevice: Device = new URLSearchParams(location.search).has('touch') || matchMedia('(pointer: coarse) and (hover: none)').matches ? 'touch' : 'keyboard';
   /** Detected controller family, for button prompts */
   padStyle: GlyphStyle = 'xbox';
   /** User override from Options ('auto' = detect) */
@@ -74,9 +77,18 @@ export class InputManager {
     window.addEventListener('keydown', (e) => this.onKey(e));
     window.addEventListener('keyup', (e) => this.keyHeld.delete(e.code));
     window.addEventListener('blur', () => this.keyHeld.clear());
+    // A finger anywhere switches to touch; a mouse leaves the device alone
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') this.setDevice('touch');
+    }, { capture: true });
     window.addEventListener('gamepadconnected', (e) => {
       this.onGamepadConnected?.((e as GamepadEvent).gamepad.id);
     });
+  }
+
+  /** Keyboard and touch share key labels and keyboard-style flows (no held buttons) */
+  get keyboardLike(): boolean {
+    return this.lastDevice !== 'gamepad';
   }
 
   get style(): GlyphStyle {
@@ -140,6 +152,26 @@ export class InputManager {
       // Only the top layer gets input unless it is transparent (returns false)
       break;
     }
+  }
+
+  /** An action from the on-screen controls (or a clicked prompt, as 'keyboard') */
+  press(ev: Omit<InputEvent, 'device' | 'repeat'>, repeat = false, device: Device = 'touch'): void {
+    this.setDevice(device);
+    if (!this.capture) this.dispatch({ ...ev, device, repeat });
+  }
+
+  /** A key pressed from the screen (a tapped prompt), as the keyboard would */
+  pressKey(id: KeyId, device: Device = 'touch'): void {
+    const key = id === 'Space' ? ' ' : id.startsWith('Numpad') ? id.slice(6) : id.replace(/^Shift\+/, '');
+    this.press({ game: this.bindings.keys[id], ui: UI_KEYS[id], key }, false, device);
+  }
+
+  /** Press the key a prompt label names; false if it names no single key */
+  pressLabel(label: string, device: Device = 'touch'): boolean {
+    const id = keyIdFromLabel(label);
+    if (!id) return false;
+    this.pressKey(id, device);
+    return true;
   }
 
   private onKey(e: KeyboardEvent): void {

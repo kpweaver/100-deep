@@ -38,7 +38,7 @@ export class ControlsLayer extends Layer {
 
   constructor(private ctx: UiContext) {
     super('controls-layer');
-    this.tab = ctx.input.lastDevice;
+    this.tab = ctx.input.lastDevice === 'gamepad' ? 'gamepad' : 'keyboard';
     this.b = structuredClone(ctx.input.getBindings());
     this.menu = new ListMenu<Row>({
       items: [],

@@ -52,6 +52,10 @@ if(EMSCRIPTEN)
 		"SHELL:--exclude-file *.png"
 		"SHELL:--preload-file ${LIB}/tiles/gervais@/lib/tiles/gervais"
 	)
+	# Relink (repacking angband.data) when a data file changes, not only the code
+	file(GLOB_RECURSE WEB_DATA CONFIGURE_DEPENDS
+		${LIB}/gamedata/* ${LIB}/customize/* ${LIB}/help/* ${LIB}/screens/* ${LIB}/tiles/list.txt)
+	set_property(TARGET angband-web APPEND PROPERTY LINK_DEPENDS ${WEB_DATA})
 	# Asyncify lets the blocking "wait for the next client message" in
 	# proto.c suspend into the browser event loop, so the engine runs
 	# unmodified in a worker on any static host (no SharedArrayBuffer).

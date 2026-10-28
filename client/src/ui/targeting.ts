@@ -190,13 +190,14 @@ export class LookLayer extends CursorLayer {
 
   protected renderHelp() {
     const pr = this.ctx.input.prompts();
-    const kb = this.ctx.input.lastDevice === 'keyboard';
+    const kb = this.ctx.input.keyboardLike;
     const m = this.visibleMonsterHere();
     this.help.replaceChildren(
       ...(m ? [this.kbd(pr.confirm, 'Enter', 'Recall')] : []),
       ...(this.ctx.state.map.isKnown(this.x, this.y) ? [this.kbd(kb ? 'g' : pr.tertiary, 'Y', 'Travel here')] : []),
       this.kbd(kb ? 'Space/-' : pr.tabs, 'LB/RB', this.spots.length ? `Next (${this.index + 1 || '–'}/${this.spots.length})` : 'Next'),
-      this.kbd(kb ? '↑↓←→' : pr.dpad, 'D-pad', 'Move cursor'),
+      // No cursor keys on a touch screen
+      ...(this.ctx.input.lastDevice === 'touch' ? [] : [this.kbd(kb ? '↑↓←→' : pr.dpad, 'D-pad', 'Move cursor')]),
       this.kbd(pr.back, 'Esc', 'Close'));
   }
 
@@ -241,13 +242,14 @@ export class AimLayer extends CursorLayer {
 
   protected renderHelp() {
     const pr = this.ctx.input.prompts();
-    const kb = this.ctx.input.lastDevice === 'keyboard';
+    const kb = this.ctx.input.keyboardLike;
     const s = this.ctx.state;
     this.help.replaceChildren(
       this.kbd(kb ? 't' : pr.confirm, 'A', this.launcher() ? `Fire ${s.quiver[0].name}` : 'Throw'),
       this.kbd(kb ? 'Shift+Enter' : pr.secondary, 'X', 'Set target'),
       this.kbd(kb ? 'Space/-' : pr.tabs, 'LB/RB', 'Next target'),
-      this.kbd(kb ? '↑↓←→' : pr.dpad, 'D-pad', 'Move cursor'),
+      // No cursor keys on a touch screen
+      ...(this.ctx.input.lastDevice === 'touch' ? [] : [this.kbd(kb ? '↑↓←→' : pr.dpad, 'D-pad', 'Move cursor')]),
       this.kbd(pr.back, 'Esc', 'Cancel'));
   }
 

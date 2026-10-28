@@ -72,6 +72,9 @@ These systems all exist in the engine. Only the UI to reach them is missing.
   and the on-screen keyboard were driven through the Gamepad API with a
   simulated standard-mapping pad, but not with real hardware. Steam Deck is
   untested.
+- **Phones and tablets**: the touch controls and landscape HUD were tested
+  only in a desktop browser emulating phone screens. See [mobile.md](mobile.md).
+
 ## Recommended next steps
 
 1. Knowledge menus, via the same virtual-terminal capture used for the

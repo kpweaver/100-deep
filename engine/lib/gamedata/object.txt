@@ -302,8 +302,8 @@ power:0
 msg:That tastes good.
 effect:NOURISH:INC_BY
 dice:30
-desc:This nutritious but fairly bland food, called cram by the Lake-men who
-desc: make it is familiar to anyone contemplating long journeys.  It is
+desc:This nutritious but fairly bland food is familiar to anyone
+desc: contemplating long journeys.  It is
 desc: sustaining, but very uninteresting except as a chewing exercise.
 
 name:& Scrap~ of Flesh

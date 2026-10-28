@@ -6,6 +6,7 @@
  */
 import type { CommandMessage } from '@thang/protocol';
 import type { UiContext } from './context.ts';
+import type { Layer } from './layer.ts';
 import type { MenuItem } from './list-menu.ts';
 import { MenuLayer } from './menu-layer.ts';
 
@@ -25,7 +26,8 @@ function cmd(ctx: UiContext, c: Omit<CommandMessage, 'type'>): Run {
   return () => ctx.send({ type: 'command', ...c } as CommandMessage);
 }
 
-function open(ctx: UiContext, title: string, items: MenuItem<Run>[], subtitle?: string) {
+/** A list of commands; picking one closes it (and the list it came from) before running it */
+function open(ctx: UiContext, title: string, items: MenuItem<Run>[], subtitle?: string, parent?: Layer) {
   const layer: MenuLayer<Run> = new MenuLayer(ctx, {
     title,
     subtitle,
@@ -33,6 +35,7 @@ function open(ctx: UiContext, title: string, items: MenuItem<Run>[], subtitle?: 
     letters: true,
     onSelect: (i) => {
       layer.close();
+      parent?.close();
       i.data();
     },
   });
@@ -142,7 +145,7 @@ export function openCommandMenu(ctx: UiContext, x: CommandMenuExtras): void {
   const layer: MenuLayer<Run> = new MenuLayer(ctx, {
     title: 'All commands',
     items: categories.map(([label, detail, items]) => ({
-      label, detail, data: () => open(ctx, label, items),
+      label, detail, data: () => open(ctx, label, items, undefined, layer),
     })),
     letters: true,
     onSelect: (i) => i.data(),

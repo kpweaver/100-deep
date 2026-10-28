@@ -57,7 +57,9 @@ client uses.
    - *Click to launch in fullscreen* is optional. The game captures the
      keyboard, so launching on click keeps itch's page scrollable.
    - Leave *SharedArrayBuffer support* off: it isn't needed.
-   - *Mobile friendly:* off (needs a keyboard or controller).
+   - *Mobile friendly:* off until the touch controls have passed the
+     real-device checklist in [mobile.md](mobile.md); then on, with
+     *Orientation: Landscape*.
 3. Description: credit **Angband** (GPLv2), **David Gervais' tiles**
    (CC BY 3.0) and link the source repository, https://github.com/kpweaver/100-deep (GPLv2
    requires it; see LICENSES.md, which is also in the zip under `licenses/`).

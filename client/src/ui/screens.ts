@@ -27,6 +27,7 @@ const fmtWeight = (w: number) => `${Math.floor(w / 10)}.${w % 10} lb`;
 /* ------------------------------------------------------------------ */
 
 export class TitleLayer extends Layer {
+  protected closable = false;
   private menu: ListMenu<string>;
   private status = h('div', { class: 'title-status' });
 
@@ -268,14 +269,20 @@ export class InventoryLayer extends Layer {
       at && it.tile ? h('div', { class: 'big-icon', style: at.css(it.tile, 64) }) : null,
       h('div', { class: 'detail-name' }, it.name),
       h('div', {}, `${it.tval} · ${fmtWeight(it.weight * it.number)}`),
-      h('div', { class: 'detail-actions' }, it.actions.map((a) => ACTION_LABELS[a]).join(' · ')),
+      h('div', { class: 'detail-actions' }, this.actionsFor(it).map((a) => a === 'pickup' ? 'Pick up' : ACTION_LABELS[a]).join(' · ')),
     );
   }
 
+  /** What can be done with an item; one on the floor is picked up, not dropped */
+  private actionsFor(it: ItemInfo): (ItemAction | 'pickup')[] {
+    return this.tab === 'floor' ? ['pickup', ...it.actions.filter((a) => a !== 'drop')] : it.actions;
+  }
+
   private itemMenu(it: ItemInfo) {
-    const items: MenuItem<ItemAction | 'examine'>[] = it.actions.map((a) => ({ label: ACTION_LABELS[a], data: a }));
+    const items: MenuItem<ItemAction | 'pickup' | 'examine'>[] = this.actionsFor(it)
+      .map((a) => ({ label: a === 'pickup' ? 'Pick up' : ACTION_LABELS[a], data: a }));
     items.push({ label: 'Examine', data: 'examine' });
-    const layer: MenuLayer<ItemAction | 'examine'> = new MenuLayer(this.ctx, {
+    const layer: MenuLayer<ItemAction | 'pickup' | 'examine'> = new MenuLayer(this.ctx, {
       title: it.name,
       items,
       className: 'small',
@@ -287,8 +294,13 @@ export class InventoryLayer extends Layer {
     this.ctx.ui.open(layer);
   }
 
-  private doAction(it: ItemInfo, action: ItemAction | 'examine') {
+  private doAction(it: ItemInfo, action: ItemAction | 'pickup' | 'examine') {
     const ctx = this.ctx;
+    if (action === 'pickup') {
+      ctx.send({ type: 'command', action: 'pickup', item: it.handle });
+      this.close();
+      return;
+    }
     if (action === 'examine') {
       ctx.send({ type: 'query', what: 'item', item: it.handle });
       return;
@@ -355,14 +367,17 @@ export class MapLayer extends Layer {
       this.travel();
     });
     const p = ctx.input.prompts();
+    // On touch, tapping the map travels, and zoom gets a button each way
+    const touch = ctx.input.lastDevice === 'touch';
     this.el.append(h('div', { class: 'panel full' },
-      h('div', { class: 'panel-title' }, 'Map', h('small', {}, 'Your knowledge of this level')),
+      h('div', { class: 'panel-title' }, 'Map', h('small', {}, touch ? 'Tap a place to travel there' : 'Your knowledge of this level')),
       this.wrap,
       this.info,
       h('div', { class: 'panel-footer' },
-        h('span', {}, h('kbd', {}, p.dpad ?? 'Arrows'), 'Move cursor'),
-        h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Travel here'),
-        h('span', {}, h('kbd', {}, p.zoom ?? '+/-'), 'Zoom'),
+        touch ? null : h('span', {}, h('kbd', {}, p.dpad ?? 'Arrows'), 'Move cursor'),
+        touch ? null : h('span', {}, h('kbd', {}, p.confirm ?? 'Enter'), 'Travel here'),
+        touch ? h('span', {}, h('kbd', {}, '+'), 'Zoom in') : h('span', {}, h('kbd', {}, p.zoom ?? '+/-'), 'Zoom'),
+        touch ? h('span', {}, h('kbd', {}, '-'), 'Zoom out') : null,
         h('span', {}, h('kbd', {}, p.back ?? 'Esc'), 'Close'))));
   }
 
@@ -703,6 +718,7 @@ export class StoreLayer extends Layer {
 /* ------------------------------------------------------------------ */
 
 export class DeathLayer extends Layer {
+  protected closable = false;
   private menu: ListMenu<string>;
 
   constructor(private ctx: UiContext, private onNewGame: () => void) {

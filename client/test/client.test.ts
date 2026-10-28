@@ -13,7 +13,7 @@ import { firstStepToward } from '../src/state/pathing.ts';
 import { GridCamera } from '../src/camera/grid-camera.ts';
 import { HeadingFollower } from '../src/camera/heading.ts';
 import { glyphStyleFromId, promptsFor } from '../src/input/actions.ts';
-import { bindKey, bindPad, defaultBindings, keyLabel, keysFor, loadBindings, padLabel, padTable } from '../src/input/bindings.ts';
+import { bindKey, bindPad, defaultBindings, keyIdFromLabel, keyLabel, keysFor, loadBindings, padLabel, padTable } from '../src/input/bindings.ts';
 import { TileAtlas } from '../src/sprites/atlas.ts';
 import { sliceAt } from '../src/ui/wheel.ts';
 import { parseLabel } from '../src/ui/glyphs.ts';
@@ -404,5 +404,35 @@ describe('controller glyphs', () => {
     expect(parseLabel('Enter', 'xbox')).toBeNull();
     expect(parseLabel('Shift+Enter', 'xbox')).toBeNull();
     expect(parseLabel('Hold', 'xbox')).toBeNull();
+  });
+});
+
+describe('touch: tapped key prompts', () => {
+  it('turns prompt labels back into keys', () => {
+    expect(keyIdFromLabel('Esc')).toBe('Escape');
+    expect(keyIdFromLabel('Esc / B')).toBe('Escape');
+    expect(keyIdFromLabel('Shift+Enter')).toBe('Shift+Enter');
+    expect(keyIdFromLabel('Space/-')).toBe('Space');
+    expect(keyIdFromLabel('+')).toBe('+');
+    expect(keyIdFromLabel('/')).toBe('/');
+    expect(keyIdFromLabel('↑')).toBe('ArrowUp');
+    expect(keyIdFromLabel('Shift+↑')).toBe('Shift+ArrowUp');
+    expect(keyIdFromLabel('Num 5')).toBe('Numpad5');
+  });
+
+  it('round-trips every default key label', () => {
+    for (const id of Object.keys(defaultBindings().keys)) {
+      if (id.startsWith('NumpadEnter')) continue;
+      expect(keyIdFromLabel(keyLabel(id))).toBe(id);
+    }
+  });
+
+  it('refuses labels that name several keys or none', () => {
+    expect(keyIdFromLabel('↑↓←→')).toBeNull();
+    expect(keyIdFromLabel('Arrows')).toBeNull();
+  });
+
+  it('shows keyboard labels on touch', () => {
+    expect(promptsFor('touch', 'xbox').back).toBe('Esc');
   });
 });

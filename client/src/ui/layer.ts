@@ -10,6 +10,8 @@ import { h } from './dom.ts';
 export abstract class Layer implements InputHandler {
   readonly el: HTMLElement;
   private manager: UiManager | null = null;
+  /** Whether touch players get a close button (no Esc or B to press) */
+  protected closable = true;
 
   constructor(className: string) {
     this.el = h('div', { class: `layer ${className}` });
@@ -29,6 +31,10 @@ export abstract class Layer implements InputHandler {
     this.manager = m;
   }
 
+  get hasCloseButton(): boolean {
+    return this.closable;
+  }
+
   close(): void {
     this.manager?.close(this);
   }
@@ -36,6 +42,8 @@ export abstract class Layer implements InputHandler {
 
 export class UiManager {
   private layers: Layer[] = [];
+  /** Called after a layer opens or closes */
+  onChange: (() => void) | null = null;
 
   constructor(private root: HTMLElement, private input: InputManager) {}
 
@@ -44,9 +52,17 @@ export class UiManager {
     this.top?.el.classList.add('covered');
     this.layers.push(layer);
     layer.attach(this);
+    // Shown only in touch mode (CSS): backs out as B or Esc would
+    if (layer.hasCloseButton && !layer.el.querySelector(':scope > .touch-close')) {
+      layer.el.append(h('button', {
+        class: 'touch-close', type: 'button', 'aria-label': 'Close',
+        onclick: () => { if (this.top === layer) this.input.press({ ui: 'back', game: 'cancel' }); },
+      }));
+    }
     this.root.append(layer.el);
     this.input.push(layer);
     layer.onOpen();
+    this.onChange?.();
   }
 
   close(layer: Layer): void {
@@ -59,6 +75,7 @@ export class UiManager {
     layer.attach(null);
     this.top?.el.classList.remove('covered');
     layer.onClose();
+    this.onChange?.();
   }
 
   closeAll(predicate: (l: Layer) => boolean = () => true): void {

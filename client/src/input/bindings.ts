@@ -203,6 +203,25 @@ export function keyLabel(id: KeyId): string {
     .replace(/Arrow(Up|Down|Left|Right)|Escape|NumpadEnter/g, (t) => KEY_NAMES[t] ?? t);
 }
 
+const LABEL_KEYS: Record<string, string> = Object.fromEntries(Object.entries(KEY_NAMES).filter(([k]) => k !== 'NumpadEnter').map(([k, v]) => [v, k]));
+
+/**
+ * The key a prompt label names ('Esc', 'Shift+Enter', 'Esc / B', 'Space/-'),
+ * or null for labels naming several keys or none ('↑↓←→', 'Arrows').  The
+ * first alternative wins.  Touch uses it to press a tapped prompt's key.
+ */
+export function keyIdFromLabel(label: string): KeyId | null {
+  let l = label.trim().split(' / ')[0];
+  // 'Space/-', '+/-': the first of two keys (but '/' alone is a key)
+  if (l.length > 1 && l.includes('/')) l = l.split('/')[0];
+  const num = /^Num (\d)$/.exec(l);
+  if (num) return `Numpad${num[1]}`;
+  const id = l.replace(/[↑↓←→]|Esc/g, (t) => LABEL_KEYS[t] ?? t);
+  // Several arrows ('↑↓←→') or a word that is no key
+  if (/(Arrow\w+){2}/.test(id) || l === 'Arrows' || l === '') return null;
+  return id;
+}
+
 export function padLabel(b: PadBind, style: GlyphStyle): string {
   const name = restyle(BUTTON_NAMES[b.button] ?? `Button ${b.button}`, style);
   return b.hold ? `Hold ${name}` : name;

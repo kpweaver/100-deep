@@ -58,6 +58,9 @@ On Linux, `sh scripts/launch.sh` does the same as the double-click launcher.
   multi-player server: see [docs/hosting.md](docs/hosting.md).
 - `desktop/` is an Electron shell for a downloadable build (groundwork
   for Steam): see [docs/desktop-and-steam.md](docs/desktop-and-steam.md).
+- Phones and tablets (landscape): touch controls, an installable web app,
+  and Android/iOS shells in `mobile/` (groundwork): see
+  [docs/mobile.md](docs/mobile.md).
 
 ### Development
 
@@ -211,6 +214,7 @@ shared/protocol/      Protocol v1 TypeScript types (source of truth for the clie
 bridge/               Node WebSocket bridge and engine process wrapper
 client/               Vite + Three.js client (renderer, camera, sprites, input, ui, protocol)
 client/src/wasm/      Browser-only engine: worker, Emscripten host, transport
+mobile/               Android and iOS shells (Capacitor) around the browser build
 tests/engine/         Native engine integration tests
 scripts/              build-engine.sh, build-web.ts, dev.ts
 docs/                 Architecture, protocol, limitations

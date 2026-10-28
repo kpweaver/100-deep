@@ -374,3 +374,4 @@ Thalion => the Steadfast
 Turambar => Master of Doom
 "Aurë entuluva!" - "Day shall come again!" => "Day shall come again!"
 Battle of Unnumbered Tears => Battle of Bitter Tears
+called cram by the Lake-men who make it (Ration of Food) => (dropped)
