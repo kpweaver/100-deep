@@ -619,9 +619,15 @@ export class App implements InputHandler {
     if (this.state.phase !== 'game' || !this.renderer) return false;
     const g = ev.game;
     if (!g) return false;
-    if (this.exploring && g !== 'explore') {
+    if (this.exploring) {
+      // Any other input interrupts auto-explore; Explore again (the touch
+      // Stop button) just stops it, and the queued next step with it
       this.exploring = false;
-      if (g === 'cancel') return true;
+      if (this.queued?.action === 'explore') this.queued = null;
+      if (g === 'cancel' || g === 'explore') {
+        this.updateHints();
+        return true;
+      }
     }
     const cam = this.renderer.cam;
     switch (g) {

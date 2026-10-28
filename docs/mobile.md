@@ -54,9 +54,11 @@ controller buttons, so game code never knows a finger did it.
   a large contextual button appears only when there is something to do
   there, labelled with the action (Descend, Attack, Open, Pick up). Hold it
   for the context menu.
-  - In a fight, the three situational buttons are Melee, Fire (Throw without
+  - In a fight, the three situational buttons are Advance (step toward the
+    nearest monster, or strike it when adjacent), Fire (Throw without
     ammunition) and Aim.
-  - When it is quiet, they are Explore (hold: travel to the stairs), Rest
+  - When it is quiet, they are Explore (Stop while exploring; hold: travel
+    to the stairs), Rest
     (hold: wait a turn) and Look, or Study while a new spell can be learned.
   - Casters get **Cast**, which opens the spell list in one tap.
   - **Use** opens the combat wheel; **Gear** opens the gear wheel. Both stay

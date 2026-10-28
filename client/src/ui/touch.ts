@@ -6,7 +6,7 @@
  *  - Left: a dungeon-crawler movement pad (turn / step / turn over
  *    strafe / back / strafe).  Held buttons repeat; holding forward runs.
  *  - Right: the contextual action (Descend, Attack, Open…; hold for every
- *    action here), with Melee, Fire and Aim in a fight, or Explore, Rest
+ *    action here), with Advance (melee the nearest), Fire and Aim in a fight, or Explore, Rest
  *    and Look when it is quiet, plus Cast (for casters) and the Use and
  *    Gear wheels.
  *  - Top: full screen (where the browser allows it), the map, the
@@ -25,7 +25,7 @@ import { h } from './dom.ts';
 export interface TouchContext {
   /** The contextual action's name (Descend, Attack, Open door…), if any */
   primary: string | null;
-  /** Monsters in view: Melee, Fire and Aim instead of Explore, Rest and Look */
+  /** Monsters in view: Advance, Fire and Aim instead of Explore, Rest and Look */
   fight: boolean;
   ammo: boolean;
   exploring: boolean;
@@ -96,7 +96,7 @@ export class TouchControls {
     this.primary.classList.toggle('idle', !c.primary);
     this.actions.classList.toggle('caster', c.cast);
     const specs: ButtonSpec[] = c.fight
-      ? [{ label: 'Melee', tap: 'attack' }, { label: c.ammo ? 'Fire' : 'Throw', tap: c.ammo ? 'fire' : 'cmd:throw' }, { label: 'Aim', tap: 'aim' }]
+      ? [{ label: 'Advance', tap: 'attack' }, { label: c.ammo ? 'Fire' : 'Throw', tap: c.ammo ? 'fire' : 'cmd:throw' }, { label: 'Aim', tap: 'aim' }]
       : [{ label: c.exploring ? 'Stop' : 'Explore', tap: 'explore', hold: 'travelDown' }, { label: 'Rest', tap: 'rest', hold: 'wait' }, c.study ? { label: 'Study', tap: 'study' } : { label: 'Look', tap: 'look' }];
     specs.forEach((s, i) => {
       const key = `${s.tap}|${s.label}`;
