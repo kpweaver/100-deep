@@ -340,7 +340,7 @@ kbd.pad .g-sep { font-size: 16px; color: var(--ink-dim); }
 
 .touch-ui { position: absolute; inset: 0; pointer-events: none;
   --pad: max(10px, env(safe-area-inset-left)); --pad-r: max(10px, env(safe-area-inset-right)); --pad-b: max(10px, env(safe-area-inset-bottom)); --btn: 54px; }
-.touch-btn { pointer-events: auto; width: var(--btn); height: var(--btn); display: grid; place-items: center; padding: 0; border: 1px solid rgba(227,184,96,0.45); border-radius: 12px; background: rgba(14,12,10,0.62); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1; touch-action: none; box-shadow: 0 2px 0 #000; }
+.touch-btn { pointer-events: auto; width: var(--btn); height: var(--btn); display: grid; place-items: center; padding: 0; border: 1px solid rgba(227,184,96,0.4); border-radius: 12px; background: rgba(14,12,10,0.32); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1; touch-action: none; box-shadow: 0 2px 0 rgba(0,0,0,0.5); text-shadow: 0 1px 2px #000, 0 0 3px #000; }
 .touch-btn.down { background: rgba(90,70,30,0.85); border-color: var(--gold); color: #fff3d6; transform: translateY(1px); box-shadow: none; }
 .touch-pad { position: absolute; left: var(--pad); bottom: var(--pad-b); display: grid; grid-template-columns: repeat(3, var(--btn)); gap: 6px; }
 .touch-pad .touch-btn { font-size: 32px; }
@@ -352,7 +352,7 @@ kbd.pad .g-sep { font-size: 16px; color: var(--ink-dim); }
 .touch-slot:nth-child(1) { grid-area: s0; } .touch-slot:nth-child(2) { grid-area: s1; } .touch-slot:nth-child(3) { grid-area: s2; }
 .touch-use { grid-area: use; } .touch-gear { grid-area: gear; }
 .touch-slot .touch-btn { font-size: 14px; }
-.touch-primary { grid-area: prim; justify-self: end; width: calc(1.5 * var(--btn)); height: calc(1.5 * var(--btn)); border-radius: 50%; border: 2px solid var(--gold); background: radial-gradient(circle at 40% 35%, rgba(90,70,30,0.8), rgba(20,16,10,0.8)); color: #fff3d6; font-size: 14px; padding: 4px; text-align: center; }
+.touch-primary { grid-area: prim; justify-self: end; width: calc(1.5 * var(--btn)); height: calc(1.5 * var(--btn)); border-radius: 50%; border: 2px solid var(--gold); background: radial-gradient(circle at 40% 35%, rgba(90,70,30,0.55), rgba(20,16,10,0.5)); color: #fff3d6; font-size: 14px; padding: 4px; text-align: center; }
 /* Only there when there is something to do here (stairs, items, a shop, a door or foe ahead) */
 .touch-primary.idle { visibility: hidden; }
 .touch-top { position: absolute; top: max(8px, env(safe-area-inset-top)); right: var(--pad-r); display: flex; gap: 6px; }
@@ -387,8 +387,6 @@ kbd.pad .g-sep { font-size: 16px; color: var(--ink-dim); }
   .touch-mode .log-line { white-space: normal; }
   .touch-mode .hud-target { top: auto; bottom: calc(max(10px, env(safe-area-inset-bottom)) + 64px); max-width: calc(100vw - 2 * 200px); }
   .touch-mode .hud-banner { font-size: 32px; }
-  /* The weapon is held left of the action row, not behind it (translate leaves the swing transforms alone) */
-  .touch-mode .fp-weapon { translate: calc(-5 * 54px - 4 * 6px - 6px) 0; }
   .touch-mode .panel-title { font-size: 16px; padding: 8px 56px 6px 12px; flex-wrap: wrap; }
   .touch-mode .panel { max-height: 94vh; }
   .touch-mode .panel.full { width: 100vw; height: 100vh; }
