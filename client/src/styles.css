@@ -351,6 +351,10 @@ kbd.pad .g-sep { font-size: 16px; color: var(--ink-dim); }
   grid-template-areas: ". . . prim prim" "gear use s2 s1 s0"; }
 .touch-slot:nth-child(1) { grid-area: s0; } .touch-slot:nth-child(2) { grid-area: s1; } .touch-slot:nth-child(3) { grid-area: s2; }
 .touch-use { grid-area: use; } .touch-gear { grid-area: gear; }
+/* Casters get Cast beside Use */
+.touch-cast { grid-area: cast; }
+.touch-actions:not(.caster) .touch-cast { display: none; }
+.touch-actions.caster { grid-template-columns: repeat(6, var(--btn)); grid-template-areas: ". . . . prim prim" "gear use cast s2 s1 s0"; }
 .touch-slot .touch-btn { font-size: 14px; }
 .touch-primary { grid-area: prim; justify-self: end; width: calc(1.5 * var(--btn)); height: calc(1.5 * var(--btn)); border-radius: 50%; border: 2px solid var(--gold); background: radial-gradient(circle at 40% 35%, rgba(90,70,30,0.55), rgba(20,16,10,0.5)); color: #fff3d6; font-size: 14px; padding: 4px; text-align: center; }
 /* Only there when there is something to do here (stairs, items, a shop, a door or foe ahead) */

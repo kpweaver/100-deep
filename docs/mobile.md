@@ -57,7 +57,8 @@ controller buttons, so game code never knows a finger did it.
   - In a fight, the three situational buttons are Melee, Fire (Throw without
     ammunition) and Aim.
   - When it is quiet, they are Explore (hold: travel to the stairs), Rest
-    (hold: wait a turn) and Look.
+    (hold: wait a turn) and Look, or Study while a new spell can be learned.
+  - Casters get **Cast**, which opens the spell list in one tap.
   - **Use** opens the combat wheel; **Gear** opens the gear wheel. Both stay
     open until a slice is tapped.
 - **Top right:** Full (full screen and landscape lock, where the browser

@@ -1077,7 +1077,7 @@ export class App implements InputHandler {
       hints.push({ button: pr.commands ?? 'Enter', label: 'Commands' });
     }
     this.hud.setHints(hints);
-    this.touch.update({ primary, fight: s.monsters.some((m) => m.inView), ammo: this.hasAmmo(), exploring: this.exploring });
+    this.touch.update({ primary, fight: s.monsters.some((m) => m.inView), ammo: this.hasAmmo(), exploring: this.exploring, cast: !!p.canCast, study: !!p.canStudy });
   }
 
   private applySettings(s: Partial<Settings>): void {

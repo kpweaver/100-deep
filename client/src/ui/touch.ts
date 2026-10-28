@@ -7,7 +7,8 @@
  *    strafe / back / strafe).  Held buttons repeat; holding forward runs.
  *  - Right: the contextual action (Descend, Attack, Open…; hold for every
  *    action here), with Melee, Fire and Aim in a fight, or Explore, Rest
- *    and Look when it is quiet, plus the Use and Gear wheels.
+ *    and Look when it is quiet, plus Cast (for casters) and the Use and
+ *    Gear wheels.
  *  - Top: full screen (where the browser allows it), the map, the
  *    command list and the menu.
  *  - Swiping across the view turns (sideways) or steps (up and down).
@@ -28,6 +29,10 @@ export interface TouchContext {
   fight: boolean;
   ammo: boolean;
   exploring: boolean;
+  /** The character can cast: a Cast button straight to the spell list */
+  cast: boolean;
+  /** A new spell can be learned: Study in place of Look */
+  study: boolean;
 }
 
 interface ButtonSpec {
@@ -49,6 +54,7 @@ export class TouchControls {
   readonly el: HTMLElement;
   private primary: HTMLElement;
   private slots: HTMLElement[] = [];
+  private actions: HTMLElement;
   private shown = true;
 
   constructor(private input: InputManager, view: HTMLElement) {
@@ -62,8 +68,9 @@ export class TouchControls {
     this.primary = this.button({ label: 'Act', tap: 'interact', hold: 'contextMenu', cls: 'touch-primary' });
     // Three slots that change with the situation, then the two wheels
     for (let i = 0; i < 3; i++) this.slots.push(h('div', { class: 'touch-slot' }));
-    const actions = h('div', { class: 'touch-actions' },
+    const actions = this.actions = h('div', { class: 'touch-actions' },
       ...this.slots,
+      this.button({ label: 'Cast', tap: 'spells', cls: 'touch-cast' }),
       this.button({ label: 'Use', tap: 'combatWheel', cls: 'touch-use' }),
       this.button({ label: 'Gear', tap: 'gearWheel', cls: 'touch-gear' }),
       this.primary);
@@ -74,7 +81,7 @@ export class TouchControls {
       this.button({ label: '≡', tap: 'menu', cls: 'small glyph' }));
     this.el = h('div', { class: 'touch-ui' }, pad, actions, top);
     this.installSwipe(view);
-    this.update({ primary: null, fight: false, ammo: false, exploring: false });
+    this.update({ primary: null, fight: false, ammo: false, exploring: false, cast: false, study: false });
   }
 
   setVisible(v: boolean): void {
@@ -87,9 +94,10 @@ export class TouchControls {
     const label = c.primary?.replace(/^(Attack|Pick up|Enter|Clear) .*/, '$1') ?? 'Act';
     this.primary.querySelector('span')!.textContent = label;
     this.primary.classList.toggle('idle', !c.primary);
+    this.actions.classList.toggle('caster', c.cast);
     const specs: ButtonSpec[] = c.fight
       ? [{ label: 'Melee', tap: 'attack' }, { label: c.ammo ? 'Fire' : 'Throw', tap: c.ammo ? 'fire' : 'cmd:throw' }, { label: 'Aim', tap: 'aim' }]
-      : [{ label: c.exploring ? 'Stop' : 'Explore', tap: 'explore', hold: 'travelDown' }, { label: 'Rest', tap: 'rest', hold: 'wait' }, { label: 'Look', tap: 'look' }];
+      : [{ label: c.exploring ? 'Stop' : 'Explore', tap: 'explore', hold: 'travelDown' }, { label: 'Rest', tap: 'rest', hold: 'wait' }, c.study ? { label: 'Study', tap: 'study' } : { label: 'Look', tap: 'look' }];
     specs.forEach((s, i) => {
       const key = `${s.tap}|${s.label}`;
       if (this.slots[i].dataset.key === key) return;
@@ -151,6 +159,9 @@ export class TouchControls {
       if (!spec.repeat && !held && inside) this.press(spec.tap);
     });
     el.addEventListener('pointercancel', stop);
+    // No click after the touch: it would land on whatever the press just
+    // opened there (≡ sits where the menu's close button appears)
+    el.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
     // No long-press menu or text selection on the buttons
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     return el;
