@@ -108,6 +108,7 @@ function birth(ctx: UiContext, hello: HelloMessage, onDone: () => void): void {
     title: 'Choose your race',
     items: races.map((r) => ({ label: r, data: r })),
     describe: (i) => (i ? raceHelp.get(i.data) ?? '' : ''),
+    steadyDetail: true,
     onSelect: (i) => {
       choice.race = i.data;
       ctx.ui.open(classLayer());
@@ -119,6 +120,7 @@ function birth(ctx: UiContext, hello: HelloMessage, onDone: () => void): void {
     subtitle: choice.race,
     items: classes.map((c) => ({ label: c, data: c })),
     describe: (i) => (i ? classHelp.get(i.data) ?? '' : ''),
+    steadyDetail: true,
     onSelect: (i) => {
       choice.class = i.data;
       ctx.ui.open(new TextInputLayer(ctx, 'Name your character', NAMES[Math.floor(Math.random() * NAMES.length)], 31,

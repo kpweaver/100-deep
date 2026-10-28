@@ -207,6 +207,10 @@ kbd { display: inline-block; min-width: 1.6em; text-align: center; margin-right:
 .menu-empty { padding: 16px; color: var(--ink-dim); }
 .menu-detail { width: 40%; border-left: 1px solid #2f2618; padding: 12px 16px; overflow: auto; }
 .menu-detail:empty { display: none; }
+/* Every description in one cell: the tallest sets the height */
+.menu-detail.steady { display: grid; }
+.menu-detail.steady > pre { grid-area: 1 / 1; visibility: hidden; }
+.menu-detail.steady > pre.shown { visibility: visible; }
 .detail-name { color: #fff3d0; font-size: 16px; margin: 6px 0; }
 .detail-actions { color: var(--ink-dim); margin-top: 8px; }
 .big-icon { image-rendering: pixelated; }

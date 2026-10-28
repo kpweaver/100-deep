@@ -14,6 +14,9 @@ export interface MenuLayerOptions<T> {
   onSecondary?: (item: MenuItem<T>, layer: MenuLayer<T>) => void;
   secondaryLabel?: string;
   describe?: (item: MenuItem<T> | undefined) => string | HTMLElement | null;
+  /** Lay out every item's description at once (only the focused one shows),
+   *  so the panel is sized for the longest and doesn't jump while browsing */
+  steadyDetail?: boolean;
   letters?: boolean;
   className?: string;
   emptyText?: string;
@@ -51,6 +54,15 @@ export class MenuLayer<T = unknown> extends Layer {
 
   private showDetail(item: MenuItem<T> | undefined) {
     if (!this.opts.describe) return;
+    if (this.opts.steadyDetail) {
+      if (!this.detail.childElementCount) {
+        this.detail.classList.add('steady');
+        for (const it of this.opts.items) this.detail.append(h('pre', {}, String(this.opts.describe(it) ?? '')));
+      }
+      const at = item ? this.opts.items.indexOf(item) : -1;
+      [...this.detail.children].forEach((c, i) => c.classList.toggle('shown', i === at));
+      return;
+    }
     clear(this.detail);
     const d = this.opts.describe(item);
     if (typeof d === 'string') this.detail.append(h('pre', {}, d));
