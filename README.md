@@ -89,8 +89,9 @@ Add `?debug` to the client URL to log protocol messages in the browser console.
 Turning only changes your view. Angband has no facing, so turning never
 costs a game turn.
 
-The keyboard uses Angband's own keys (the original keyset), with arrows
-to walk and turn in first person. A WASD preset is one switch away. The
+The keyboard uses Angband's own keys (the original keyset), key for key
+wherever the command exists, with arrows and the numpad to walk and turn in
+first person. A WASD preset is one switch away. The
 controller is laid out by how often you reach for things: the constant
 actions (melee, fire, explore, wait) each have a button, the spells, potions,
 scrolls and devices you use in a fight sit on a wheel under LT, your gear on
@@ -102,36 +103,39 @@ Controls), where hold-a-button bindings work too.
 | Action | Keyboard (Angband) | Controller |
 |---|---|---|
 | Step forward / back | ↑ / ↓ (WASD preset: W / S) | Left stick, D-pad ↑/↓ |
-| Step left / right | Shift+← / Shift+→ (A / D) | Left stick ←/→ |
-| Turn 45° | ← / → (Q / E) | Right stick, D-pad ←/→ |
-| Walk in a map direction | Numpad 1–9 | — |
-| Run | Shift+↑ | Hold forward |
+| Step forward / back (numpad) | Num 8 / Num 2 | — |
+| Step left / right | Shift+← / Shift+→, Num 4 / Num 6 (A / D) | Left stick ←/→ |
+| Step back and left / right | Num 1 / Num 3 | — |
+| Turn 45° | ← / →, Num 7 / Num 9 (Q / E) | Right stick, D-pad ←/→ |
+| Run | Shift+↑ or . | Hold forward |
 | Interact (stairs, doors, shops, rubble, attack ahead) | Space | A |
 | **Context menu**: everything you can do here or with what is ahead | — | Hold A |
-| **Melee**: strike an adjacent monster, else close in on the nearest | Tab | RT |
-| **Fire** at the nearest monster | h | RB |
+| **Advance**: strike an adjacent monster, else close in on the nearest | Shift+Tab | RT |
+| **Fire** at the nearest monster | h or Tab | RB |
 | **Aim / target**: then fire, throw, or just set the target | * (' targets closest) | LT |
 | **Combat wheel**: cast, quaff, read, throw, wands, staves, rods, activate | — (U opens the Use menu) | Hold LT |
 | **Gear wheel**: inventory, equipment, pick up, wear, eat, refuel, inscribe, drop | — | Hold LB |
-| Auto-explore / travel to the nearest down staircase | x / Select ▸ Move | X / hold X |
+| Auto-explore / travel to the nearest down staircase | p (also x) / Select ▸ Move | X / hold X |
 | Hold still / rest as needed | , or Num 5 / R | Y / hold Y |
 | Back / cancel | Esc | B |
 | **Command menu**: every command, by category | Enter | Select |
 | Inventory / equipment / quiver | i (I) / e / \| | LB / LB wheel |
 | **Look**: step through what you see, or move a free cursor over any grid | l | L3 |
-| Cast a spell / study | m (also b) / S | LT wheel / Select ▸ Combat |
+| Cast a spell / gain a spell | m (also b) / G | LT wheel / Select ▸ Combat |
 | Quaff, read, eat | q, r, E | LT wheel, LB wheel |
 | Aim a wand, use a staff, zap a rod, activate | a, u, z, A | LT wheel |
 | Fire a missile, throw, refuel | f, v, F | Select ▸ Combat, LT wheel, LB wheel |
-| Pick up | p (also g) | A, LB wheel |
+| Pick up / auto-pickup | g / Ctrl+G | A, LB wheel |
 | Wield, take off, drop | w, t, d | LB wheel, or LB ▸ item |
-| Inscribe / uninscribe / show ignored | { / } / K | LB wheel / Select ▸ Items |
-| Open, close, tunnel, disarm, alter, steal, walk into a trap | o, c, T, D, +, s, W | A, hold A, Select ▸ Doors & terrain |
+| Inscribe / uninscribe / ignore / show ignored | { / } / k (Ctrl+D) / K | LB wheel / Select ▸ Items |
+| Open, close, tunnel, disarm, alter, steal, walk into a trap | o, c, T, D, +, s, W (also -) | A, hold A, Select ▸ Doors & terrain |
 | Stairs up / down | < / > | A on stairs |
-| Level map (cursor, travel) | M | R3 |
+| Level map (cursor, travel) | M (also L) | R3 |
 | Character sheet | C | Select ▸ Look & knowledge |
 | Visible monsters / items / recall | [ / ] / / | Select ▸ Look & knowledge |
-| Message history, level feeling | Ctrl+P, Ctrl+F | Select ▸ Look & knowledge |
+| Show or hide the side panels | Ctrl+E (also \\) | Select ▸ Look & knowledge |
+| Message history, level feeling | Ctrl+P (also Ctrl+O), Ctrl+F | Select ▸ Look & knowledge |
+| Options | = | Start ▸ Options |
 | Save, save and quit (in the browser: save and return to the title) | Ctrl+S, Ctrl+X | Start |
 | Pause / system menu | Esc | Start |
 | Text prompts (inscriptions, names) | Keyboard | On-screen keyboard (A types, X deletes, Y shift, Start done) |
@@ -140,9 +144,19 @@ Controls), where hold-a-button bindings work too.
 In Look and Aim, Space/+/- (LB/RB) step through interesting things nearest
 first, arrows (d-pad, stick) move the cursor relative to your view and the
 numpad moves it in map directions. In Look, Enter (A) shows a monster's
-recall and g (Y) travels to the grid. In Aim, t or Enter (A) fires at the
-grid, monster or not, and Shift+Enter (X) just sets the target for a spell
-or wand.
+recall and g (Y) travels to the grid. In Aim, Enter (A) fires at the grid,
+monster or not, and t (also 5 or ., as in Angband; X on a controller) just
+sets the target for a spell or wand.
+
+With a mouse, as on Angband's map: left-click a spot in the view to travel
+there (a step when it is next to you, which attacks a monster there), and
+right-click a monster to target it, or anywhere else for the context menu.
+Clicking a place on the level map travels there too.
+
+Not carried over from Angband: `~` (knowledge menus), `n` (repeat),
+`Q` (retire), `S` (abilities), `;` (walk in a direction), `I` (opens the
+inventory, where every item can be examined, rather than a separate prompt)
+and `b` (opens the spell list, which casts as well as browses).
 
 Every implemented feature can be used without a mouse. Button prompts match
 your controller: Xbox, PlayStation (✕○□△) or Nintendo labels are detected

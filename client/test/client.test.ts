@@ -309,7 +309,7 @@ describe('bindings', () => {
     expect(b.keys.r).toBe('cmd:quaff');
     expect(b.keys.q).toBe('cmd:read');
     expect(keysFor(b, 'spells')).toEqual(['m', 'b']);
-    expect(keysFor(b, 'cmd:pickup')).toEqual(['p', 'g']);
+    expect(keysFor(b, 'cmd:pickup')).toEqual(['g']);
     bindKey(b, 'spells', 'Ctrl+k');
     expect(keysFor(b, 'spells')).toEqual(['Ctrl+k']);
     // Controller: explore onto RT swaps with melee
@@ -320,6 +320,26 @@ describe('bindings', () => {
     expect(t.get(6)).toEqual({ tap: 'aim', hold: 'combatWheel' });
     expect(t.get(4)).toEqual({ tap: 'inventory', hold: 'gearWheel' });
     expect(t.get(0)).toEqual({ tap: 'interact', hold: 'contextMenu' });
+  });
+
+  it("follows Angband's original keyset, with first-person numpad movement", () => {
+    const k = defaultBindings().keys;
+    expect([k.p, k.g, k.G, k.Tab, k.h, k.k, k['-'], k['.'], k['=']])
+      .toEqual(['explore', 'cmd:pickup', 'study', 'fire', 'fire', 'cmd:ignore', 'cmd:jump', 'runForward', 'options']);
+    expect([k.Numpad8, k.Numpad2, k.Numpad4, k.Numpad6, k.Numpad7, k.Numpad9, k.Numpad1, k.Numpad3, k.Numpad5])
+      .toEqual(['moveForward', 'moveBack', 'strafeLeft', 'strafeRight', 'turnLeft', 'turnRight', 'moveBackLeft', 'moveBackRight', 'wait']);
+    expect(k.S).toBeUndefined();
+  });
+
+  it('moves saved keys that still hold an old default onto Angband keys', () => {
+    const keys = { ...defaultBindings().keys, p: 'cmd:pickup', S: 'study', Tab: 'attack', Numpad8: 'walkDir8', Numpad4: 'walkDir4', q: 'look' } as Record<string, string>;
+    delete keys.G;
+    delete keys['Shift+Tab'];
+    const b = loadBindings({ version: 1, padLayout: 2, preset: 'angband', keys, pad: {} });
+    expect([b.keys.p, b.keys.G, b.keys.S, b.keys.Tab, b.keys['Shift+Tab'], b.keys.Numpad8, b.keys.Numpad4])
+      .toEqual(['explore', 'study', undefined, 'fire', 'attack', 'moveForward', 'strafeLeft']);
+    // A key the player rebound is left alone
+    expect(b.keys.q).toBe('look');
   });
 
   it('labels keys and buttons, and survives bad saved data', () => {

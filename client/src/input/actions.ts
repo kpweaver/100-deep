@@ -6,6 +6,7 @@ import type { GameAction as EngineAction } from '@thang/protocol';
  */
 export type GameAction =
   | 'moveForward' | 'moveBack' | 'strafeLeft' | 'strafeRight'
+  | 'moveBackLeft' | 'moveBackRight'
   | 'turnLeft' | 'turnRight'
   | 'interact'      // contextual: stairs, pick up, open door ahead
   | 'attack'        // melee: strike an adjacent foe, else step toward the nearest
@@ -29,7 +30,7 @@ export type GameAction =
   | 'commands'      // every command, by category
   | 'aim'           // pick and cycle a target, then fire at it
   | 'look'          // examine what you see, or any grid with a free cursor
-  | 'equipment' | 'quiver' | 'messages' | 'save' | 'saveQuit' | 'help'
+  | 'equipment' | 'quiver' | 'messages' | 'save' | 'saveQuit' | 'help' | 'options'
   /** An engine command sent as is; the engine asks for any item, direction or target */
   | `cmd:${EngineAction}`;
 
@@ -66,7 +67,7 @@ export type PromptKey = GameAction | UiAction | 'tabs' | 'zoom' | 'dpad' | 'scro
  */
 export const PROMPTS: Record<Exclude<Device, 'touch'>, Partial<Record<PromptKey, string>>> = {
   keyboard: {
-    interact: 'Space', attack: 'Tab', fire: 'h', explore: 'x', wait: ',', rest: 'R',
+    interact: 'Space', attack: 'Shift+Tab', fire: 'h', explore: 'x', wait: ',', rest: 'R',
     inventory: 'i', spells: 'm', map: 'M',
     useMenu: 'U', commands: 'Enter', aim: '*', look: 'l',
     character: 'C', menu: 'Esc', confirm: 'Enter', back: 'Esc',

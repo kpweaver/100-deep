@@ -372,7 +372,7 @@ export class MapLayer extends Layer {
     // On touch, tapping the map travels, and zoom gets a button each way
     const touch = ctx.input.lastDevice === 'touch';
     this.el.append(h('div', { class: 'panel full' },
-      h('div', { class: 'panel-title' }, 'Map', h('small', {}, touch ? 'Tap a place to travel there' : 'Your knowledge of this level')),
+      h('div', { class: 'panel-title' }, 'Map', h('small', {}, touch ? 'Tap a place to travel there' : 'Click a place to travel there')),
       this.wrap,
       this.info,
       h('div', { class: 'panel-footer' },

@@ -11,7 +11,7 @@
  *    position; rotation is local and free.
  */
 import {
-  DIR_OFFSETS, FACING_TO_DIR, type CommandMessage, type Direction, type EngineMessage, type Panel, type StateMessage,
+  DIR_OFFSETS, FACING_TO_DIR, dirFromOffset, type CommandMessage, type Direction, type EngineMessage, type Panel, type StateMessage,
 } from '@thang/protocol';
 import { Connection, type Transport } from './protocol/connection.ts';
 import { WorkerConnection, useWasmEngine } from './wasm/worker-connection.ts';
@@ -35,7 +35,7 @@ import { MenuLayer, TextLayer } from './ui/menu-layer.ts';
 import { PanelLayer } from './ui/panel-view.ts';
 import {
   DeathLayer, InventoryLayer, MapLayer, StoreLayer, TitleLayer,
-  openMessageLog, openSystemMenu, startBirth,
+  openMessageLog, openOptions, openSystemMenu, startBirth,
 } from './ui/screens.ts';
 import { Sfx } from './audio/sfx.ts';
 import { loadBindings } from './input/bindings.ts';
@@ -114,6 +114,7 @@ export class App implements InputHandler {
     this.hud = new Hud(this.state, () => this.atlas);
     this.hud.setVisible(false);
     const canvas = h('canvas', { class: 'view', id: 'view' });
+    this.installMouse(canvas);
     // Landscape only on phones: held upright, a hint covers everything (CSS)
     const rotateHint = h('div', { class: 'rotate-hint' }, h('div', { class: 'rotate-phone' }), 'Turn your phone sideways',
       h('small', {}, '100 Deep plays in landscape'));
@@ -324,6 +325,12 @@ export class App implements InputHandler {
       this.optionsPushed = true;
       this.send({ type: 'options', set: { ...this.engineOptions } });
     }
+    // Time passing after Cast means a spell was picked and cast (or fumbled);
+    // a cancelled menu or "you have no spells" takes no time and no gesture
+    if (this.castTurn !== null && m.turn !== undefined && m.turn > this.castTurn) {
+      this.castTurn = null;
+      this.hud.weapon.cast(this.state.player?.class ?? '');
+    }
     this.continueExplore(m);
     this.flushQueue();
   }
@@ -514,7 +521,8 @@ export class App implements InputHandler {
       // The weapon in hand: launchers fire, and digging uses the weapon (as in Angband)
       if (m.action === 'fire' || m.action === 'fire_at_nearest') this.hud.weapon.shoot();
       else if (m.action === 'tunnel' && this.diggableAt(m.dir)) this.hud.weapon.dig();
-      else if (m.action === 'cast') this.hud.weapon.cast(this.state.player?.class ?? '');
+      // The cast gesture waits until a spell is actually cast (see afterState)
+      this.castTurn = m.action === 'cast' ? this.state.turn : null;
       if (!AUTO_FACE_ACTIONS.has(m.action)) this.heading.reset();
       this.lastAction = m.action;
       if (this.pending) {
@@ -633,6 +641,8 @@ export class App implements InputHandler {
     switch (g) {
       case 'moveForward': this.walk(0); break;
       case 'moveBack': this.walk(4); break;
+      case 'moveBackLeft': this.walk(5); break;
+      case 'moveBackRight': this.walk(3); break;
       case 'strafeLeft': this.walk(6); break;
       case 'strafeRight': this.walk(2); break;
       case 'runForward': this.walk(0, true); break;
@@ -706,6 +716,7 @@ export class App implements InputHandler {
         else this.send({ type: 'close_game' });
         break;
       case 'help': this.ui.open(new ControlsLayer(this.ctx)); break;
+      case 'options': openOptions(this.ctx); break;
       case 'cancel':
         if (this.state.target) this.command({ action: 'target_clear' });
         break;
@@ -757,6 +768,8 @@ export class App implements InputHandler {
   /* ---------------------------------------------------------------- */
 
   private lastAction: CommandMessage['action'] | null = null;
+  /** Game turn when Cast was chosen, until a spell goes off or another command is sent */
+  private castTurn: number | null = null;
   /** Smoothed heading for engine-driven movement (see camera/heading.ts) */
   private heading = new HeadingFollower();
 
@@ -1008,6 +1021,43 @@ export class App implements InputHandler {
     }
     // Continue on the next frame once the step animation settles
     this.queued = { type: 'command', action: 'explore' };
+  }
+
+  /**
+   * The mouse in the 3D view, after Angband's clicks on the map: left-click
+   * travels to the grid (a step when it is next to you, which attacks a
+   * monster there), right-click targets the monster under the pointer, or
+   * opens the context menu elsewhere.
+   */
+  private installMouse(canvas: HTMLElement): void {
+    let mouse = false;
+    canvas.addEventListener('pointerdown', (e) => (mouse = e.pointerType === 'mouse'));
+    const at = (e: MouseEvent) => {
+      if (!mouse || this.state.phase !== 'game' || this.ui.top || this.state.prompt || !this.renderer) return null;
+      return this.renderer.pick(e.clientX, e.clientY, (x, y) => {
+        const c = this.state.featureClassAt(x, y);
+        return c.shape === 'door_closed' ? 'door' : c.blocksView ? 'wall' : 'open';
+      });
+    };
+    canvas.addEventListener('click', (e) => {
+      const g = at(e);
+      const p = this.state.player;
+      if (!g || !p || (g.x === p.x && g.y === p.y)) return;
+      const dir = dirFromOffset(g.x - p.x, g.y - p.y);
+      if (dir && Math.max(Math.abs(g.x - p.x), Math.abs(g.y - p.y)) === 1) {
+        this.renderer?.cam.face(dir);
+        this.command({ action: this.state.featureClassAt(g.x, g.y).shape === 'door_closed' ? 'open' : 'walk', dir });
+      } else {
+        this.command({ action: 'pathfind', x: g.x, y: g.y });
+      }
+    });
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const g = at(e);
+      if (!g) return;
+      if (g.monster !== null) this.command({ action: 'target_monster', monster: g.monster });
+      else this.contextMenu();
+    });
   }
 
   /** Face the most open direction after arriving on a level */

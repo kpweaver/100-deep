@@ -57,6 +57,16 @@ export class EntityLayer {
     this.fallback = new THREE.CanvasTexture(c);
   }
 
+  /** The monster whose sprite the ray hits first, if any */
+  monsterUnder(ray: THREE.Raycaster): number | null {
+    let best: { id: number; d: number } | null = null;
+    for (const [id, ms] of this.monsters) {
+      const hit = ray.intersectObject(ms.sprite, false)[0];
+      if (hit && (!best || hit.distance < best.d)) best = { id, d: hit.distance };
+    }
+    return best?.id ?? null;
+  }
+
   private material(tile: Tile | null, opacity = 1): THREE.SpriteMaterial {
     const map = (tile && this.atlas.texture(tile)) || this.fallback;
     return new THREE.SpriteMaterial({
