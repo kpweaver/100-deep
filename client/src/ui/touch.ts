@@ -11,7 +11,8 @@
  *    Gear wheels.
  *  - Top: full screen (where the browser allows it), the map, the
  *    command list and the menu.
- *  - Swiping across the view turns (sideways) or steps (up and down).
+ *  - Swiping across the view turns the way the finger moves (or the other
+ *    way, as an option) or steps (up: forward, down: back).
  *
  * Menus need nothing extra: their rows take taps (a long press is the
  * secondary action), every layer gets a close button, and the key prompts
@@ -57,7 +58,7 @@ export class TouchControls {
   private actions: HTMLElement;
   private shown = true;
 
-  constructor(private input: InputManager, view: HTMLElement) {
+  constructor(private input: InputManager, view: HTMLElement, private invertSwipe: () => boolean = () => false) {
     const pad = h('div', { class: 'touch-pad' },
       this.button({ label: '↶', tap: 'turnLeft', repeat: true }),
       this.button({ label: '↑', tap: 'moveForward', repeat: true, run: true }),
@@ -179,8 +180,9 @@ export class TouchControls {
       const dx = e.clientX - start.x, dy = e.clientY - start.y;
       start = null;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE) return;
-      // Dragging the world left turns you right, as in most touch crawlers
-      if (Math.abs(dx) > Math.abs(dy)) this.press(dx < 0 ? 'turnRight' : 'turnLeft');
+      // Turn the way the finger moves, as mobile 3D games look around;
+      // inverted, dragging the world left turns you right (Street View)
+      if (Math.abs(dx) > Math.abs(dy)) this.press((dx > 0) !== this.invertSwipe() ? 'turnRight' : 'turnLeft');
       else this.press(dy < 0 ? 'moveForward' : 'moveBack');
     });
     view.addEventListener('pointercancel', () => (start = null));

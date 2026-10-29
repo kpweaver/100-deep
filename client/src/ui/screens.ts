@@ -480,6 +480,7 @@ export function openOptions(ctx: UiContext): void {
       { label: 'Field of view', right: `${s.fov}°`, detail: '←/→ to change', data: { kind: 'client', key: 'fov' } },
       { label: 'Instant movement & turning', right: s.instantMovement ? 'On' : 'Off', data: { kind: 'client', key: 'instantMovement' } },
       { label: 'Keep exploring after each step', right: s.autoExploreRepeat ? 'On' : 'Off', data: { kind: 'client', key: 'autoExploreRepeat' } },
+      { label: 'Invert swipe turning', right: s.invertSwipe ? 'On' : 'Off', detail: 'Touch: On turns right when you swipe left, as if dragging the world', data: { kind: 'client', key: 'invertSwipe' } },
       { label: 'Minimap', right: s.showMinimap ? 'On' : 'Off', data: { kind: 'client', key: 'showMinimap' } },
       { label: 'Monster & item lists under the minimap', right: s.showSidebar ? 'On' : 'Off', detail: 'Toggle in play with \\', data: { kind: 'client', key: 'showSidebar' } },
       { label: 'Controller button labels', right: ({ auto: 'Auto', xbox: 'Xbox', playstation: 'PlayStation', nintendo: 'Nintendo' } as const)[s.controllerGlyphs], detail: '←/→ to change', data: { kind: 'client', key: 'controllerGlyphs' } },
@@ -513,6 +514,7 @@ export function openOptions(ctx: UiContext): void {
       case 'instantMovement': ctx.applySettings({ instantMovement: !s.instantMovement }); break;
       case 'autoExploreRepeat': ctx.applySettings({ autoExploreRepeat: !s.autoExploreRepeat }); break;
       case 'showMinimap': ctx.applySettings({ showMinimap: !s.showMinimap }); break;
+      case 'invertSwipe': ctx.applySettings({ invertSwipe: !s.invertSwipe }); break;
       case 'showSidebar': ctx.applySettings({ showSidebar: !s.showSidebar }); break;
       case 'controllerGlyphs': {
         const order = ['auto', 'xbox', 'playstation', 'nintendo'] as const;
