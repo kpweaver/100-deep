@@ -15,6 +15,8 @@ export interface Settings {
   fov: number;
   volume: number;
   autoExploreRepeat: boolean;
+  /** Touch: swipe left turns right (dragging the world), instead of turning the way the finger moves */
+  invertSwipe: boolean;
   showMinimap: boolean;
   /** Side panels: stock monster list, item list and recall */
   showSidebar: boolean;
@@ -31,6 +33,7 @@ export const DEFAULT_SETTINGS: Settings = {
   fov: 70,
   volume: 0.5,
   autoExploreRepeat: true,
+  invertSwipe: false,
   showMinimap: true,
   showSidebar: true,
   controllerGlyphs: 'auto',

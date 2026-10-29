@@ -119,7 +119,7 @@ export class App implements InputHandler {
       h('small', {}, '100 Deep plays in landscape'));
     root.append(canvas, this.hud.el, uiRoot, this.overlay, rotateHint);
     // Phones and tablets: on-screen controls over the HUD, hidden under menus
-    this.touch = new TouchControls(this.input, canvas);
+    this.touch = new TouchControls(this.input, canvas, () => this.settings.invertSwipe);
     this.hud.el.append(this.touch.el);
     this.ui.onChange = () => this.touch.setVisible(!this.ui.top);
     installPromptTaps(root, this.input);

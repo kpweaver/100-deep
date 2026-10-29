@@ -67,8 +67,9 @@ controller buttons, so game code never knows a finger did it.
   allows it), Map, ⋯ (every command) and ≡ (the menu).
 - **HUD taps:** tapping the minimap opens the map; tapping the vitals opens
   the character sheet.
-- **Swipes** across the view: sideways turns, up steps forward, down steps
-  back.
+- **Swipes** across the view: sideways turns the way the finger moves
+  (Options ▸ Invert swipe turning reverses it), up steps forward, down
+  steps back.
 - **Menus:**
   - Rows take taps; a long press is the secondary action (Examine).
   - Every menu has a close button.
