@@ -1,9 +1,13 @@
 /**
  * Rebindable controls: which key or button does each game action.
  *
- * The default keyboard layout is Angband's own (original keyset): q quaffs,
- * r reads, m casts, l looks, * targets, R rests, Enter opens the command
- * menu, and so on, with arrows to walk and turn in first person.  A WASD
+ * The default keyboard layout is Angband's own original keyset, key for key
+ * wherever the command exists here (q quaffs, r reads, m casts, G gains a
+ * spell, l looks, * targets, h and Tab fire at the nearest, p explores, g
+ * picks up, R rests...), with first-person movement: arrows step and turn,
+ * and on the numpad 8/2 step forward and back, 4/6 step sideways, 7/9 turn
+ * and 1/3 step back diagonally.  Enter opens the command menu and Space
+ * does the contextual action, which Angband leaves free.  A WASD
  * preset moves with WASD/QE instead, leaving the letters it takes to the
  * Use, gear and command menus.  UI keys (arrows, Enter, Esc in menus) and
  * the controller's menu buttons (B back, Start menu) are fixed.
@@ -39,6 +43,8 @@ export const BINDABLE: [group: string, action: GameAction, label: string][] = [
   ['Move', 'moveBack', 'Step back'],
   ['Move', 'strafeLeft', 'Step left'],
   ['Move', 'strafeRight', 'Step right'],
+  ['Move', 'moveBackLeft', 'Step back and left'],
+  ['Move', 'moveBackRight', 'Step back and right'],
   ['Move', 'turnLeft', 'Turn left'],
   ['Move', 'turnRight', 'Turn right'],
   ['Move', 'runForward', 'Run forward'],
@@ -85,7 +91,9 @@ export const BINDABLE: [group: string, action: GameAction, label: string][] = [
   ['Items', 'cmd:pickup', 'Pick up'],
   ['Items', 'cmd:inscribe', 'Inscribe'],
   ['Items', 'cmd:uninscribe', 'Uninscribe'],
+  ['Items', 'cmd:ignore', 'Ignore an item'],
   ['Items', 'cmd:toggle_unignore', 'Show or hide ignored items'],
+  ['Items', 'cmd:autopickup', 'Pick up what you would auto-pick-up'],
   ['Look', 'look', 'Look / examine'],
   ['Look', 'map', 'Level map'],
   ['Look', 'character', 'Character sheet'],
@@ -98,6 +106,7 @@ export const BINDABLE: [group: string, action: GameAction, label: string][] = [
   ['System', 'commands', 'All commands menu'],
   ['System', 'save', 'Save'],
   ['System', 'saveQuit', 'Save and quit'],
+  ['System', 'options', 'Options'],
   ['System', 'help', 'Controls'],
 ];
 
@@ -105,20 +114,28 @@ export const BINDABLE: [group: string, action: GameAction, label: string][] = [
 const ANGBAND_KEYS: Record<KeyId, GameAction> = {
   ArrowUp: 'moveForward', ArrowDown: 'moveBack', ArrowLeft: 'turnLeft', ArrowRight: 'turnRight',
   'Shift+ArrowLeft': 'strafeLeft', 'Shift+ArrowRight': 'strafeRight', 'Shift+ArrowUp': 'runForward',
-  Numpad1: 'walkDir1', Numpad2: 'walkDir2', Numpad3: 'walkDir3', Numpad4: 'walkDir4', Numpad5: 'wait',
-  Numpad6: 'walkDir6', Numpad7: 'walkDir7', Numpad8: 'walkDir8', Numpad9: 'walkDir9',
+  Numpad8: 'moveForward', Numpad2: 'moveBack', Numpad4: 'strafeLeft', Numpad6: 'strafeRight',
+  Numpad7: 'turnLeft', Numpad9: 'turnRight', Numpad1: 'moveBackLeft', Numpad3: 'moveBackRight', Numpad5: 'wait',
   Space: 'interact', Enter: 'commands', NumpadEnter: 'commands', Escape: 'menu',
-  ',': 'wait', R: 'rest', p: 'cmd:pickup', g: 'cmd:pickup', '<': 'goUp', '>': 'goDown', W: 'cmd:jump',
-  i: 'inventory', I: 'inventory', e: 'equipment', '|': 'quiver',
-  m: 'spells', b: 'spells', S: 'study',
+  // Moving
+  ',': 'wait', '.': 'runForward', R: 'rest', p: 'explore', x: 'explore', '<': 'goUp', '>': 'goDown',
+  W: 'cmd:jump', '-': 'cmd:jump',
+  // Items
+  g: 'cmd:pickup', 'Ctrl+g': 'cmd:autopickup', i: 'inventory', I: 'inventory', e: 'equipment', '|': 'quiver',
   q: 'cmd:quaff', r: 'cmd:read', E: 'cmd:eat', a: 'cmd:aim_wand', u: 'cmd:use_staff', z: 'cmd:zap_rod',
-  A: 'cmd:activate', U: 'useMenu', f: 'cmd:fire', v: 'cmd:throw', F: 'cmd:refill',
-  w: 'cmd:wield', t: 'cmd:takeoff', d: 'cmd:drop', '{': 'cmd:inscribe', '}': 'cmd:uninscribe',
-  K: 'cmd:toggle_unignore',
+  A: 'cmd:activate', U: 'useMenu', F: 'cmd:refill', w: 'cmd:wield', t: 'cmd:takeoff', d: 'cmd:drop',
+  '{': 'cmd:inscribe', '}': 'cmd:uninscribe', k: 'cmd:ignore', 'Ctrl+d': 'cmd:ignore', K: 'cmd:toggle_unignore',
+  // Magic
+  m: 'spells', b: 'spells', G: 'study',
+  // Fighting and other actions
+  f: 'cmd:fire', v: 'cmd:throw', h: 'fire', Tab: 'fire', 'Shift+Tab': 'attack',
+  '*': 'aim', "'": 'cmd:target_closest',
   o: 'cmd:open', c: 'cmd:close', T: 'cmd:tunnel', D: 'cmd:disarm', '+': 'cmd:alter', s: 'cmd:steal',
-  l: 'look', x: 'explore', '*': 'aim', "'": 'cmd:target_closest', h: 'fire', Tab: 'attack',
-  C: 'character', M: 'map', '[': 'monsterList', ']': 'itemList', '/': 'recall', '\\': 'toggleSidebar',
-  'Ctrl+p': 'messages', 'Ctrl+f': 'cmd:feeling', 'Ctrl+s': 'save', 'Ctrl+x': 'saveQuit', '?': 'help',
+  // Looking
+  l: 'look', M: 'map', L: 'map', C: 'character', '[': 'monsterList', ']': 'itemList', '/': 'recall',
+  'Ctrl+e': 'toggleSidebar', '\\': 'toggleSidebar', 'Ctrl+f': 'cmd:feeling', 'Ctrl+p': 'messages', 'Ctrl+o': 'messages',
+  // System
+  '=': 'options', 'Ctrl+s': 'save', 'Ctrl+x': 'saveQuit', '?': 'help',
 };
 
 /** WASD movement; the Angband letters it takes (w a s d q e) live in the menus instead */
@@ -177,6 +194,14 @@ export function loadBindings(raw: unknown): Bindings {
   if (keys.p === 'spells' && keys.m === 'spells') keys.p = 'cmd:pickup';
   // h fired at the nearest monster as an engine command; Fire is its own action now
   for (const k of Object.keys(keys)) if (keys[k] === 'cmd:fire_at_nearest') keys[k] = 'fire';
+  // Keys that once differed from Angband's own and still hold the old default
+  // follow Angband now (p explores, G studies, Tab fires, the numpad moves
+  // relative to the view)
+  if (keys.p === 'cmd:pickup') keys.p = 'explore';
+  if (keys.S === 'study' && !keys.G) (delete keys.S, (keys.G = 'study'));
+  if (keys.Tab === 'attack' && !keys['Shift+Tab']) (keys.Tab = 'fire', (keys['Shift+Tab'] = 'attack'));
+  const relative: Record<string, GameAction> = { Numpad8: 'moveForward', Numpad2: 'moveBack', Numpad4: 'strafeLeft', Numpad6: 'strafeRight', Numpad7: 'turnLeft', Numpad9: 'turnRight', Numpad1: 'moveBackLeft', Numpad3: 'moveBackRight' };
+  for (const [id, a] of Object.entries(relative)) if (keys[id] === `walkDir${id.slice(-1)}`) keys[id] = a;
   // Buttons saved for the old layout give way to the wheels
   const pad = b.padLayout === 2 ? { ...b.pad } : structuredClone(PAD_DEFAULTS);
   return { version: 1, padLayout: 2, preset: b.preset === 'wasd' ? 'wasd' : 'angband', keys, pad };

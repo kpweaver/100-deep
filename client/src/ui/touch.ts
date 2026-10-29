@@ -8,7 +8,7 @@
  *  - Right: the contextual action (Descend, Attack, Open…; hold for every
  *    action here), with Advance (melee the nearest), Fire and Aim in a fight, or Explore, Rest
  *    and Look when it is quiet, plus Cast (for casters) and the Use and
- *    Gear wheels.
+ *    Gear wheels, with Study left of Gear while a spell can be learned.
  *  - Top: full screen (where the browser allows it), the map, the
  *    command list and the menu.
  *  - Swiping across the view turns the way the finger moves (or the other
@@ -32,7 +32,7 @@ export interface TouchContext {
   exploring: boolean;
   /** The character can cast: a Cast button straight to the spell list */
   cast: boolean;
-  /** A new spell can be learned: Study in place of Look */
+  /** A new spell can be learned: a Study button left of Gear */
   study: boolean;
 }
 
@@ -71,6 +71,7 @@ export class TouchControls {
     for (let i = 0; i < 3; i++) this.slots.push(h('div', { class: 'touch-slot' }));
     const actions = this.actions = h('div', { class: 'touch-actions' },
       ...this.slots,
+      this.button({ label: 'Study', tap: 'study', cls: 'touch-study' }),
       this.button({ label: 'Cast', tap: 'spells', cls: 'touch-cast' }),
       this.button({ label: 'Use', tap: 'combatWheel', cls: 'touch-use' }),
       this.button({ label: 'Gear', tap: 'gearWheel', cls: 'touch-gear' }),
@@ -95,10 +96,11 @@ export class TouchControls {
     const label = c.primary?.replace(/^(Attack|Pick up|Enter|Clear) .*/, '$1') ?? 'Act';
     this.primary.querySelector('span')!.textContent = label;
     this.primary.classList.toggle('idle', !c.primary);
-    this.actions.classList.toggle('caster', c.cast);
+    this.actions.classList.toggle('caster', c.cast || c.study);
+    this.actions.classList.toggle('can-study', c.study);
     const specs: ButtonSpec[] = c.fight
       ? [{ label: 'Advance', tap: 'attack' }, { label: c.ammo ? 'Fire' : 'Throw', tap: c.ammo ? 'fire' : 'cmd:throw' }, { label: 'Aim', tap: 'aim' }]
-      : [{ label: c.exploring ? 'Stop' : 'Explore', tap: 'explore', hold: 'travelDown' }, { label: 'Rest', tap: 'rest', hold: 'wait' }, c.study ? { label: 'Study', tap: 'study' } : { label: 'Look', tap: 'look' }];
+      : [{ label: c.exploring ? 'Stop' : 'Explore', tap: 'explore', hold: 'travelDown' }, { label: 'Rest', tap: 'rest', hold: 'wait' }, { label: 'Look', tap: 'look' }];
     specs.forEach((s, i) => {
       const key = `${s.tap}|${s.label}`;
       if (this.slots[i].dataset.key === key) return;

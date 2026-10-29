@@ -22,7 +22,7 @@ const LABELS = new Map(BINDABLE.map(([, a, l]) => [a, l]));
 
 /** Keys and buttons that are not rebindable, shown under the list */
 const FIXED: Record<Tab, string> = {
-  keyboard: 'Fixed: arrows, Enter, Esc, Tab and PageUp/PageDown in menus; numpad 1–9 walks in map directions; letters pick items in menus.',
+  keyboard: 'Fixed: arrows, Enter, Esc, Tab and PageUp/PageDown in menus; letters pick items in menus.',
   gamepad: 'Fixed: left stick moves, right stick turns, B goes back, Start opens the menu; in menus A selects, LB/RB switch tabs, LT/RT page.',
 };
 

@@ -11,7 +11,7 @@
  */
 import * as THREE from 'three';
 import { GridCamera } from '../camera/grid-camera.ts';
-import { DungeonMesh, type DungeonBuildContext } from './dungeon-mesh.ts';
+import { DungeonMesh, WALL_HEIGHT, type DungeonBuildContext } from './dungeon-mesh.ts';
 import { EntityLayer } from './entities.ts';
 import { EffectsLayer } from './effects.ts';
 import { textureQuality, type TileAtlas } from '../sprites/atlas.ts';
@@ -86,6 +86,30 @@ export class SceneRenderer {
     this.setOutdoors(false);
     window.addEventListener('resize', () => this.resize());
     this.resize();
+  }
+
+  /**
+   * What is under a point of the view (client pixels): the monster sprite
+   * there, and the grid the ray first meets: the floor it lands on, or the
+   * open grid in front of the wall it hits (a closed door itself).
+   */
+  pick(clientX: number, clientY: number, blocks: (x: number, y: number) => 'open' | 'door' | 'wall'): { x: number; y: number; monster: number | null } | null {
+    const r = this.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(ndc, this.cam.camera);
+    const monster = this.entities.monsterUnder(ray);
+    const o = ray.ray.origin, d = ray.ray.direction;
+    let last: { x: number; y: number } | null = null;
+    for (let t = 0.05; t < 30; t += 0.05) {
+      const x = Math.round(o.x + d.x * t), y = Math.round(o.z + d.z * t), h = o.y + d.y * t;
+      const b = blocks(x, y);
+      if (b === 'door') return { x, y, monster };
+      if (b === 'wall') return last && { ...last, monster };
+      last = { x, y };
+      if (h <= 0 || h >= WALL_HEIGHT) break;
+    }
+    return last && { ...last, monster };
   }
 
   setPixelScale(scale: number): void {

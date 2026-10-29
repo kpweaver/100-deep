@@ -9,8 +9,9 @@
  *
  * Look describes the grid; on a monster, Enter/A (or r) shows its recall,
  * and g (or Y) travels to the grid.  Aim fires the first missile in the
- * quiver at the grid (or throws, without a launcher) with Enter/A/t, or
- * just sets the target with Shift+Enter/X, for spells and wands.  Neither
+ * quiver at the grid (or throws, without a launcher) with Enter/A, or
+ * just sets the target with t (Angband's key, or 5 or .) or X, for
+ * spells and wands.  Neither
  * mode takes a game turn until you fire or travel.
  */
 import { DIR_OFFSETS, FACING_TO_DIR, type Direction } from '@thang/protocol';
@@ -245,8 +246,8 @@ export class AimLayer extends CursorLayer {
     const kb = this.ctx.input.keyboardLike;
     const s = this.ctx.state;
     this.help.replaceChildren(
-      this.kbd(kb ? 't' : pr.confirm, 'A', this.launcher() ? `Fire ${s.quiver[0].name}` : 'Throw'),
-      this.kbd(kb ? 'Shift+Enter' : pr.secondary, 'X', 'Set target'),
+      this.kbd(kb ? 'Enter' : pr.confirm, 'A', this.launcher() ? `Fire ${s.quiver[0].name}` : 'Throw'),
+      this.kbd(kb ? 't' : pr.secondary, 'X', 'Set target'),
       this.kbd(kb ? 'Space/-' : pr.tabs, 'LB/RB', 'Next target'),
       // No cursor keys on a touch screen
       ...(this.ctx.input.lastDevice === 'touch' ? [] : [this.kbd(kb ? '↑↓←→' : pr.dpad, 'D-pad', 'Move cursor')]),
@@ -263,7 +264,14 @@ export class AimLayer extends CursorLayer {
   protected act(ev: InputEvent): boolean {
     const p = this.ctx.state.player;
     const onSelf = !!p && p.x === this.x && p.y === this.y;
-    if (ev.ui === 'confirm' || ev.key === 't' || ev.key === '5' || ev.game === 'attack') {
+    // Angband's targeting keys (t, 5, .) only set the target, as there
+    if (ev.ui === 'secondary' || ev.key === 't' || ev.key === '5' || ev.key === '.') {
+      if (onSelf) return true;
+      this.setTarget();
+      this.close();
+      return true;
+    }
+    if (ev.ui === 'confirm' || ev.game === 'attack' || ev.game === 'fire') {
       if (onSelf) return true;
       this.setTarget();
       this.close();
@@ -273,12 +281,6 @@ export class AimLayer extends CursorLayer {
         // Choose what to throw; the engine's prompt asks for the item
         this.ctx.send({ type: 'command', action: 'throw', useTarget: true });
       }
-      return true;
-    }
-    if (ev.ui === 'secondary') {
-      if (onSelf) return true;
-      this.setTarget();
-      this.close();
       return true;
     }
     if (ev.game === 'aim') {

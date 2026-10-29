@@ -358,7 +358,10 @@ kbd.pad .g-sep { font-size: 16px; color: var(--ink-dim); }
 /* Casters get Cast beside Use */
 .touch-cast { grid-area: cast; }
 .touch-actions:not(.caster) .touch-cast { display: none; }
-.touch-actions.caster { grid-template-columns: repeat(6, var(--btn)); grid-template-areas: ". . . . prim prim" "gear use cast s2 s1 s0"; }
+.touch-actions.caster { grid-template-columns: repeat(7, var(--btn)); grid-template-areas: ". . . . . prim prim" "study gear use cast s2 s1 s0"; }
+/* Study leads the row, left of Gear, only while a new spell can be learned */
+.touch-study { grid-area: study; border-color: var(--gold); color: #fff3d0; }
+.touch-actions:not(.can-study) .touch-study { display: none; }
 .touch-slot .touch-btn { font-size: 14px; }
 .touch-primary { grid-area: prim; justify-self: end; width: calc(1.5 * var(--btn)); height: calc(1.5 * var(--btn)); border-radius: 50%; border: 2px solid var(--gold); background: radial-gradient(circle at 40% 35%, rgba(90,70,30,0.55), rgba(20,16,10,0.5)); color: #fff3d6; font-size: 14px; padding: 4px; text-align: center; }
 /* Only there when there is something to do here (stairs, items, a shop, a door or foe ahead) */
