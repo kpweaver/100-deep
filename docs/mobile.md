@@ -153,16 +153,24 @@ npm run apk         # debug APK without Android Studio (needs JDK 17–21 and th
 - **iOS:** Xcode is not installed (only the command-line tools), so nothing
   iOS can be built or simulated yet. Install Xcode from the App Store; the
   project then opens and runs in the Simulator.
-- **Android:** the SDK is here, but there is no system image (emulator) and
-  no suitable JDK.
-  - Capacitor's Gradle 8.14 runs on JDK 17–21.
-  - This Mac has only Java 11 (Homebrew) and Android Studio's bundled
-    Java 25.
+- **Android:** the SDK is here; there is no system image (emulator), so
+  test on a phone.
+  - Capacitor's Gradle 8.14 runs on JDK 17–21. `openjdk@21` is installed
+    with Homebrew (keg-only, so the default `java` is unchanged); point
+    Gradle at it:
+
+    ```bash
+    export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=~/Library/Android/sdk
+    npm --prefix mobile run apk
+    ```
+
+    The APK lands in `mobile/android/app/build/outputs/apk/debug/`.
   - In Android Studio, point *Settings ▸ Build Tools ▸ Gradle ▸ Gradle JDK*
-    at a JDK 21 (`brew install openjdk@21`), or accept its offer to upgrade
-    Gradle.
-  - Gradle downloads the SDK platform 36 that the project compiles against
-    (platforms 30 and 37 are installed).
+    at that same JDK 21.
+  - Installing a debug APK on a phone: send it over, open it, and allow
+    installs from that app when Android asks. Debug builds are signed with
+    this Mac's debug key, so a Play build (signed differently) replaces it
+    only after uninstalling.
 
 ## Feasibility notes
 
